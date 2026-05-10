@@ -1,4 +1,4 @@
-import type { SqliteDatabase } from "../database.js";
+import type { SqliteDatabase } from "../connection.js";
 
 export function up(db: SqliteDatabase) {
   db.run(`

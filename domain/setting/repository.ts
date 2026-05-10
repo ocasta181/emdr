@@ -1,4 +1,4 @@
-import type { SqliteDatabase } from "../../infrastructure/sqlite/database.js";
+import type { SqliteDatabase } from "../../infrastructure/sqlite/connection.js";
 import { SQLBaseRepository } from "../../infrastructure/sqlite/repository.js";
 import type { Setting } from "./entity.js";
 

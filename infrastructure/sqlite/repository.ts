@@ -1,6 +1,6 @@
 import type { SqlValue } from "sql.js";
-import type { SqliteDatabase } from "./database.js";
-import { selectAll, selectOne } from "./database.js";
+import type { SqliteDatabase } from "./connection.js";
+import { selectAll, selectOne } from "./connection.js";
 
 type SqliteRow = Record<string, SqlValue>;
 

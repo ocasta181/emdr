@@ -3,7 +3,7 @@ import {
   persistSqliteDatabase,
   sqliteDatabasePath,
   type SqliteDatabase
-} from "./database.js";
+} from "./connection.js";
 import { runMigrations } from "./migrations/index.js";
 import { newAppMetadataRepository } from "../../domain/app-metadata/repository.js";
 import { createEmptyDatabase } from "../../domain/app/factory.js";

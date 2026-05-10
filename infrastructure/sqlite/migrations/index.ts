@@ -1,4 +1,4 @@
-import type { SqliteDatabase } from "../database.js";
+import type { SqliteDatabase } from "../connection.js";
 import { up as initialSchema } from "./0001_initial_schema.js";
 
 const migrations = [{ version: 1, up: initialSchema }];
