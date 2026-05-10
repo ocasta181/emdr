@@ -4,6 +4,9 @@ import crypto from "node:crypto";
 import path from "node:path";
 
 const vaultVersion = 1;
+const vaultFormat = "emdr-local-vault";
+const cipherName = "aes-256-gcm";
+const payloadType = "sqlite";
 const keyBytes = 32;
 const ivBytes = 12;
 const saltBytes = 16;
@@ -18,11 +21,17 @@ type WrappedKey = {
 };
 
 type VaultFile = {
+  format: typeof vaultFormat;
   version: 1;
-  kdf: typeof scryptOptions;
+  cipher: typeof cipherName;
+  kdf: {
+    name: "scrypt";
+    params: typeof scryptOptions;
+  };
   password: WrappedKey;
   recovery: WrappedKey;
   data: {
+    type: typeof payloadType;
     iv: string;
     tag: string;
     ciphertext: string;
@@ -48,11 +57,16 @@ export async function createVault(userDataPath: string, password: string, plaint
   const dataKey = crypto.randomBytes(keyBytes);
   const recoveryCode = crypto.randomBytes(recoveryCodeBytes).toString("hex").toUpperCase();
   const vault: VaultFile = {
+    format: vaultFormat,
     version: vaultVersion,
-    kdf: scryptOptions,
+    cipher: cipherName,
+    kdf: {
+      name: "scrypt",
+      params: scryptOptions
+    },
     password: await wrapWithPassword(dataKey, password),
     recovery: wrapWithRecoveryCode(dataKey, recoveryCode),
-    data: encrypt(dataKey, plaintext)
+    data: { type: payloadType, ...encrypt(dataKey, plaintext) }
   };
 
   await writeVault(userDataPath, vault);
@@ -73,7 +87,7 @@ export async function unlockVaultWithRecoveryCode(userDataPath: string, recovery
 
 export async function saveVault(userDataPath: string, dataKey: Buffer, plaintext: Buffer) {
   const vault = await readVault(userDataPath);
-  await writeVault(userDataPath, { ...vault, data: encrypt(dataKey, plaintext) });
+  await writeVault(userDataPath, { ...vault, data: { type: payloadType, ...encrypt(dataKey, plaintext) } });
 }
 
 async function wrapWithPassword(dataKey: Buffer, password: string): Promise<WrappedKey> {
@@ -123,7 +137,7 @@ function parseRecoveryCode(recoveryCode: string) {
 }
 
 async function readVault(userDataPath: string): Promise<VaultFile> {
-  return JSON.parse(await readFile(vaultPath(userDataPath), "utf8")) as VaultFile;
+  return parseVaultFile(await readFile(vaultPath(userDataPath), "utf8"));
 }
 
 async function writeVault(userDataPath: string, vault: VaultFile) {
@@ -132,6 +146,22 @@ async function writeVault(userDataPath: string, vault: VaultFile) {
   const temporary = `${target}.tmp`;
   await writeFile(temporary, JSON.stringify(vault));
   await rename(temporary, target);
+}
+
+function parseVaultFile(contents: string): VaultFile {
+  const vault = JSON.parse(contents) as Partial<VaultFile>;
+
+  if (
+    vault.format !== vaultFormat ||
+    vault.version !== vaultVersion ||
+    vault.cipher !== cipherName ||
+    vault.kdf?.name !== "scrypt" ||
+    vault.data?.type !== payloadType
+  ) {
+    throw new Error("Unsupported encrypted data file.");
+  }
+
+  return vault as VaultFile;
 }
 
 function required(value: string | undefined) {
