@@ -26,6 +26,14 @@ export async function unlockWithRecoveryCode(recoveryCode: string) {
   }
 }
 
+export async function exportVault() {
+  return window.emdr ? window.emdr.exportVault() : { canceled: true as const };
+}
+
+export async function importVault() {
+  return window.emdr ? window.emdr.importVault() : { canceled: true };
+}
+
 export async function loadDatabase(): Promise<Database> {
   if (window.emdr) {
     const loaded = await window.emdr.loadDatabase();

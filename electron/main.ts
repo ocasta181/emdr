@@ -1,19 +1,22 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   appVaultStatus,
   createAppVault,
+  exportAppVault,
+  importAppVault,
   loadAppDatabase,
   saveAppDatabase,
   unlockAppVaultWithPassword,
   unlockAppVaultWithRecoveryCode
 } from "../infrastructure/sqlite/app-store.js";
-import { vaultPath } from "../infrastructure/security/vault.js";
+import { defaultVaultExportName, vaultPath } from "../infrastructure/security/vault.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
+const useAnimatedUi = process.argv.includes("--animated-ui") || process.env.EMDR_LOCAL_UI === "animated";
 
 function databasePath() {
   return vaultPath(userDataPath());
@@ -40,9 +43,15 @@ async function createWindow() {
   });
 
   if (isDev) {
-    await window.loadURL(process.env.VITE_DEV_SERVER_URL!);
+    const devUrl = new URL(process.env.VITE_DEV_SERVER_URL!);
+    if (useAnimatedUi) {
+      devUrl.searchParams.set("ui", "animated");
+    }
+    await window.loadURL(devUrl.toString());
   } else {
-    await window.loadFile(path.join(__dirname, "../../dist/index.html"));
+    await window.loadFile(path.join(__dirname, "../../dist/index.html"), {
+      query: useAnimatedUi ? { ui: "animated" } : undefined
+    });
   }
 }
 
@@ -72,6 +81,44 @@ app.whenReady().then(async () => {
   ipcMain.handle("vault:unlock-recovery", async (_event, recoveryCode: unknown) => {
     await unlockAppVaultWithRecoveryCode(userDataPath(), String(recoveryCode));
     return { ok: true };
+  });
+
+  ipcMain.handle("vault:export", async () => {
+    const result = await dialog.showSaveDialog({
+      title: "Export Encrypted Data",
+      defaultPath: defaultVaultExportName(),
+      filters: [{ name: "EMDR Local Encrypted Data", extensions: ["emdr-vault"] }]
+    });
+
+    if (result.canceled || !result.filePath) return { canceled: true };
+
+    await exportAppVault(userDataPath(), result.filePath);
+    return { canceled: false, path: result.filePath };
+  });
+
+  ipcMain.handle("vault:import", async () => {
+    const result = await dialog.showOpenDialog({
+      title: "Import Encrypted Data",
+      properties: ["openFile"],
+      filters: [{ name: "EMDR Local Encrypted Data", extensions: ["emdr-vault"] }]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+
+    const confirmation = await dialog.showMessageBox({
+      type: "warning",
+      buttons: ["Import", "Cancel"],
+      defaultId: 1,
+      cancelId: 1,
+      title: "Replace Local Encrypted Data",
+      message: "Import encrypted data?",
+      detail: "Importing replaces the local encrypted data currently used by this app."
+    });
+
+    if (confirmation.response !== 0) return { canceled: true };
+
+    await importAppVault(userDataPath(), result.filePaths[0]);
+    return { canceled: false };
   });
 
   ipcMain.handle("db:load", async () => {
