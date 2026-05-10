@@ -47,7 +47,7 @@ export function VaultSetup({
           <input type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
         </label>
         {error && <div className="formError">{error}</div>}
-        <button type="submit">Create Encrypted Local Data</button>
+        <button type="submit">Set Up</button>
       </form>
       <div className="form recoveryUnlock">
         <button onClick={() => void onImport()}>Import Encrypted Data</button>
