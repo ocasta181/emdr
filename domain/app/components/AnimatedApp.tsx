@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { RoomScene, type GuideState, type RoomObjectId } from "../../../src/animation/RoomScene";
+import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
 import { deriveSceneViewModel, type SceneContext } from "../../../src/animation/guideSceneModel";
 
 type AnimatedPanel = "chat" | "targets" | "history" | "settings" | null;
@@ -64,17 +64,6 @@ export function AnimatedApp() {
   }
 
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const guideState: GuideState = stimulationRunning
-    ? "listening"
-    : panel === "settings"
-      ? "thinking"
-      : chatDraft.trim()
-        ? "listening"
-        : panel === "chat"
-          ? "speaking"
-          : panel
-            ? "thinking"
-            : "idle";
   const sceneViewModel = deriveSceneViewModel({
     targetMode,
     stimulationRunning,
@@ -87,7 +76,6 @@ export function AnimatedApp() {
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
       <RoomScene
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
-        guideState={guideState}
         sceneViewModel={sceneViewModel}
         stimulationRunning={stimulationRunning}
         stimulationColor={stimulationColor}

@@ -1,50 +1,22 @@
 import type { SessionFlowState } from "../../domain/session/types";
 
-export type GuideFocus = "user" | "book" | "stimulation" | "room";
+export type GuideActivity = "idle" | "speaking" | "thinking" | "stimulation_focus" | "paused";
 
-export type GuideBaseIntent = "idle" | "listening" | "thinking" | "speaking" | "stimulation_focus" | "paused";
+export type TargetBookState = "at_rest" | "held_closed" | "open_read" | "open_write";
 
-export type GuideBookIntent =
-  | "pick_up_book"
-  | "hold_book_closed"
-  | "open_book"
-  | "hold_book_open"
-  | "flip_book_pages"
-  | "write_in_book"
-  | "close_book"
-  | "put_book_down";
-
-export type GuideIntent = GuideBaseIntent | GuideBookIntent;
-
-export type TargetBookMode = "at_rest" | "reading_targets" | "writing_targets";
-
-export type IndependentBookState = "visible" | "hidden";
+export type GuideBookAction = "flip_book_pages" | "write_in_book";
 
 export type SceneFocus = "guide" | "target_book" | "stimulation" | "settings" | "history";
 
-export type BookHandoff = {
-  progress: number;
-  action: "attach_to_guide" | "detach_to_rest";
-};
-
-export type GuideBookClip = {
-  intent: GuideBookIntent;
-  label: string;
-  focus: GuideFocus;
-  loops: boolean;
-  startsWithIndependentBook: boolean;
-  endsWithIndependentBook: boolean;
-  startsWithGuideBook: boolean;
-  endsWithGuideBook: boolean;
-  handoff?: BookHandoff;
+export type SceneObjectState = {
+  targetBook: TargetBookState;
 };
 
 export type SceneViewModel = {
-  guideIntent: GuideIntent;
-  guideFocus: GuideFocus;
-  sceneFocus: SceneFocus;
-  targetBookMode: TargetBookMode;
-  independentBookState: IndependentBookState;
+  guideActivity: GuideActivity;
+  guideAction: GuideBookAction | null;
+  objects: SceneObjectState;
+  focus: SceneFocus;
 };
 
 export type SceneContext = {
@@ -56,196 +28,222 @@ export type SceneContext = {
   userTyping?: boolean;
 };
 
-export const guideBookClips: Record<GuideBookIntent, GuideBookClip> = {
-  pick_up_book: {
-    intent: "pick_up_book",
-    label: "Picking up book",
-    focus: "book",
-    loops: false,
-    startsWithIndependentBook: true,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: false,
-    endsWithGuideBook: true,
-    handoff: { progress: 0.42, action: "attach_to_guide" }
-  },
-  hold_book_closed: {
-    intent: "hold_book_closed",
-    label: "Holding closed book",
-    focus: "user",
-    loops: true,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  open_book: {
-    intent: "open_book",
-    label: "Opening book",
-    focus: "book",
-    loops: false,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  hold_book_open: {
-    intent: "hold_book_open",
-    label: "Holding open book",
-    focus: "user",
-    loops: true,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  flip_book_pages: {
-    intent: "flip_book_pages",
-    label: "Flipping pages",
-    focus: "book",
-    loops: false,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  write_in_book: {
-    intent: "write_in_book",
-    label: "Writing in book",
-    focus: "book",
-    loops: true,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  close_book: {
-    intent: "close_book",
-    label: "Closing book",
-    focus: "book",
-    loops: false,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: false,
-    startsWithGuideBook: true,
-    endsWithGuideBook: true
-  },
-  put_book_down: {
-    intent: "put_book_down",
-    label: "Putting book down",
-    focus: "book",
-    loops: false,
-    startsWithIndependentBook: false,
-    endsWithIndependentBook: true,
-    startsWithGuideBook: true,
-    endsWithGuideBook: false,
-    handoff: { progress: 0.68, action: "detach_to_rest" }
-  }
+export type GuidePose =
+  | "idle"
+  | "speaking"
+  | "thinking"
+  | "idle_closed_book"
+  | "speaking_closed_book"
+  | "thinking_closed_book"
+  | "idle_open_book"
+  | "speaking_open_book"
+  | "thinking_open_book";
+
+export type GuideTransitionClip =
+  | "idle_to_speaking"
+  | "idle_to_thinking"
+  | "idle_to_idle_closed_book"
+  | "idle_closed_book_to_speaking_closed_book"
+  | "idle_closed_book_to_thinking_closed_book"
+  | "idle_closed_book_to_idle_open_book"
+  | "idle_open_book_to_speaking_open_book"
+  | "idle_open_book_to_thinking_open_book";
+
+export type GuideSpriteClip = GuidePose | GuideBookAction | GuideTransitionClip;
+
+export type GuideTransitionStep = {
+  from: GuidePose;
+  to: GuidePose;
+  clip: GuideTransitionClip;
+  reverse: boolean;
 };
+
+export type DesiredGuideAnimation = {
+  pose: GuidePose;
+  action: GuideBookAction | null;
+};
+
+export type IndependentBookState = "visible" | "hidden";
+
+const transitionEdges: Array<{ from: GuidePose; to: GuidePose; clip: GuideTransitionClip }> = [
+  { from: "idle", to: "speaking", clip: "idle_to_speaking" },
+  { from: "idle", to: "thinking", clip: "idle_to_thinking" },
+  { from: "idle", to: "idle_closed_book", clip: "idle_to_idle_closed_book" },
+  {
+    from: "idle_closed_book",
+    to: "speaking_closed_book",
+    clip: "idle_closed_book_to_speaking_closed_book"
+  },
+  {
+    from: "idle_closed_book",
+    to: "thinking_closed_book",
+    clip: "idle_closed_book_to_thinking_closed_book"
+  },
+  { from: "idle_closed_book", to: "idle_open_book", clip: "idle_closed_book_to_idle_open_book" },
+  { from: "idle_open_book", to: "speaking_open_book", clip: "idle_open_book_to_speaking_open_book" },
+  { from: "idle_open_book", to: "thinking_open_book", clip: "idle_open_book_to_thinking_open_book" }
+];
 
 export function deriveSceneViewModel(context: SceneContext): SceneViewModel {
   if (context.stimulationRunning || context.sessionState === "stimulation") {
     return {
-      guideIntent: "stimulation_focus",
-      guideFocus: "stimulation",
-      sceneFocus: "stimulation",
-      targetBookMode: "at_rest",
-      independentBookState: "visible"
+      guideActivity: "stimulation_focus",
+      guideAction: null,
+      objects: { targetBook: "at_rest" },
+      focus: "stimulation"
     };
   }
 
   if (context.targetMode === "writing") {
-    return targetBookViewModel("write_in_book", "writing_targets");
+    return {
+      guideActivity: "idle",
+      guideAction: "write_in_book",
+      objects: { targetBook: "open_write" },
+      focus: "target_book"
+    };
   }
 
   if (context.targetMode === "browsing") {
-    return targetBookViewModel("flip_book_pages", "reading_targets");
+    return {
+      guideActivity: "idle",
+      guideAction: "flip_book_pages",
+      objects: { targetBook: "open_read" },
+      focus: "target_book"
+    };
   }
 
   if (context.targetMode === "reading" || context.panel === "targets") {
-    return targetBookViewModel("hold_book_open", "reading_targets");
+    return {
+      guideActivity: "idle",
+      guideAction: null,
+      objects: { targetBook: "open_read" },
+      focus: "target_book"
+    };
   }
 
   if (context.sessionState === "interjection") {
-    return baseViewModel("paused", "user", "guide");
-  }
-
-  if (context.userTyping) {
-    return baseViewModel("listening", "user", "guide");
+    return {
+      guideActivity: "paused",
+      guideAction: null,
+      objects: { targetBook: "at_rest" },
+      focus: "guide"
+    };
   }
 
   if (context.guideSpeaking || context.panel === "chat") {
-    return baseViewModel("speaking", "user", "guide");
+    return baseViewModel("speaking", "guide");
   }
 
   if (context.panel === "settings") {
-    return baseViewModel("thinking", "room", "settings");
+    return baseViewModel("thinking", "settings");
   }
 
-  return baseViewModel("idle", "room", "guide");
+  if (context.panel === "history") {
+    return baseViewModel("thinking", "history");
+  }
+
+  return baseViewModel("idle", "guide");
 }
 
-export function targetBookTransition(from: TargetBookMode, to: TargetBookMode): GuideBookIntent[] {
-  if (from === to) return targetBookSteadyState(to);
-
-  if (from === "at_rest" && to === "reading_targets") {
-    return ["pick_up_book", "hold_book_closed", "open_book", "hold_book_open"];
-  }
-
-  if (from === "at_rest" && to === "writing_targets") {
-    return ["pick_up_book", "hold_book_closed", "open_book", "write_in_book"];
-  }
-
-  if (from === "reading_targets" && to === "writing_targets") {
-    return ["write_in_book"];
-  }
-
-  if (from === "writing_targets" && to === "reading_targets") {
-    return ["hold_book_open"];
-  }
-
-  if (to === "at_rest") {
-    return ["close_book", "put_book_down"];
-  }
-
-  return targetBookSteadyState(to);
-}
-
-export function independentBookStateForClip(intent: GuideBookIntent, progress: number): IndependentBookState {
-  const clip = guideBookClips[intent];
-  const clampedProgress = Math.max(0, Math.min(1, progress));
-
-  if (!clip.handoff) {
-    return clip.startsWithIndependentBook || clip.endsWithIndependentBook ? "visible" : "hidden";
-  }
-
-  if (clip.handoff.action === "attach_to_guide") {
-    return clampedProgress < clip.handoff.progress ? "visible" : "hidden";
-  }
-
-  return clampedProgress >= clip.handoff.progress ? "visible" : "hidden";
-}
-
-function targetBookSteadyState(mode: TargetBookMode): GuideBookIntent[] {
-  if (mode === "reading_targets") return ["hold_book_open"];
-  if (mode === "writing_targets") return ["write_in_book"];
-  return [];
-}
-
-function targetBookViewModel(guideIntent: GuideBookIntent, targetBookMode: TargetBookMode): SceneViewModel {
+export function guideAnimationForScene(viewModel: SceneViewModel): DesiredGuideAnimation {
   return {
-    guideIntent,
-    guideFocus: guideBookClips[guideIntent].focus,
-    sceneFocus: "target_book",
-    targetBookMode,
-    independentBookState: "hidden"
+    pose: guidePoseForScene(viewModel),
+    action: viewModel.guideAction
   };
 }
 
-function baseViewModel(guideIntent: GuideBaseIntent, guideFocus: GuideFocus, sceneFocus: SceneFocus): SceneViewModel {
+export function planGuidePoseTransitions(from: GuidePose, to: GuidePose): GuideTransitionStep[] {
+  if (from === to) return [];
+
+  const queue: Array<{ pose: GuidePose; path: GuideTransitionStep[] }> = [{ pose: from, path: [] }];
+  const visited = new Set<GuidePose>([from]);
+
+  while (queue.length > 0) {
+    const next = queue.shift();
+    if (!next) break;
+
+    for (const step of transitionStepsFrom(next.pose)) {
+      if (visited.has(step.to)) continue;
+      const path = next.path.concat(step);
+      if (step.to === to) return path;
+      visited.add(step.to);
+      queue.push({ pose: step.to, path });
+    }
+  }
+
+  return [];
+}
+
+export function independentBookStateForPose(pose: GuidePose): IndependentBookState {
+  return guidePoseIncludesBook(pose) ? "hidden" : "visible";
+}
+
+export function independentBookStateForTransition(
+  transition: GuideTransitionStep,
+  progress: number
+): IndependentBookState {
+  const fromHasBook = guidePoseIncludesBook(transition.from);
+  const toHasBook = guidePoseIncludesBook(transition.to);
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+
+  if (fromHasBook === toHasBook) {
+    return fromHasBook ? "hidden" : "visible";
+  }
+
+  if (!fromHasBook && toHasBook) {
+    return clampedProgress < 0.42 ? "visible" : "hidden";
+  }
+
+  return clampedProgress >= 0.58 ? "visible" : "hidden";
+}
+
+function guidePoseForScene(viewModel: SceneViewModel): GuidePose {
+  const activity = normalizeGuideActivity(viewModel.guideActivity);
+
+  if (viewModel.objects.targetBook === "held_closed") {
+    if (activity === "speaking") return "speaking_closed_book";
+    if (activity === "thinking") return "thinking_closed_book";
+    return "idle_closed_book";
+  }
+
+  if (viewModel.objects.targetBook === "open_read" || viewModel.objects.targetBook === "open_write") {
+    if (activity === "speaking") return "speaking_open_book";
+    if (activity === "thinking") return "thinking_open_book";
+    return "idle_open_book";
+  }
+
+  return activity;
+}
+
+function normalizeGuideActivity(activity: GuideActivity): "idle" | "speaking" | "thinking" {
+  if (activity === "speaking" || activity === "thinking") return activity;
+  if (activity === "paused") return "thinking";
+  return "idle";
+}
+
+function transitionStepsFrom(from: GuidePose): GuideTransitionStep[] {
+  return transitionEdges.flatMap((edge): GuideTransitionStep[] => {
+    if (edge.from === from) {
+      return [{ from, to: edge.to, clip: edge.clip, reverse: false }];
+    }
+
+    if (edge.to === from) {
+      return [{ from, to: edge.from, clip: edge.clip, reverse: true }];
+    }
+
+    return [];
+  });
+}
+
+function guidePoseIncludesBook(pose: GuidePose) {
+  return pose.endsWith("_book");
+}
+
+function baseViewModel(guideActivity: GuideActivity, focus: SceneFocus): SceneViewModel {
   return {
-    guideIntent,
-    guideFocus,
-    sceneFocus,
-    targetBookMode: "at_rest",
-    independentBookState: "visible"
+    guideActivity,
+    guideAction: null,
+    objects: { targetBook: "at_rest" },
+    focus
   };
 }
