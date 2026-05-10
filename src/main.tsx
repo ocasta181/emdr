@@ -143,7 +143,7 @@ function Dashboard({ database, onStartSession }: { database: Database; onStartSe
                 <h2>{target.description}</h2>
                 <p>{target.clusterTag || "No cluster"}</p>
               </div>
-              <div className="sud">SUD {target.currentSud ?? "-"}</div>
+              <div className="sud">Disturbance {target.currentSud ?? "-"}</div>
               <button onClick={() => onStartSession(target)}>Start Session</button>
             </article>
           ))}
@@ -165,7 +165,7 @@ function Dashboard({ database, onStartSession }: { database: Database; onStartSe
                 <div className="historyRow" key={session.id}>
                   <span>{new Date(session.startedAt).toLocaleString()}</span>
                   <span>{target?.description ?? "Unknown target"}</span>
-                  <span>SUD {session.finalSud ?? "-"}</span>
+                  <span>Final disturbance {session.finalSud ?? "-"}</span>
                 </div>
               );
             })}
@@ -233,7 +233,7 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
                   {target.status} · {target.clusterTag || "No cluster"}
                 </p>
               </div>
-              <div className="sud">SUD {target.currentSud ?? "-"}</div>
+              <div className="sud">Disturbance {target.currentSud ?? "-"}</div>
               <button onClick={() => setEditing(target)}>Edit</button>
             </article>
           ))}
@@ -285,7 +285,7 @@ function TargetForm({ target, onSave }: { target: TargetVersion; onSave: (target
       </label>
       <div className="twoCol">
         <label>
-          Initial SUD
+          Initial disturbance
           <input
             type="number"
             min="0"
@@ -295,7 +295,7 @@ function TargetForm({ target, onSave }: { target: TargetVersion; onSave: (target
           />
         </label>
         <label>
-          Current SUD
+          Current disturbance
           <input
             type="number"
             min="0"
@@ -418,7 +418,7 @@ function AssessmentStep({
       </div>
       <div className="twoCol">
         <label>
-          VOC
+          Believability
           <input
             type="number"
             min="1"
@@ -428,7 +428,7 @@ function AssessmentStep({
           />
         </label>
         <label>
-          SUD
+          Disturbance
           <input
             type="number"
             min="0"
@@ -536,7 +536,7 @@ function StimulationStep({
           <textarea ref={textareaRef} value={observation} onChange={(event) => setObservation(event.target.value)} />
         </label>
         <label>
-          SUD
+          Disturbance
           <input type="number" min="0" max="10" value={sud} onChange={(event) => setSud(event.target.value)} />
         </label>
         <div className="buttonRow">
@@ -549,7 +549,7 @@ function StimulationStep({
           {session.stimulationSets.map((set) => (
             <article key={set.id}>
               <strong>Set {set.setNumber}</strong>
-              <span>SUD {set.subjectiveUnitsOfDisturbance ?? "-"}</span>
+              <span>Disturbance {set.subjectiveUnitsOfDisturbance ?? "-"}</span>
               <p>{set.observation}</p>
             </article>
           ))}
@@ -571,7 +571,7 @@ function CloseStep({
   return (
     <div className="form">
       <label>
-        Final SUD
+        Final disturbance
         <input
           type="number"
           min="0"
@@ -598,7 +598,7 @@ function SummaryStep({ session, onEnd }: { session: Session; onEnd: () => void }
         <dd>{new Date(session.startedAt).toLocaleString()}</dd>
         <dt>Sets</dt>
         <dd>{session.stimulationSets.length}</dd>
-        <dt>Final SUD</dt>
+        <dt>Final disturbance</dt>
         <dd>{session.finalSud ?? "-"}</dd>
       </dl>
       <button onClick={onEnd}>End Session</button>

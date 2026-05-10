@@ -26,9 +26,9 @@ The current build is an MVP focused on proving the core flow end to end. Several
 - Start a session from an active target.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
-- Log stimulation sets with observations and optional SUD score.
-- End a session with final notes and final SUD.
-- Update the current target SUD from the latest session.
+- Log stimulation sets with observations and optional disturbance score.
+- End a session with final notes and final disturbance score.
+- Update the current target disturbance score from the latest session.
 - Preserve local activity events in the data file.
 
 ## Data Model
