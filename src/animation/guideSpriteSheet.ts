@@ -2,7 +2,7 @@ import { Rectangle, Texture } from "pixi.js";
 import type { GuideSpriteClip } from "./guideSceneModel";
 
 export const guideSpriteFrameRate = 12;
-export const guideSpriteCellSize = 101;
+export const guideSpriteCellSize = 128;
 
 export type GuideSpriteSheet = {
   clips: Record<GuideSpriteClip, Texture[]>;
@@ -55,14 +55,16 @@ function createFrameTexture(sheetTexture: Texture, oneBasedFrameIndex: number) {
   const frameIndex = oneBasedFrameIndex - 1;
   const column = frameIndex % sheetColumns;
   const row = Math.floor(frameIndex / sheetColumns);
+  const frame = new Rectangle(
+    column * guideSpriteCellSize,
+    row * guideSpriteCellSize,
+    guideSpriteCellSize,
+    guideSpriteCellSize
+  );
 
   return new Texture({
     source: sheetTexture.source,
-    frame: new Rectangle(
-      column * guideSpriteCellSize,
-      row * guideSpriteCellSize,
-      guideSpriteCellSize,
-      guideSpriteCellSize
-    )
+    frame,
+    orig: new Rectangle(0, 0, guideSpriteCellSize, guideSpriteCellSize)
   });
 }
