@@ -1,6 +1,7 @@
 import type { Database } from "../app/types";
 import type { Target } from "./entity";
-import { createId, nowIso } from "../../support/ids";
+import { nowIso } from "../../support/ids";
+import { createTargetRevision } from "./factory";
 
 export function currentTargets(database: Database) {
   return database.targets
@@ -18,16 +19,7 @@ export function reviseTarget(
   patch: Partial<Omit<Target, "id" | "rootTargetId" | "parentTargetId" | "createdAt">>
 ): Database {
   const now = nowIso();
-  const nextTarget: Target = {
-    ...previous,
-    ...patch,
-    id: createId("target"),
-    rootTargetId: previous.rootTargetId,
-    parentTargetId: previous.id,
-    isCurrent: true,
-    createdAt: now,
-    updatedAt: now
-  };
+  const nextTarget = createTargetRevision(previous, patch);
 
   return {
     ...database,

@@ -8,6 +8,7 @@ import {
   saveSessionDraft,
   startSessionForTarget
 } from "./domain/app/service";
+import { createTarget } from "./domain/target/factory";
 import { activeTargets, currentTargets, reviseTarget } from "./domain/target/service";
 import { loadDatabase, saveDatabase } from "./db";
 import { createId, nowIso } from "./support/ids";
@@ -95,20 +96,13 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
   const [editing, setEditing] = useState<Target | null>(null);
   const targets = currentTargets(database);
 
-  function createTarget() {
-    const now = nowIso();
-    const rootTargetId = createId("target_root");
-    const target: Target = {
-      id: createId("target"),
-      rootTargetId,
-      isCurrent: true,
-      createdAt: now,
-      updatedAt: now,
+  function addTarget() {
+    const target = createTarget({
       description: "New target",
       negativeCognition: "",
       positiveCognition: "",
       status: "active"
-    };
+    });
 
     onChange({
       ...database,
@@ -128,7 +122,7 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
       <section className="panel">
         <div className="panelHeader">
           <h1>Targets</h1>
-          <button onClick={createTarget}>New Target</button>
+          <button onClick={addTarget}>New Target</button>
         </div>
         <div className="targetList">
           {targets.map((target) => (
