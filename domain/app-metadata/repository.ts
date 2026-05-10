@@ -5,15 +5,6 @@ import type { AppMetadata } from "./entity.js";
 
 const columns = ["key", "value"];
 
-export function ensureAppMetadataTable(db: SqliteDatabase) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS app_metadata (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
-}
-
 export function readAppMetadata(db: SqliteDatabase, key: string) {
   return appMetadataRepository(db).find(key)?.value;
 }

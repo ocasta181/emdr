@@ -20,30 +20,6 @@ const columns = [
   "notes"
 ];
 
-export function ensureTargetTable(db: SqliteDatabase) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS target (
-      id TEXT PRIMARY KEY,
-      root_target_id TEXT NOT NULL,
-      parent_target_id TEXT,
-      is_current INTEGER NOT NULL CHECK (is_current IN (0, 1)),
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      description TEXT NOT NULL,
-      negative_cognition TEXT NOT NULL,
-      positive_cognition TEXT NOT NULL,
-      cluster_tag TEXT,
-      initial_disturbance REAL,
-      current_disturbance REAL,
-      status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'deferred')),
-      notes TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_target_root ON target(root_target_id);
-    CREATE INDEX IF NOT EXISTS idx_target_current ON target(is_current, status, current_disturbance);
-  `);
-}
-
 export function readTargets(db: SqliteDatabase): Target[] {
   return targetRepository(db).all();
 }

@@ -5,15 +5,6 @@ import type { Setting } from "./entity.js";
 
 const columns = ["key", "value_json"];
 
-export function ensureSettingTable(db: SqliteDatabase) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS setting (
-      key TEXT PRIMARY KEY,
-      value_json TEXT NOT NULL
-    );
-  `);
-}
-
 export function readSetting<T>(db: SqliteDatabase, key: string) {
   const setting = settingRepository(db).find(key);
   return setting ? (JSON.parse(setting.valueJson) as T) : undefined;

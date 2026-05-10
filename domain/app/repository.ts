@@ -4,15 +4,16 @@ import {
   sqliteDatabasePath,
   type SqliteDatabase
 } from "../../infrastructure/sqlite/database.js";
-import { ensureAppMetadataTable, readAppMetadata, replaceAppMetadata } from "../app-metadata/repository.js";
-import { ensureSessionTable, readSessions, replaceSessions } from "../session/repository.js";
+import { runMigrations } from "../../infrastructure/sqlite/migrations/index.js";
+import { readAppMetadata, replaceAppMetadata } from "../app-metadata/repository.js";
+import { readSessions, replaceSessions } from "../session/repository.js";
 import type { Session } from "../session/entity.js";
 import type { SessionAggregate } from "../session/types.js";
-import { ensureSettingTable, deleteSettings, readSetting, replaceSetting } from "../setting/repository.js";
+import { deleteSettings, readSetting, replaceSetting } from "../setting/repository.js";
 import type { Settings } from "../setting/types.js";
-import { ensureStimulationSetTable, readStimulationSets, replaceStimulationSets } from "../stimulation-set/repository.js";
+import { readStimulationSets, replaceStimulationSets } from "../stimulation-set/repository.js";
 import type { StimulationSet } from "../stimulation-set/entity.js";
-import { ensureTargetTable, readTargets, replaceTargets } from "../target/repository.js";
+import { readTargets, replaceTargets } from "../target/repository.js";
 import { createEmptyDatabase } from "./factory.js";
 import type { Database } from "./types.js";
 
@@ -43,7 +44,7 @@ async function openDatabase(userDataPath: string) {
 async function openDatabaseFromDisk(userDataPath: string) {
   const sqlitePath = sqliteDatabasePath(userDataPath);
   const db = await openSqliteDatabase(sqlitePath);
-  ensureSchema(db);
+  runMigrations(db);
 
   if (!readAppMetadata(db, "createdAt")) {
     writeAppDatabase(db, createEmptyDatabase());
@@ -51,19 +52,6 @@ async function openDatabaseFromDisk(userDataPath: string) {
   }
 
   return db;
-}
-
-function ensureSchema(db: SqliteDatabase) {
-  db.run(`
-    PRAGMA foreign_keys = ON;
-    PRAGMA user_version = 1;
-  `);
-
-  ensureAppMetadataTable(db);
-  ensureTargetTable(db);
-  ensureSessionTable(db);
-  ensureStimulationSetTable(db);
-  ensureSettingTable(db);
 }
 
 function readAppDatabase(db: SqliteDatabase): Database {

@@ -5,23 +5,6 @@ import type { StimulationSet } from "./entity.js";
 
 const columns = ["id", "session_id", "set_number", "created_at", "cycle_count", "observation", "disturbance"];
 
-export function ensureStimulationSetTable(db: SqliteDatabase) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS stimulation_set (
-      id TEXT PRIMARY KEY,
-      session_id TEXT NOT NULL REFERENCES "session"(id) ON DELETE CASCADE,
-      set_number INTEGER NOT NULL,
-      created_at TEXT NOT NULL,
-      cycle_count INTEGER NOT NULL,
-      observation TEXT NOT NULL,
-      disturbance REAL,
-      UNIQUE(session_id, set_number)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_stimulation_set_session ON stimulation_set(session_id, set_number);
-  `);
-}
-
 export function readStimulationSets(db: SqliteDatabase): StimulationSet[] {
   return stimulationSetRepository(db).all();
 }

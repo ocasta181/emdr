@@ -20,30 +20,6 @@ const columns = [
   "notes"
 ];
 
-export function ensureSessionTable(db: SqliteDatabase) {
-  db.run(`
-    CREATE TABLE IF NOT EXISTS "session" (
-      id TEXT PRIMARY KEY,
-      target_root_id TEXT NOT NULL,
-      target_id TEXT NOT NULL,
-      started_at TEXT NOT NULL,
-      ended_at TEXT,
-      assessment_image TEXT,
-      assessment_negative_cognition TEXT NOT NULL,
-      assessment_positive_cognition TEXT NOT NULL,
-      assessment_believability REAL,
-      assessment_emotions TEXT,
-      assessment_disturbance REAL,
-      assessment_body_location TEXT,
-      final_disturbance REAL,
-      notes TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_session_target ON "session"(target_root_id, started_at);
-    CREATE INDEX IF NOT EXISTS idx_session_started ON "session"(started_at);
-  `);
-}
-
 export function readSessions(db: SqliteDatabase): Session[] {
   return sessionRepository(db).all();
 }
