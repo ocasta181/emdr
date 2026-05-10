@@ -1,4 +1,4 @@
-import { createId, nowIso } from "../../support/ids.js";
+import { createId, nowIso } from "../../utils.js";
 import type { Target } from "../target/entity.js";
 import type { Session } from "./entity.js";
 import type { SessionAggregate } from "./types.js";

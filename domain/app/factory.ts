@@ -1,5 +1,5 @@
 import type { Database } from "./types.js";
-import { nowIso } from "../../support/ids.js";
+import { nowIso } from "../../utils.js";
 import { createDefaultSettings } from "../setting/factory.js";
 
 export function createEmptyDatabase(): Database {

@@ -16,5 +16,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "domain", "support"]
+  "include": ["src", "domain", "utils.ts"]
 }

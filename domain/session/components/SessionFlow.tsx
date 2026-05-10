@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Database } from "../../app/types";
 import { createStimulationSet } from "../../stimulation-set/factory";
-import { optionalNumber } from "../../../support/form";
+import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
 import type { Assessment, SessionAggregate } from "../types";
 

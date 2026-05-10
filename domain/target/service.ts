@@ -1,6 +1,6 @@
 import type { Database } from "../app/types.js";
 import type { Target } from "./entity.js";
-import { nowIso } from "../../support/ids.js";
+import { nowIso } from "../../utils.js";
 import { createTargetRevision } from "./factory.js";
 
 export function currentTargets(database: Database) {

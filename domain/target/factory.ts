@@ -1,4 +1,4 @@
-import { createId, nowIso } from "../../support/ids.js";
+import { createId, nowIso } from "../../utils.js";
 import type { Target } from "./entity.js";
 
 type TargetDraft = Pick<Target, "description" | "negativeCognition" | "positiveCognition"> &

@@ -1,4 +1,4 @@
-import { createId, nowIso } from "../../support/ids.js";
+import { createId, nowIso } from "../../utils.js";
 import type { StimulationSet } from "./entity.js";
 
 type StimulationSetDraft = Pick<StimulationSet, "sessionId" | "setNumber" | "cycleCount" | "observation"> &
