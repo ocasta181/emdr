@@ -33,7 +33,7 @@ The current build is an MVP focused on proving the core flow end to end. Several
 
 ## Data Model
 
-The MVP stores data in a local JSON database. Encryption is a required future milestone.
+The MVP stores data in a local SQLite database. Encryption is a required future milestone.
 
 ### Target Version
 
@@ -104,6 +104,8 @@ Clinical-data-informed decisions must be captured as Architecture Decision Recor
 Existing ADRs:
 
 - [ADR 0001: Clinical Evidence Policy](docs/adr/0001-clinical-evidence-policy.md)
+- [ADR 0002: Frontend Libraries](docs/adr/0002-frontend-libraries.md)
+- [ADR 0003: SQLite Storage Before Encryption](docs/adr/0003-sqlite-storage.md)
 
 ## Required Follow-Up Work
 
@@ -111,7 +113,7 @@ Existing ADRs:
 - Require a password to unlock local data.
 - Use a strong password-based key derivation function.
 - Support encrypted database export/import.
-- Use a 256-bit recovery/export key rather than a 64-bit key.
+- Use a 256-bit recovery/export key.
 - Package as a macOS `.app`.
 - Add audio bilateral stimulation.
 - Add database migrations.
