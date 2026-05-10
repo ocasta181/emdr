@@ -138,6 +138,8 @@ Target access should be represented through a book interaction, not through unre
 - independent target book sprite at rest, visible and clickable when the guide is not holding it;
 - book included with the guide animation while the guide possesses it.
 
+The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
+
 The guide-book animation contract is defined in `src/animation/guideSceneModel.ts`.
 
 Required guide book animation intents:
@@ -161,9 +163,9 @@ Possession handoff rules:
 
 Target access mapping:
 
-- reading targets: `pick_up_book -> open_book -> hold_book_open`;
+- reading targets: `pick_up_book -> hold_book_closed -> open_book -> hold_book_open`;
 - browsing target versions or target history: `flip_book_pages`;
-- creating or editing targets: `write_in_book`;
+- creating or editing targets: `pick_up_book -> hold_book_closed -> open_book -> write_in_book`;
 - leaving target work: `close_book -> put_book_down`.
 
 Domain states should not reference art assets directly. Workflow state maps to a scene view model, and the PixiJS scene maps that view model to sprites and animation clips.
