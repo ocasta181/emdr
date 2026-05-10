@@ -53,6 +53,10 @@ export function vaultExists(userDataPath: string) {
   return existsSync(vaultPath(userDataPath));
 }
 
+export function defaultVaultExportName(date = new Date()) {
+  return `${date.toISOString().slice(0, 10)}-emdr-local.emdr-vault`;
+}
+
 export async function createVault(userDataPath: string, password: string, plaintext: Buffer) {
   const dataKey = crypto.randomBytes(keyBytes);
   const recoveryCode = crypto.randomBytes(recoveryCodeBytes).toString("hex").toUpperCase();
@@ -88,6 +92,16 @@ export async function unlockVaultWithRecoveryCode(userDataPath: string, recovery
 export async function saveVault(userDataPath: string, dataKey: Buffer, plaintext: Buffer) {
   const vault = await readVault(userDataPath);
   await writeVault(userDataPath, { ...vault, data: { type: payloadType, ...encrypt(dataKey, plaintext) } });
+}
+
+export async function exportVault(userDataPath: string, destinationPath: string) {
+  const vault = await readVault(userDataPath);
+  await writeFile(destinationPath, JSON.stringify(vault, null, 2));
+}
+
+export async function importVault(userDataPath: string, sourcePath: string) {
+  const vault = parseVaultFile(await readFile(sourcePath, "utf8"));
+  await writeVault(userDataPath, vault);
 }
 
 async function wrapWithPassword(dataKey: Buffer, password: string): Promise<WrappedKey> {

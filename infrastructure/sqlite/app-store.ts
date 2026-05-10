@@ -5,6 +5,8 @@ import {
 } from "./connection.js";
 import {
   createVault,
+  exportVault,
+  importVault,
   saveVault,
   unlockVaultWithPassword,
   unlockVaultWithRecoveryCode,
@@ -62,6 +64,15 @@ export async function saveAppDatabase(userDataPath: string, database: Database) 
   await saveActiveDatabase(userDataPath, db);
 }
 
+export async function exportAppVault(userDataPath: string, destinationPath: string) {
+  await exportVault(userDataPath, destinationPath);
+}
+
+export async function importAppVault(userDataPath: string, sourcePath: string) {
+  await importVault(userDataPath, sourcePath);
+  lockActiveDatabase(userDataPath);
+}
+
 async function openDatabase(userDataPath: string) {
   if (databasePromise && activePath === userDataPath && activeDataKey) {
     return databasePromise;
@@ -87,6 +98,13 @@ function setActiveDatabase(userDataPath: string, db: SqliteDatabase, dataKey: Bu
   activePath = userDataPath;
   activeDataKey = dataKey;
   databasePromise = Promise.resolve(db);
+}
+
+function lockActiveDatabase(userDataPath: string) {
+  if (activePath !== userDataPath) return;
+  activePath = undefined;
+  activeDataKey = undefined;
+  databasePromise = undefined;
 }
 
 async function saveActiveDatabase(userDataPath: string, db: SqliteDatabase) {
