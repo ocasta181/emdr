@@ -125,11 +125,48 @@ type RoomSceneProps = {
 The initial room can expose four major interaction zones:
 
 - **Guide**: opens the main chat and starts or resumes the current guided flow.
-- **Target object**: opens target selection, target history, and target editing.
+- **Target book**: a large burgundy leather-bound book used for target selection, target review, and target editing.
 - **Journal/archive object**: opens session history and summaries.
 - **Lantern/settings object**: opens stimulation, privacy, model, camera, and export settings.
 
 These can be represented as PixiJS hit areas, with React panels opening over or beside the scene.
+
+## Guide And Target Book
+
+Target access should be represented through a book interaction, not through unrelated floating panels alone. The book has two render modes:
+
+- independent target book sprite at rest, visible and clickable when the guide is not holding it;
+- book included with the guide animation while the guide possesses it.
+
+The guide-book animation contract is defined in `src/animation/guideSceneModel.ts`.
+
+Required guide book animation intents:
+
+- `pick_up_book`: looking at the book;
+- `hold_book_closed`: looking at the user;
+- `open_book`: looking at the book;
+- `hold_book_open`: looking at the user;
+- `flip_book_pages`: looking at the book;
+- `write_in_book`: looking at the book;
+- `close_book`: looking at the book;
+- `put_book_down`: looking at the book.
+
+Possession handoff rules:
+
+- At the beginning of `pick_up_book`, the guide sprite does not include the book and the independent book sprite is visible.
+- During `pick_up_book`, the independent book sprite is hidden once the guide takes possession; from that point, the book is part of the guide animation.
+- During all held-book states, the independent book sprite remains hidden.
+- During `put_book_down`, the book remains part of the guide animation until the guide releases it.
+- After release in `put_book_down`, the independent book sprite becomes visible at the resting location while the guide returns hands to center without the book.
+
+Target access mapping:
+
+- reading targets: `pick_up_book -> open_book -> hold_book_open`;
+- browsing target versions or target history: `flip_book_pages`;
+- creating or editing targets: `write_in_book`;
+- leaving target work: `close_book -> put_book_down`.
+
+Domain states should not reference art assets directly. Workflow state maps to a scene view model, and the PixiJS scene maps that view model to sprites and animation clips.
 
 ## Bilateral Stimulation
 
@@ -246,4 +283,3 @@ The animated app must include:
 - Should stimulation always overlay the full scene, or only a dedicated session composition?
 - Should the current dashboard continue to exist as a fallback/debug view?
 - What minimum hardware should the app support?
-
