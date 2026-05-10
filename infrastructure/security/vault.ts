@@ -8,7 +8,7 @@ const keyBytes = 32;
 const ivBytes = 12;
 const saltBytes = 16;
 const recoveryCodeBytes = 32;
-const scryptOptions = { N: 32768, r: 8, p: 1 };
+const scryptOptions = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 type WrappedKey = {
   salt?: string;
