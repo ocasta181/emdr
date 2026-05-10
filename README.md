@@ -34,9 +34,9 @@ The current build is an MVP focused on proving the core flow end to end. Several
 
 The MVP stores data in a local SQLite database. Encryption is a required future milestone.
 
-### Target Version
+### Target
 
-Targets are versioned records. A logical target is represented by a root target id and one or more target-version rows.
+Targets are versioned records stored in the singular `target` table. A logical target is represented by a root target id and one or more target rows.
 
 ```ts
 type Target = {
