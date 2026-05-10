@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Bilateral stimulation orb">
+  <defs>
+    <radialGradient id="orb" cx="35%" cy="30%" r="68%">
+      <stop offset="0" stop-color="#fff8d6"/>
+      <stop offset="0.35" stop-color="#9cc7df"/>
+      <stop offset="1" stop-color="#37637f"/>
+    </radialGradient>
+    <filter id="glow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <circle cx="48" cy="48" r="25" fill="url(#orb)" filter="url(#glow)"/>
+</svg>
