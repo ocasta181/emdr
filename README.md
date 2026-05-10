@@ -121,8 +121,8 @@ Existing ADRs:
 ## Development
 
 ```sh
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 The app runs locally in Electron. It should not load remote content.
