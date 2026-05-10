@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import { createEmptyDatabase } from "./domain/app/service";
-import { endSession as completeSession, saveSessionDraft, startSessionForTarget } from "./domain/app/workflow";
+import {
+  createEmptyDatabase,
+  endSession as completeSession,
+  saveSessionDraft,
+  startSessionForTarget
+} from "./domain/app/service";
 import { activeTargets, currentTargets, reviseTarget } from "./domain/target/service";
 import { loadDatabase, saveDatabase } from "./db";
 import { createId, nowIso } from "./support/ids";
