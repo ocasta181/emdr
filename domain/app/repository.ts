@@ -5,15 +5,15 @@ import {
   type SqliteDatabase
 } from "../../infrastructure/sqlite/database.js";
 import { runMigrations } from "../../infrastructure/sqlite/migrations/index.js";
-import { readAppMetadata, replaceAppMetadata } from "../app-metadata/repository.js";
-import { readSessions, replaceSessions } from "../session/repository.js";
+import { newAppMetadataRepository } from "../app-metadata/repository.js";
+import { newSessionRepository } from "../session/repository.js";
 import type { Session } from "../session/entity.js";
 import type { SessionAggregate } from "../session/types.js";
-import { deleteSettings, readSetting, replaceSetting } from "../setting/repository.js";
+import { newSettingRepository } from "../setting/repository.js";
 import type { Settings } from "../setting/types.js";
-import { readStimulationSets, replaceStimulationSets } from "../stimulation-set/repository.js";
+import { newStimulationSetRepository } from "../stimulation-set/repository.js";
 import type { StimulationSet } from "../stimulation-set/entity.js";
-import { readTargets, replaceTargets } from "../target/repository.js";
+import { newTargetRepository } from "../target/repository.js";
 import { createEmptyDatabase } from "./factory.js";
 import type { Database } from "./types.js";
 
@@ -46,7 +46,7 @@ async function openDatabaseFromDisk(userDataPath: string) {
   const db = await openSqliteDatabase(sqlitePath);
   runMigrations(db);
 
-  if (!readAppMetadata(db, "createdAt")) {
+  if (!newAppMetadataRepository(db).find("createdAt")) {
     writeAppDatabase(db, createEmptyDatabase());
     await persistSqliteDatabase(db, sqlitePath);
   }
@@ -55,14 +55,15 @@ async function openDatabaseFromDisk(userDataPath: string) {
 }
 
 function readAppDatabase(db: SqliteDatabase): Database {
-  const createdAt = readAppMetadata(db, "createdAt") ?? new Date().toISOString();
-  const updatedAt = readAppMetadata(db, "updatedAt") ?? createdAt;
+  const metadata = newAppMetadataRepository(db);
+  const createdAt = metadata.find("createdAt")?.value ?? new Date().toISOString();
+  const updatedAt = metadata.find("updatedAt")?.value ?? createdAt;
 
   return {
     schemaVersion: 1,
     createdAt,
     updatedAt,
-    targets: readTargets(db),
+    targets: newTargetRepository(db).all(),
     sessions: readSessionAggregates(db),
     settings: readSettings(db)
   };
@@ -72,19 +73,17 @@ function writeAppDatabase(db: SqliteDatabase, database: Database) {
   db.run("BEGIN TRANSACTION");
 
   try {
-    replaceTargets(db, database.targets);
-    replaceSessions(db, database.sessions.map(toSession));
-    replaceStimulationSets(
-      db,
-      database.sessions.flatMap((session) => session.stimulationSets)
-    );
-    deleteSettings(db);
-    replaceSetting(db, "bilateralStimulation", database.settings.bilateralStimulation);
-    replaceAppMetadata(db, {
-      schemaVersion: String(database.schemaVersion),
-      createdAt: database.createdAt,
-      updatedAt: database.updatedAt
-    });
+    newTargetRepository(db).replaceAll(database.targets);
+    newSessionRepository(db).replaceAll(database.sessions.map(toSession));
+    newStimulationSetRepository(db).replaceAll(database.sessions.flatMap((session) => session.stimulationSets));
+    newSettingRepository(db).replaceAll([
+      { key: "bilateralStimulation", valueJson: JSON.stringify(database.settings.bilateralStimulation) }
+    ]);
+    newAppMetadataRepository(db).replaceAll([
+      { key: "schemaVersion", value: String(database.schemaVersion) },
+      { key: "createdAt", value: database.createdAt },
+      { key: "updatedAt", value: database.updatedAt }
+    ]);
 
     db.run("COMMIT");
   } catch (error) {
@@ -95,18 +94,20 @@ function writeAppDatabase(db: SqliteDatabase, database: Database) {
 
 function readSessionAggregates(db: SqliteDatabase): SessionAggregate[] {
   const setsBySession = new Map<string, StimulationSet[]>();
-  for (const set of readStimulationSets(db)) {
+  for (const set of newStimulationSetRepository(db).all()) {
     const sets = setsBySession.get(set.sessionId) ?? [];
     sets.push(set);
     setsBySession.set(set.sessionId, sets);
   }
 
-  return readSessions(db).map((session) => toSessionAggregate(session, setsBySession.get(session.id) ?? []));
+  return newSessionRepository(db).all().map((session) => toSessionAggregate(session, setsBySession.get(session.id) ?? []));
 }
 
 function readSettings(db: SqliteDatabase): Settings {
+  const bilateralStimulation = newSettingRepository(db).find("bilateralStimulation");
+
   return {
-    bilateralStimulation: readSetting<Settings["bilateralStimulation"]>(db, "bilateralStimulation") ?? {
+    bilateralStimulation: bilateralStimulation ? JSON.parse(bilateralStimulation.valueJson) : {
       speed: 1,
       dotSize: "medium",
       dotColor: "green"
