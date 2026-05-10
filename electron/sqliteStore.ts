@@ -1,9 +1,18 @@
-import initSqlJs from "sql.js";
-import type { Database as SqlDatabase, SqlJsStatic } from "sql.js";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
-import path from "node:path";
+import { readFile } from "node:fs/promises";
+import {
+  legacyJsonDatabasePath,
+  numberValue,
+  openSqliteDatabase,
+  optionalNumber,
+  optionalString,
+  persistSqliteDatabase,
+  selectAll,
+  selectOne,
+  sqliteDatabasePath,
+  stringValue,
+  type SqliteDatabase
+} from "./infrastructure/sqlite/database.js";
 
 type TargetStatus = "active" | "completed" | "deferred";
 
@@ -71,19 +80,8 @@ type AppDatabase = {
   };
 };
 
-const require = createRequire(import.meta.url);
-
-let sqlPromise: Promise<SqlJsStatic> | undefined;
-let databasePromise: Promise<SqlDatabase> | undefined;
+let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;
-
-export function sqliteDatabasePath(userDataPath: string) {
-  return path.join(userDataPath, "emdr-local.sqlite");
-}
-
-export function legacyJsonDatabasePath(userDataPath: string) {
-  return path.join(userDataPath, "emdr-local.db.json");
-}
 
 export async function loadAppDatabase(userDataPath: string): Promise<AppDatabase> {
   const db = await openDatabase(userDataPath);
@@ -93,14 +91,7 @@ export async function loadAppDatabase(userDataPath: string): Promise<AppDatabase
 export async function saveAppDatabase(userDataPath: string, database: AppDatabase) {
   const db = await openDatabase(userDataPath);
   writeAppDatabase(db, database);
-  await persistDatabase(db, sqliteDatabasePath(userDataPath));
-}
-
-async function loadSql() {
-  sqlPromise ??= initSqlJs({
-    locateFile: () => require.resolve("sql.js/dist/sql-wasm.wasm")
-  });
-  return sqlPromise;
+  await persistSqliteDatabase(db, sqliteDatabasePath(userDataPath));
 }
 
 async function openDatabase(userDataPath: string) {
@@ -114,16 +105,11 @@ async function openDatabase(userDataPath: string) {
 }
 
 async function openDatabaseFromDisk(userDataPath: string) {
-  const SQL = await loadSql();
   const sqlitePath = sqliteDatabasePath(userDataPath);
-  await mkdir(path.dirname(sqlitePath), { recursive: true });
-
-  const sqliteExists = existsSync(sqlitePath);
-  const sqliteHasData = sqliteExists && (await stat(sqlitePath)).size > 0;
-  const db = sqliteHasData ? new SQL.Database(await readFile(sqlitePath)) : new SQL.Database();
+  const db = await openSqliteDatabase(sqlitePath);
   ensureSchema(db);
 
-  if (!sqliteHasData) {
+  if (selectAll(db, "SELECT key FROM app_metadata LIMIT 1").length === 0) {
     const legacyPath = legacyJsonDatabasePath(userDataPath);
     if (existsSync(legacyPath)) {
       const legacy = JSON.parse(await readFile(legacyPath, "utf8")) as AppDatabase;
@@ -132,13 +118,13 @@ async function openDatabaseFromDisk(userDataPath: string) {
       writeAppDatabase(db, createEmptyDatabase());
     }
 
-    await persistDatabase(db, sqlitePath);
+    await persistSqliteDatabase(db, sqlitePath);
   }
 
   return db;
 }
 
-function ensureSchema(db: SqlDatabase) {
+function ensureSchema(db: SqliteDatabase) {
   db.run(`
     PRAGMA foreign_keys = ON;
     PRAGMA user_version = 1;
@@ -208,7 +194,7 @@ function ensureSchema(db: SqlDatabase) {
   `);
 }
 
-function readAppDatabase(db: SqlDatabase): AppDatabase {
+function readAppDatabase(db: SqliteDatabase): AppDatabase {
   const createdAt = readMetadata(db, "createdAt") ?? new Date().toISOString();
   const updatedAt = readMetadata(db, "updatedAt") ?? createdAt;
   const settings = readSettings(db);
@@ -223,7 +209,7 @@ function readAppDatabase(db: SqlDatabase): AppDatabase {
   };
 }
 
-function writeAppDatabase(db: SqlDatabase, database: AppDatabase) {
+function writeAppDatabase(db: SqliteDatabase, database: AppDatabase) {
   db.run("BEGIN TRANSACTION");
 
   try {
@@ -345,13 +331,7 @@ function writeAppDatabase(db: SqlDatabase, database: AppDatabase) {
   }
 }
 
-async function persistDatabase(db: SqlDatabase, sqlitePath: string) {
-  const temporaryPath = `${sqlitePath}.tmp`;
-  await writeFile(temporaryPath, Buffer.from(db.export()));
-  await rename(temporaryPath, sqlitePath);
-}
-
-function readSessions(db: SqlDatabase): Session[] {
+function readSessions(db: SqliteDatabase): Session[] {
   const setsBySession = new Map<string, StimulationSet[]>();
   for (const row of selectAll(db, "SELECT * FROM stimulation_sets ORDER BY session_id ASC, set_number ASC")) {
     const set = readStimulationSet(row);
@@ -417,16 +397,16 @@ function readStimulationSet(row: Record<string, unknown>): StimulationSet {
   };
 }
 
-function readMetadata(db: SqlDatabase, key: string) {
+function readMetadata(db: SqliteDatabase, key: string) {
   const row = selectOne(db, "SELECT value FROM app_metadata WHERE key = ?", [key]);
   return row ? stringValue(row.value) : undefined;
 }
 
-function insertMetadata(db: SqlDatabase, key: string, value: string) {
+function insertMetadata(db: SqliteDatabase, key: string, value: string) {
   db.run("INSERT INTO app_metadata (key, value) VALUES (?, ?)", [key, value]);
 }
 
-function readSettings(db: SqlDatabase): AppDatabase["settings"] {
+function readSettings(db: SqliteDatabase): AppDatabase["settings"] {
   const row = selectOne(db, "SELECT value_json FROM settings WHERE key = ?", ["bilateralStimulation"]);
   return {
     bilateralStimulation: row
@@ -435,50 +415,8 @@ function readSettings(db: SqlDatabase): AppDatabase["settings"] {
   };
 }
 
-function insertSetting(db: SqlDatabase, key: string, value: unknown) {
+function insertSetting(db: SqliteDatabase, key: string, value: unknown) {
   db.run("INSERT INTO settings (key, value_json) VALUES (?, ?)", [key, JSON.stringify(value)]);
-}
-
-function selectOne(db: SqlDatabase, sql: string, params: initSqlJs.BindParams = []) {
-  const rows = selectAll(db, sql, params);
-  return rows[0];
-}
-
-function selectAll(db: SqlDatabase, sql: string, params: initSqlJs.BindParams = []) {
-  const statement = db.prepare(sql, params);
-  const rows: Record<string, unknown>[] = [];
-
-  try {
-    while (statement.step()) {
-      rows.push(statement.getAsObject() as Record<string, unknown>);
-    }
-  } finally {
-    statement.free();
-  }
-
-  return rows;
-}
-
-function stringValue(value: unknown) {
-  if (typeof value !== "string") {
-    throw new Error("Expected SQLite text value.");
-  }
-  return value;
-}
-
-function optionalString(value: unknown) {
-  return typeof value === "string" ? value : undefined;
-}
-
-function numberValue(value: unknown) {
-  if (typeof value !== "number") {
-    throw new Error("Expected SQLite numeric value.");
-  }
-  return value;
-}
-
-function optionalNumber(value: unknown) {
-  return typeof value === "number" ? value : undefined;
 }
 
 function createEmptyDatabase(): AppDatabase {
