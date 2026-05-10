@@ -187,11 +187,11 @@ export function targetBookTransition(from: TargetBookMode, to: TargetBookMode): 
   if (from === to) return targetBookSteadyState(to);
 
   if (from === "at_rest" && to === "reading_targets") {
-    return ["pick_up_book", "open_book", "hold_book_open"];
+    return ["pick_up_book", "hold_book_closed", "open_book", "hold_book_open"];
   }
 
   if (from === "at_rest" && to === "writing_targets") {
-    return ["pick_up_book", "open_book", "write_in_book"];
+    return ["pick_up_book", "hold_book_closed", "open_book", "write_in_book"];
   }
 
   if (from === "reading_targets" && to === "writing_targets") {

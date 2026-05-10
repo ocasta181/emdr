@@ -258,17 +258,17 @@ export function RoomScene({
           bookClipQueue = targetBookTransition(settledTargetBookMode, desiredTargetBookMode);
           activeBookClip = bookClipQueue.shift() ?? null;
           bookClipStartedAt = elapsed;
-          if (activeBookClip && guideBookClips[activeBookClip].loops) {
+          if (activeBookClip && guideBookClips[activeBookClip].loops && bookClipQueue.length === 0) {
             settledTargetBookMode = desiredTargetBookMode;
           }
         }
 
         let activeBookProgress = activeBookClip ? Math.min(1, (elapsed - bookClipStartedAt) / bookClipDurations[activeBookClip]) : 1;
-        if (activeBookClip && activeBookProgress >= 1 && !guideBookClips[activeBookClip].loops) {
+        if (activeBookClip && activeBookProgress >= 1 && (!guideBookClips[activeBookClip].loops || bookClipQueue.length > 0)) {
           activeBookClip = bookClipQueue.shift() ?? null;
           bookClipStartedAt = elapsed;
           activeBookProgress = 0;
-          if (activeBookClip && guideBookClips[activeBookClip].loops) {
+          if (activeBookClip && guideBookClips[activeBookClip].loops && bookClipQueue.length === 0) {
             settledTargetBookMode = desiredTargetBookMode;
           }
           if (!activeBookClip) {
