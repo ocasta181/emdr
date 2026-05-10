@@ -168,6 +168,7 @@ export function RoomScene({
       let bookClipQueue: GuideBookIntent[] = [];
       let bookClipStartedAt = 0;
       let targetBookLayout = { x: 0, y: 0, scale: 1 };
+      let targetBookLabel: Text | null = null;
 
       function drawLabel(text: string, x: number, y: number) {
         const label = new Text({
@@ -182,6 +183,7 @@ export function RoomScene({
         label.anchor.set(0.5);
         label.position.set(x, y);
         labels.addChild(label);
+        return label;
       }
 
       function redraw() {
@@ -202,14 +204,11 @@ export function RoomScene({
         hill.clear();
         hill.ellipse(width * 0.5, floorY + 40, width * 0.42, height * 0.15).fill("#302f28");
         hill.ellipse(width * 0.5, floorY + 26, width * 0.34, height * 0.1).fill("#3d3a31");
-        hill.roundRect(width * 0.12, height * 0.2, 94, 150, 8).fill("#282a25");
-        hill.circle(width * 0.12 + 47, height * 0.19, 42).fill("#30332d");
         hill.roundRect(width * 0.82, height * 0.56, 80, 110, 8).fill("#383229");
         hill.circle(width * 0.82 + 40, height * 0.55, 30).fill("#52442f");
 
         labels.removeChildren();
-        drawLabel("Targets", width * 0.12 + 47, height * 0.41);
-        drawLabel("Target book", width * 0.2, floorY + 48);
+        targetBookLabel = drawLabel("Target book", width * 0.2, floorY + 48);
         drawLabel("Settings", width * 0.82 + 40, height * 0.73);
         drawLabel("History", width * 0.68, height * 0.82);
 
@@ -284,6 +283,9 @@ export function RoomScene({
           : runtime.sceneViewModel.independentBookState;
         targetBook.visible = independentBookState === "visible";
         hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
+        if (targetBookLabel) {
+          targetBookLabel.visible = targetBook.visible;
+        }
         drawGuideBook(guideBook, guideIntent, activeBookProgress, targetBookLayout, guide.x, guide.y, guide.width);
 
         const floorY = height * 0.78;
