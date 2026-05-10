@@ -325,6 +325,134 @@ h2 {
   }
 }
 
+.animatedApp {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #171614;
+}
+
+.roomScene {
+  position: absolute;
+  inset: 0;
+}
+
+.roomScene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.animatedTopbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(180deg, rgba(23, 22, 20, 0.86), rgba(23, 22, 20, 0));
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.stimulationActive .animatedTopbar {
+  opacity: 0.42;
+  filter: blur(1px);
+}
+
+.stimulationActive .animatedTopbar:focus-within,
+.stimulationActive .animatedTopbar:hover {
+  opacity: 1;
+  filter: none;
+}
+
+.animatedPanel {
+  position: absolute;
+  z-index: 2;
+  right: 24px;
+  bottom: 24px;
+  display: grid;
+  gap: 14px;
+  width: min(390px, calc(100vw - 48px));
+  max-height: calc(100vh - 130px);
+  overflow: auto;
+  border: 1px solid rgba(216, 198, 146, 0.28);
+  border-radius: 8px;
+  background: rgba(29, 27, 24, 0.9);
+  padding: 18px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(14px);
+}
+
+.animatedPanel-chat {
+  right: 24px;
+  bottom: 24px;
+}
+
+.animatedPanel-targets {
+  left: 34px;
+  right: auto;
+  top: 150px;
+  bottom: auto;
+}
+
+.animatedPanel-history {
+  left: 50%;
+  right: auto;
+  bottom: 60px;
+  transform: translateX(-50%);
+}
+
+.animatedPanel-settings {
+  right: 38px;
+  bottom: 120px;
+}
+
+.panelClose {
+  justify-self: end;
+  min-height: 30px;
+  padding: 0 10px;
+  color: #cfc7b8;
+}
+
+.chatLog {
+  display: grid;
+  gap: 10px;
+}
+
+.chatComposer {
+  display: grid;
+  gap: 10px;
+}
+
+.guideBubble,
+.userBubble {
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+.guideBubble {
+  background: #28251f;
+  color: #efe7d4;
+}
+
+.userBubble {
+  justify-self: end;
+  max-width: 86%;
+  background: #34402f;
+  color: #f1eddf;
+}
+
+.colorButton {
+  width: 38px;
+  min-height: 38px;
+  border-color: rgba(255, 255, 255, 0.36);
+  padding: 0;
+}
+
 .counter {
   position: absolute;
   top: 16px;
