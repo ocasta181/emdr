@@ -1,6 +1,6 @@
 import type { Database } from "../app/types";
 import type { Target } from "./entity";
-import { nowIso } from "../../../support/ids";
+import { nowIso } from "../../support/ids";
 import { createTargetRevision } from "./factory";
 
 export function currentTargets(database: Database) {

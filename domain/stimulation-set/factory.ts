@@ -1,4 +1,4 @@
-import { createId, nowIso } from "../../../support/ids";
+import { createId, nowIso } from "../../support/ids";
 import type { StimulationSet } from "./entity";
 
 type StimulationSetDraft = Pick<StimulationSet, "sessionId" | "setNumber" | "cycleCount" | "observation"> &

@@ -1,5 +1,6 @@
 import { currentTargets } from "../../target/service";
-import type { Database, Target } from "../../../types";
+import type { Target } from "../../target/entity";
+import type { Database } from "../types";
 
 export function Dashboard({
   database,

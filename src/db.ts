@@ -1,5 +1,5 @@
 import type { Database } from "./types";
-import { createEmptyDatabase } from "./domain/app/factory";
+import { createEmptyDatabase } from "../domain/app/factory";
 import { nowIso } from "../support/ids";
 
 const STORAGE_KEY = "emdr-local-dev-db";

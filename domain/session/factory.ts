@@ -1,4 +1,4 @@
-import { createId, nowIso } from "../../../support/ids";
+import { createId, nowIso } from "../../support/ids";
 import type { Target } from "../target/entity";
 import type { SessionAggregate } from "./types";
 

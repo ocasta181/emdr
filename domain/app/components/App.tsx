@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { loadDatabase, saveDatabase } from "../../../db";
-import type { Database, SessionAggregate, Target } from "../../../types";
+import { loadDatabase, saveDatabase } from "../../../src/db";
+import type { SessionAggregate } from "../../session/types";
+import type { Target } from "../../target/entity";
+import type { Database } from "../types";
 import { SessionFlow } from "../../session/components/SessionFlow";
 import { Targets } from "../../target/components/Targets";
 import { createEmptyDatabase } from "../factory";
