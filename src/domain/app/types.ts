@@ -1,5 +1,5 @@
 import type { SessionAggregate } from "../session/types";
-import type { Settings } from "../settings/types";
+import type { Settings } from "../setting/types";
 import type { Target } from "../target/entity";
 
 export type Database = {
