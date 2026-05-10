@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { loadDatabase, saveDatabase } from "../../../src/db";
+import {
+  createVault,
+  getVaultStatus,
+  loadDatabase,
+  saveDatabase,
+  unlockWithPassword,
+  unlockWithRecoveryCode,
+  type VaultStatus
+} from "../../../src/db";
 import type { SessionAggregate } from "../../session/types";
 import type { Target } from "../../target/entity";
 import type { Database } from "../types";
@@ -9,27 +17,54 @@ import { endSession as completeSession, saveSessionDraft, startSessionForTarget 
 import { Targets } from "../../target/components/Targets";
 import { createEmptyDatabase } from "../factory";
 import { Dashboard } from "./Dashboard";
+import { RecoveryCode, VaultSetup, VaultUnlock } from "./VaultAccess";
 
 type View = "dashboard" | "targets" | "settings" | "session";
+type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
 export function App() {
   const [database, setDatabase] = useState<Database>(() => createEmptyDatabase());
-  const [loaded, setLoaded] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [view, setView] = useState<View>("dashboard");
   const [session, setSession] = useState<SessionAggregate | null>(null);
 
   useEffect(() => {
-    loadDatabase().then((loadedDatabase) => {
-      setDatabase(loadedDatabase);
-      setLoaded(true);
+    getVaultStatus().then((status) => {
+      if (status === "unlocked") {
+        void loadUnlockedDatabase();
+      } else {
+        setAuthState(authStateForVault(status));
+      }
     });
   }, []);
 
   useEffect(() => {
-    if (loaded) {
+    if (authState === "ready") {
       void saveDatabase(database);
     }
-  }, [database, loaded]);
+  }, [database, authState]);
+
+  async function loadUnlockedDatabase() {
+    setDatabase(await loadDatabase());
+    setAuthState("ready");
+  }
+
+  async function setupVault(password: string) {
+    const result = await createVault(password);
+    setRecoveryCode(result.recoveryCode);
+    setAuthState("recovery");
+  }
+
+  async function unlockVault(password: string) {
+    await unlockWithPassword(password);
+    await loadUnlockedDatabase();
+  }
+
+  async function unlockVaultWithRecovery(recoveryCode: string) {
+    await unlockWithRecoveryCode(recoveryCode);
+    await loadUnlockedDatabase();
+  }
 
   function updateDatabase(next: Database) {
     setDatabase(next);
@@ -53,8 +88,20 @@ export function App() {
     setView("dashboard");
   }
 
-  if (!loaded) {
+  if (authState === "checking") {
     return <div className="boot">Loading local data...</div>;
+  }
+
+  if (authState === "setup") {
+    return <VaultSetup onCreate={setupVault} />;
+  }
+
+  if (authState === "recovery") {
+    return <RecoveryCode recoveryCode={recoveryCode} onContinue={loadUnlockedDatabase} />;
+  }
+
+  if (authState === "locked") {
+    return <VaultUnlock onUnlock={unlockVault} onRecoveryUnlock={unlockVaultWithRecovery} />;
   }
 
   return (
@@ -91,4 +138,10 @@ export function App() {
       )}
     </div>
   );
+}
+
+function authStateForVault(status: VaultStatus): AuthState {
+  if (status === "setupRequired") return "setup";
+  if (status === "locked") return "locked";
+  return "ready";
 }

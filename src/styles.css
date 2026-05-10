@@ -75,6 +75,38 @@ label {
   color: #bfb8aa;
 }
 
+.authScreen {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 28px;
+}
+
+.authPanel {
+  width: min(100%, 460px);
+}
+
+.formError {
+  border: 1px solid #7c4f49;
+  border-radius: 6px;
+  background: #30201d;
+  color: #f0c8be;
+  padding: 10px 12px;
+}
+
+.recoveryCode {
+  min-height: 150px;
+  color: #f4efe2;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  line-height: 1.65;
+}
+
+.recoveryUnlock {
+  margin-top: 18px;
+  border-top: 1px solid #34302a;
+  padding-top: 18px;
+}
+
 .app {
   min-height: 100vh;
 }

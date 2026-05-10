@@ -16,7 +16,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
 
 function databasePath() {
-  return vaultPath(app.getPath("userData"));
+  return vaultPath(userDataPath());
+}
+
+function userDataPath() {
+  return process.env.EMDR_LOCAL_USER_DATA_PATH ?? app.getPath("userData");
 }
 
 async function createWindow() {
@@ -53,29 +57,29 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("vault:status", async () => {
-    return appVaultStatus(app.getPath("userData"));
+    return appVaultStatus(userDataPath());
   });
 
   ipcMain.handle("vault:create", async (_event, password: unknown) => {
-    return createAppVault(app.getPath("userData"), String(password));
+    return createAppVault(userDataPath(), String(password));
   });
 
   ipcMain.handle("vault:unlock-password", async (_event, password: unknown) => {
-    await unlockAppVaultWithPassword(app.getPath("userData"), String(password));
+    await unlockAppVaultWithPassword(userDataPath(), String(password));
     return { ok: true };
   });
 
   ipcMain.handle("vault:unlock-recovery", async (_event, recoveryCode: unknown) => {
-    await unlockAppVaultWithRecoveryCode(app.getPath("userData"), String(recoveryCode));
+    await unlockAppVaultWithRecoveryCode(userDataPath(), String(recoveryCode));
     return { ok: true };
   });
 
   ipcMain.handle("db:load", async () => {
-    return loadAppDatabase(app.getPath("userData"));
+    return loadAppDatabase(userDataPath());
   });
 
   ipcMain.handle("db:save", async (_event, database: unknown) => {
-    await saveAppDatabase(app.getPath("userData"), database as never);
+    await saveAppDatabase(userDataPath(), database as never);
     return { ok: true, path: databasePath() };
   });
 
