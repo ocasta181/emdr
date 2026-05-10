@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import { createEmptyDatabase } from "./domain/app/service";
+import { endSession as completeSession, saveSessionDraft, startSessionForTarget } from "./domain/app/workflow";
 import { activeTargets, currentTargets, reviseTarget } from "./domain/target/service";
 import { loadDatabase, saveDatabase } from "./db";
-import { replaceById } from "./support/collection";
 import { createId, nowIso } from "./support/ids";
 import type { Assessment, Database, SessionAggregate, StimulationSet, TargetStatus, Target } from "./types";
 
@@ -39,21 +39,9 @@ function App() {
   }
 
   function startSession(target: Target) {
-    const nextSession: SessionAggregate = {
-      id: createId("session"),
-      targetRootId: target.rootTargetId,
-      targetId: target.id,
-      startedAt: nowIso(),
-      assessment: {
-        negativeCognition: target.negativeCognition,
-        positiveCognition: target.positiveCognition,
-        disturbance: target.currentDisturbance
-      },
-      stimulationSets: []
-    };
-
-    setDatabase(saveSessionDraft(database, nextSession));
-    setSession(nextSession);
+    const next = startSessionForTarget(database, target);
+    setDatabase(next.database);
+    setSession(next.session);
     setView("session");
   }
 
@@ -63,19 +51,8 @@ function App() {
   }
 
   function endSession(nextSession: SessionAggregate) {
-    const ended = {
-      ...nextSession,
-      endedAt: nowIso()
-    };
-    const target = database.targets.find((item) => item.id === ended.targetId);
-    let nextDatabase = saveSessionDraft(database, ended);
-
-    if (target && typeof ended.finalDisturbance === "number") {
-      nextDatabase = reviseTarget(nextDatabase, target, { currentDisturbance: ended.finalDisturbance });
-    }
-
     setSession(null);
-    setDatabase(nextDatabase);
+    setDatabase(completeSession(database, nextSession));
     setView("dashboard");
   }
 
@@ -107,13 +84,6 @@ function App() {
       )}
     </div>
   );
-}
-
-function saveSessionDraft(database: Database, session: SessionAggregate): Database {
-  return {
-    ...database,
-    sessions: replaceById(database.sessions, session)
-  };
 }
 
 function Dashboard({ database, onStartSession }: { database: Database; onStartSession: (target: Target) => void }) {
