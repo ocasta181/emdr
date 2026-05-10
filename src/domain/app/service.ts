@@ -3,8 +3,8 @@ import type { SessionAggregate } from "../session/types";
 import type { Target } from "../target/entity";
 import { createSessionForTarget } from "../session/factory";
 import { reviseTarget } from "../target/service";
-import { replaceById } from "../../support/collection";
-import { nowIso } from "../../support/ids";
+import { replaceById } from "../../../support/collection";
+import { nowIso } from "../../../support/ids";
 
 export function startSessionForTarget(database: Database, target: Target) {
   const session = createSessionForTarget(target);

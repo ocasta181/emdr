@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Database } from "../../app/types";
-import { optionalNumber } from "../../../support/form";
+import { optionalNumber } from "../../../../support/form";
 import type { Target, TargetStatus } from "../entity";
 import { createTarget } from "../factory";
 import { currentTargets, reviseTarget } from "../service";
