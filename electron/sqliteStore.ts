@@ -1,7 +1,7 @@
 import initSqlJs from "sql.js";
 import type { Database as SqlDatabase, SqlJsStatic } from "sql.js";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -128,10 +128,12 @@ async function openDatabaseFromDisk(userDataPath: string) {
   const sqlitePath = sqliteDatabasePath(userDataPath);
   await mkdir(path.dirname(sqlitePath), { recursive: true });
 
-  const db = existsSync(sqlitePath) ? new SQL.Database(await readFile(sqlitePath)) : new SQL.Database();
+  const sqliteExists = existsSync(sqlitePath);
+  const sqliteHasData = sqliteExists && (await stat(sqlitePath)).size > 0;
+  const db = sqliteHasData ? new SQL.Database(await readFile(sqlitePath)) : new SQL.Database();
   ensureSchema(db);
 
-  if (!existsSync(sqlitePath)) {
+  if (!sqliteHasData) {
     const legacyPath = legacyJsonDatabasePath(userDataPath);
     if (existsSync(legacyPath)) {
       const legacy = JSON.parse(await readFile(legacyPath, "utf8")) as AppDatabase;
