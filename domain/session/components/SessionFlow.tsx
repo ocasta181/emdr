@@ -5,9 +5,8 @@ import { updateBilateralStimulationSettings } from "../../setting/service";
 import { createStimulationSet } from "../../stimulation-set/factory";
 import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
-import type { Assessment, SessionAggregate } from "../types";
-
-type SessionStep = "assessment" | "stimulation" | "close" | "summary";
+import type { Assessment, SessionAggregate, SessionFlowAction, SessionFlowState } from "../types";
+import { getSessionFlowStateDefinition, nextSessionFlowState, sessionFlowStateLabels } from "../service";
 
 export function SessionFlow({
   database,
@@ -22,8 +21,18 @@ export function SessionFlow({
   onPersist: (session: SessionAggregate) => void;
   onEnd: (session: SessionAggregate) => void;
 }) {
-  const [step, setStep] = useState<SessionStep>("assessment");
+  const [flowState, setFlowState] = useState<SessionFlowState>("preparation");
   const target = database.targets.find((item) => item.id === session.targetId);
+  const stateDefinition = getSessionFlowStateDefinition(flowState);
+
+  function applyAction(action: SessionFlowAction) {
+    setFlowState((current) => nextSessionFlowState(current, action));
+  }
+
+  function completeSession() {
+    nextSessionFlowState(flowState, "complete_session");
+    onEnd(session);
+  }
 
   return (
     <main className="screen">
@@ -32,40 +41,53 @@ export function SessionFlow({
           <div>
             <h1>Session</h1>
             <p>{target?.description}</p>
+            <p>{stateDefinition.description}</p>
           </div>
           <div className="steps">
-            {["assessment", "stimulation", "close", "summary"].map((item) => (
-              <button key={item} className={step === item ? "active" : ""} onClick={() => setStep(item as SessionStep)}>
-                {item}
-              </button>
-            ))}
+            {(["preparation", "stimulation", "interjection", "closure", "review"] satisfies SessionFlowState[]).map(
+              (item) => (
+                <button key={item} className={flowState === item ? "active" : ""} disabled>
+                  {sessionFlowStateLabels[item]}
+                </button>
+              )
+            )}
           </div>
         </div>
 
-        {step === "assessment" && (
+        {flowState === "preparation" && (
           <AssessmentStep
             assessment={session.assessment}
             onChange={(assessment) => onPersist({ ...session, assessment })}
-            onNext={() => setStep("stimulation")}
+            onNext={() => applyAction("approve_assessment")}
+            onClose={() => applyAction("begin_closure")}
           />
         )}
-        {step === "stimulation" && (
+        {flowState === "stimulation" && (
           <StimulationStep
             database={database}
             session={session}
             onDatabaseChange={onDatabaseChange}
             onChange={(nextSession) => onPersist(nextSession)}
-            onNext={() => setStep("close")}
+            onLogSet={() => applyAction("log_stimulation_set")}
+            onPause={() => applyAction("pause_stimulation")}
+            onNext={() => applyAction("begin_closure")}
           />
         )}
-        {step === "close" && (
+        {flowState === "interjection" && (
+          <InterjectionStep
+            onContinue={() => applyAction("continue_stimulation")}
+            onClose={() => applyAction("begin_closure")}
+          />
+        )}
+        {flowState === "closure" && (
           <CloseStep
             session={session}
             onChange={(nextSession) => onPersist(nextSession)}
-            onEnd={() => setStep("summary")}
+            onContinue={() => applyAction("continue_stimulation")}
+            onReview={() => applyAction("review_session")}
           />
         )}
-        {step === "summary" && <SummaryStep session={session} onEnd={() => onEnd(session)} />}
+        {flowState === "review" && <SummaryStep session={session} onBack={() => applyAction("begin_closure")} onEnd={completeSession} />}
       </section>
     </main>
   );
@@ -74,11 +96,13 @@ export function SessionFlow({
 function AssessmentStep({
   assessment,
   onChange,
-  onNext
+  onNext,
+  onClose
 }: {
   assessment: Assessment;
   onChange: (assessment: Assessment) => void;
   onNext: () => void;
+  onClose: () => void;
 }) {
   function set<K extends keyof Assessment>(key: K, value: Assessment[K]) {
     onChange({ ...assessment, [key]: value });
@@ -136,22 +160,28 @@ function AssessmentStep({
         Body location
         <input value={assessment.bodyLocation ?? ""} onChange={(event) => set("bodyLocation", event.target.value)} />
       </label>
-      <button onClick={onNext}>Continue</button>
+      <div className="buttonRow">
+        <button onClick={onNext}>Start Stimulation</button>
+        <button onClick={onClose}>Begin Closure</button>
+      </div>
     </div>
   );
 }
-
 function StimulationStep({
   database,
   session,
   onDatabaseChange,
   onChange,
+  onLogSet,
+  onPause,
   onNext
 }: {
   database: Database;
   session: SessionAggregate;
   onDatabaseChange: (database: Database) => void;
   onChange: (session: SessionAggregate) => void;
+  onLogSet: () => void;
+  onPause: () => void;
   onNext: () => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -202,6 +232,7 @@ function StimulationStep({
       ...session,
       stimulationSets: session.stimulationSets.concat(nextSet)
     });
+    onLogSet();
     setObservation("");
     setDisturbance("");
     setCycles(0);
@@ -247,7 +278,8 @@ function StimulationStep({
           <button onClick={logSet} disabled={!observation.trim()}>
             Log Set
           </button>
-          <button onClick={onNext}>Close Session</button>
+          <button onClick={onPause}>Pause</button>
+          <button onClick={onNext}>Begin Closure</button>
         </div>
         <div className="sets">
           {session.stimulationSets.map((set) => (
@@ -263,14 +295,29 @@ function StimulationStep({
   );
 }
 
+function InterjectionStep({ onContinue, onClose }: { onContinue: () => void; onClose: () => void }) {
+  return (
+    <div className="form">
+      <h2>Paused</h2>
+      <p className="subtle">Continue stimulation when ready, or begin closure from here.</p>
+      <div className="buttonRow">
+        <button onClick={onContinue}>Continue Stimulation</button>
+        <button onClick={onClose}>Begin Closure</button>
+      </div>
+    </div>
+  );
+}
+
 function CloseStep({
   session,
   onChange,
-  onEnd
+  onContinue,
+  onReview
 }: {
   session: SessionAggregate;
   onChange: (session: SessionAggregate) => void;
-  onEnd: () => void;
+  onContinue: () => void;
+  onReview: () => void;
 }) {
   return (
     <div className="form">
@@ -288,12 +335,23 @@ function CloseStep({
         Session notes
         <textarea value={session.notes ?? ""} onChange={(event) => onChange({ ...session, notes: event.target.value })} />
       </label>
-      <button onClick={onEnd}>Review Summary</button>
+      <div className="buttonRow">
+        <button onClick={onReview}>Review Summary</button>
+        <button onClick={onContinue}>Continue Stimulation</button>
+      </div>
     </div>
   );
 }
 
-function SummaryStep({ session, onEnd }: { session: SessionAggregate; onEnd: () => void }) {
+function SummaryStep({
+  session,
+  onBack,
+  onEnd
+}: {
+  session: SessionAggregate;
+  onBack: () => void;
+  onEnd: () => void;
+}) {
   return (
     <div className="summary">
       <h2>Session Summary</h2>
@@ -305,7 +363,10 @@ function SummaryStep({ session, onEnd }: { session: SessionAggregate; onEnd: () 
         <dt>Final disturbance</dt>
         <dd>{session.finalDisturbance ?? "-"}</dd>
       </dl>
-      <button onClick={onEnd}>End Session</button>
+      <div className="buttonRow">
+        <button onClick={onBack}>Back To Closure</button>
+        <button onClick={onEnd}>End Session</button>
+      </div>
     </div>
   );
 }
