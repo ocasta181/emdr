@@ -125,4 +125,12 @@ pnpm install
 pnpm run dev
 ```
 
+Common commands are also available through `just`:
+
+```sh
+just install
+just dev
+just build
+```
+
 The app runs locally in Electron. It should not load remote content.
