@@ -1,15 +1,14 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadAppDatabase, saveAppDatabase, sqliteDatabasePath } from "./sqliteStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
 
 function databasePath() {
-  return path.join(app.getPath("userData"), "emdr-local.db.json");
+  return sqliteDatabasePath(app.getPath("userData"));
 }
 
 async function createWindow() {
@@ -46,20 +45,12 @@ app.whenReady().then(async () => {
   });
 
   ipcMain.handle("db:load", async () => {
-    const file = databasePath();
-    if (!existsSync(file)) {
-      return null;
-    }
-
-    const contents = await readFile(file, "utf8");
-    return JSON.parse(contents);
+    return loadAppDatabase(app.getPath("userData"));
   });
 
   ipcMain.handle("db:save", async (_event, database: unknown) => {
-    const file = databasePath();
-    await mkdir(path.dirname(file), { recursive: true });
-    await writeFile(file, JSON.stringify(database, null, 2), "utf8");
-    return { ok: true, path: file };
+    await saveAppDatabase(app.getPath("userData"), database as never);
+    return { ok: true, path: databasePath() };
   });
 
   await createWindow();
