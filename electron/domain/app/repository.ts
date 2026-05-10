@@ -3,7 +3,7 @@ import {
   persistSqliteDatabase,
   sqliteDatabasePath,
   type SqliteDatabase
-} from "../../infrastructure/sqlite/database.js";
+} from "../../../infrastructure/sqlite/database.js";
 import { ensureAppMetadataTable, readAppMetadata, replaceAppMetadata } from "../app-metadata/repository.js";
 import { ensureSessionTable, readSessions, replaceSessions } from "../session/repository.js";
 import type { Session } from "../session/entity.js";

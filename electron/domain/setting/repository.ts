@@ -1,6 +1,6 @@
-import type { SqliteDatabase } from "../../infrastructure/sqlite/database.js";
-import { stringValue } from "../../infrastructure/sqlite/database.js";
-import { createRepository } from "../../infrastructure/sqlite/repository.js";
+import type { SqliteDatabase } from "../../../infrastructure/sqlite/database.js";
+import { stringValue } from "../../../infrastructure/sqlite/database.js";
+import { createRepository } from "../../../infrastructure/sqlite/repository.js";
 import type { Setting } from "./entity.js";
 
 const columns = ["key", "value_json"];

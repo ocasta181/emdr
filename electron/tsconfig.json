@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "../dist-electron",
-    "rootDir": "."
+    "rootDir": ".."
   },
-  "include": ["**/*.ts", "**/*.cts"]
+  "include": ["*.ts", "*.cts", "../infrastructure/**/*.ts", "domain/**/*.ts"]
 }

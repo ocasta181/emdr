@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, session } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadAppDatabase, saveAppDatabase } from "./domain/app/repository.js";
-import { sqliteDatabasePath } from "./infrastructure/sqlite/database.js";
+import { sqliteDatabasePath } from "../infrastructure/sqlite/database.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,7 +31,7 @@ async function createWindow() {
   if (isDev) {
     await window.loadURL(process.env.VITE_DEV_SERVER_URL!);
   } else {
-    await window.loadFile(path.join(__dirname, "../dist/index.html"));
+    await window.loadFile(path.join(__dirname, "../../dist/index.html"));
   }
 }
 
