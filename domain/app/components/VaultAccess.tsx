@@ -1,6 +1,12 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 
-export function VaultSetup({ onCreate }: { onCreate: (password: string) => Promise<void> }) {
+export function VaultSetup({
+  onCreate,
+  onImport
+}: {
+  onCreate: (password: string) => Promise<void>;
+  onImport: () => Promise<boolean>;
+}) {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
@@ -43,6 +49,9 @@ export function VaultSetup({ onCreate }: { onCreate: (password: string) => Promi
         {error && <div className="formError">{error}</div>}
         <button type="submit">Create Encrypted Local Data</button>
       </form>
+      <div className="form recoveryUnlock">
+        <button onClick={() => void onImport()}>Import Encrypted Data</button>
+      </div>
     </AuthShell>
   );
 }
@@ -67,10 +76,12 @@ export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: strin
 
 export function VaultUnlock({
   onUnlock,
-  onRecoveryUnlock
+  onRecoveryUnlock,
+  onImport
 }: {
   onUnlock: (password: string) => Promise<void>;
   onRecoveryUnlock: (recoveryCode: string) => Promise<void>;
+  onImport: () => Promise<boolean>;
 }) {
   const [password, setPassword] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -119,6 +130,9 @@ export function VaultUnlock({
           />
         </label>
         <button onClick={unlockWithRecovery}>Unlock With Recovery Key</button>
+      </div>
+      <div className="form recoveryUnlock">
+        <button onClick={() => void onImport()}>Import Encrypted Data</button>
       </div>
       {error && <div className="formError">{error}</div>}
     </AuthShell>

@@ -358,6 +358,19 @@ h2 {
   max-width: 720px;
 }
 
+.vaultTransfer {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid #34302a;
+  margin-top: 22px;
+  padding-top: 18px;
+}
+
+.actionNote {
+  margin: 0;
+  color: #bfb8aa;
+}
+
 .speedReadout {
   color: #d8c692;
   min-height: 38px;

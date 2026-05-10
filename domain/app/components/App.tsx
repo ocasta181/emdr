@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
   createVault,
+  exportVault,
   getVaultStatus,
+  importVault,
   loadDatabase,
   saveDatabase,
   unlockWithPassword,
@@ -66,6 +68,21 @@ export function App() {
     await loadUnlockedDatabase();
   }
 
+  async function exportEncryptedData() {
+    const result = await exportVault();
+    return result.canceled ? undefined : result.path;
+  }
+
+  async function importEncryptedData() {
+    const result = await importVault();
+    if (result.canceled) return false;
+
+    setSession(null);
+    setView("dashboard");
+    setAuthState("locked");
+    return true;
+  }
+
   function updateDatabase(next: Database) {
     setDatabase(next);
   }
@@ -93,7 +110,7 @@ export function App() {
   }
 
   if (authState === "setup") {
-    return <VaultSetup onCreate={setupVault} />;
+    return <VaultSetup onCreate={setupVault} onImport={importEncryptedData} />;
   }
 
   if (authState === "recovery") {
@@ -101,7 +118,13 @@ export function App() {
   }
 
   if (authState === "locked") {
-    return <VaultUnlock onUnlock={unlockVault} onRecoveryUnlock={unlockVaultWithRecovery} />;
+    return (
+      <VaultUnlock
+        onUnlock={unlockVault}
+        onRecoveryUnlock={unlockVaultWithRecovery}
+        onImport={importEncryptedData}
+      />
+    );
   }
 
   return (
@@ -126,7 +149,14 @@ export function App() {
 
       {view === "dashboard" && <Dashboard database={database} onStartSession={startSession} />}
       {view === "targets" && <Targets database={database} onChange={updateDatabase} />}
-      {view === "settings" && <Settings database={database} onChange={updateDatabase} />}
+      {view === "settings" && (
+        <Settings
+          database={database}
+          onChange={updateDatabase}
+          onExportEncryptedData={exportEncryptedData}
+          onImportEncryptedData={importEncryptedData}
+        />
+      )}
       {view === "session" && session && (
         <SessionFlow
           database={database}
