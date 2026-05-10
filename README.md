@@ -31,6 +31,7 @@ The current build is an MVP focused on proving the core flow end to end with enc
 - Unlock encrypted local data with either password or recovery key.
 - Export and import encrypted vault files.
 - Start a session from an active target.
+- Traverse sessions through a deterministic state machine.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
 - Persist visual bilateral stimulation speed and dot color settings.
@@ -83,6 +84,23 @@ infrastructure/
 ```
 
 Each persisted domain has its own `entity.ts` and thin typed `repository.ts`. Shared CRUD behavior lives in `infrastructure/sqlite/repository.ts`. Table definitions live in migration files, not repositories.
+
+## Session State Machine
+
+The current session UI is manually traversed, but state changes run through the session domain state machine in `domain/session/service.ts`.
+
+Current states:
+
+- `idle`
+- `target_selection`
+- `preparation`
+- `stimulation`
+- `interjection`
+- `closure`
+- `review`
+- `post_session`
+
+The state machine also defines allowed future agent tools per state. A future local guide agent should request actions; deterministic app code remains responsible for validating whether those actions are allowed.
 
 ## Data Model
 
@@ -180,6 +198,7 @@ Existing ADRs:
 
 - Package as a macOS `.app`.
 - Add audio bilateral stimulation.
+- Expand the session state machine into the full chat-first guided flow.
 - Add automated tests.
 - Add migration tests.
 - Define local logging use cases, event names, retention expectations, and domain model before adding log storage.
