@@ -1,4 +1,3 @@
-import type { ActivityEvent } from "../activity/entity";
 import type { Session } from "../session/types";
 import type { Settings } from "../settings/types";
 import type { Target } from "../target/entity";
@@ -9,6 +8,5 @@ export type Database = {
   updatedAt: string;
   targets: Target[];
   sessions: Session[];
-  activityEvents: ActivityEvent[];
   settings: Settings;
 };

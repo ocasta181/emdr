@@ -22,7 +22,7 @@ These sources support EMDR as an evidence-based psychological therapy for PTSD i
 
 Any future workflow decision that claims to be clinically optimized must get its own ADR before implementation.
 
-For the MVP, the app will avoid strong clinical optimization claims. It will implement a basic local session flow, local target tracking, local activity logging, and visual bilateral stimulation.
+For the MVP, the app will avoid strong clinical optimization claims. It will implement a basic local session flow, local target tracking, and visual bilateral stimulation.
 
 ## Consequences
 

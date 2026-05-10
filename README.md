@@ -15,7 +15,7 @@ The current build is an MVP focused on proving the core flow end to end. Several
 - The first implementation uses Electron, React, TypeScript, and Vite.
 - A "session" means one clinical EMDR work session in the app. Every session is complete when the user ends it.
 - A target may require many sessions. Targets are unfinished until the user explicitly marks them complete.
-- The app should log all local activity for the user's later review and analysis. Telemetry means local activity logging only.
+- Local logging/telemetry is planned, but the use cases and event taxonomy need to be defined before implementation.
 - Bilateral stimulation is spelled out in user-facing copy. Visual bilateral stimulation ships first; audio bilateral stimulation is a later feature.
 - Markdown export is not planned. Backup/export should be encrypted database export.
 
@@ -29,7 +29,6 @@ The current build is an MVP focused on proving the core flow end to end. Several
 - Log stimulation sets with observations and optional disturbance score.
 - End a session with final notes and final disturbance score.
 - Update the current target disturbance score from the latest session.
-- Preserve local activity events in the data file.
 
 ## Data Model
 
@@ -76,21 +75,6 @@ type Session = {
 };
 ```
 
-### Activity Event
-
-Activity events are append-only local telemetry.
-
-```ts
-type ActivityEvent = {
-  id: string;
-  timestamp: string;
-  type: string;
-  entityType?: "target" | "session" | "settings";
-  entityId?: string;
-  payload?: Record<string, unknown>;
-};
-```
-
 ## ADRs
 
 Clinical-data-informed decisions must be captured as Architecture Decision Records in `docs/adr/`. Each ADR should describe:
@@ -118,6 +102,7 @@ Existing ADRs:
 - Add audio bilateral stimulation.
 - Add database migrations.
 - Add automated tests.
+- Define local logging use cases, event names, retention expectations, and domain model before adding log storage.
 - Add clinician/research ADRs before making stronger workflow claims.
 
 ## Development

@@ -4,7 +4,6 @@ import "./styles.css";
 import {
   activeTargets,
   createEmptyDatabase,
-  createEvent,
   createId,
   currentTargets,
   loadDatabase,
@@ -59,14 +58,14 @@ function App() {
       stimulationSets: []
     };
 
-    setDatabase(upsertSession(database, nextSession, "session.started"));
+    setDatabase(upsertSession(database, nextSession));
     setSession(nextSession);
     setView("session");
   }
 
-  function persistSession(nextSession: Session, eventType: string) {
+  function persistSession(nextSession: Session) {
     setSession(nextSession);
-    setDatabase(upsertSession(database, nextSession, eventType));
+    setDatabase(upsertSession(database, nextSession));
   }
 
   function endSession(nextSession: Session) {
@@ -75,7 +74,7 @@ function App() {
       endedAt: nowIso()
     };
     const target = database.targets.find((item) => item.id === ended.targetId);
-    let nextDatabase = upsertSession(database, ended, "session.ended");
+    let nextDatabase = upsertSession(database, ended);
 
     if (target && typeof ended.finalDisturbance === "number") {
       nextDatabase = reviseTarget(nextDatabase, target, { currentDisturbance: ended.finalDisturbance });
@@ -128,7 +127,6 @@ function Dashboard({ database, onStartSession }: { database: Database; onStartSe
         <Metric label="Sessions" value={endedSessions.length.toString()} />
         <Metric label="Active targets" value={active.length.toString()} />
         <Metric label="Completed targets" value={completed.length.toString()} />
-        <Metric label="Local events" value={database.activityEvents.length.toString()} />
       </section>
 
       <section className="panel">
@@ -205,8 +203,7 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
 
     onChange({
       ...database,
-      targets: database.targets.concat(target),
-      activityEvents: database.activityEvents.concat(createEvent("target.created", "target", rootTargetId))
+      targets: database.targets.concat(target)
     });
     setEditing(target);
   }
@@ -330,7 +327,7 @@ function SessionFlow({
 }: {
   database: Database;
   session: Session;
-  onPersist: (session: Session, eventType: string) => void;
+  onPersist: (session: Session) => void;
   onEnd: (session: Session) => void;
 }) {
   const [step, setStep] = useState<"assessment" | "stimulation" | "close" | "summary">("assessment");
@@ -356,7 +353,7 @@ function SessionFlow({
         {step === "assessment" && (
           <AssessmentStep
             assessment={session.assessment}
-            onChange={(assessment) => onPersist({ ...session, assessment }, "session.assessment.updated")}
+            onChange={(assessment) => onPersist({ ...session, assessment })}
             onNext={() => setStep("stimulation")}
           />
         )}
@@ -364,14 +361,14 @@ function SessionFlow({
           <StimulationStep
             database={database}
             session={session}
-            onChange={(nextSession) => onPersist(nextSession, "session.stimulation.updated")}
+            onChange={(nextSession) => onPersist(nextSession)}
             onNext={() => setStep("close")}
           />
         )}
         {step === "close" && (
           <CloseStep
             session={session}
-            onChange={(nextSession) => onPersist(nextSession, "session.closure.updated")}
+            onChange={(nextSession) => onPersist(nextSession)}
             onEnd={() => setStep("summary")}
           />
         )}

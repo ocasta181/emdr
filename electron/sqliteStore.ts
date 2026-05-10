@@ -56,22 +56,12 @@ type Session = {
   notes?: string;
 };
 
-type ActivityEvent = {
-  id: string;
-  timestamp: string;
-  type: string;
-  entityType?: "target" | "session" | "settings";
-  entityId?: string;
-  payload?: Record<string, unknown>;
-};
-
 type AppDatabase = {
   schemaVersion: 1;
   createdAt: string;
   updatedAt: string;
   targets: TargetVersion[];
   sessions: Session[];
-  activityEvents: ActivityEvent[];
   settings: {
     bilateralStimulation: {
       speed: number;
@@ -211,18 +201,6 @@ function ensureSchema(db: SqlDatabase) {
 
     CREATE INDEX IF NOT EXISTS idx_stimulation_sets_session ON stimulation_sets(session_id, set_number);
 
-    CREATE TABLE IF NOT EXISTS activity_events (
-      id TEXT PRIMARY KEY,
-      timestamp TEXT NOT NULL,
-      type TEXT NOT NULL,
-      entity_type TEXT,
-      entity_id TEXT,
-      payload_json TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_activity_events_timestamp ON activity_events(timestamp);
-    CREATE INDEX IF NOT EXISTS idx_activity_events_entity ON activity_events(entity_type, entity_id);
-
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value_json TEXT NOT NULL
@@ -241,7 +219,6 @@ function readAppDatabase(db: SqlDatabase): AppDatabase {
     updatedAt,
     targets: selectAll(db, "SELECT * FROM target_versions ORDER BY created_at ASC").map(readTarget),
     sessions: readSessions(db),
-    activityEvents: selectAll(db, "SELECT * FROM activity_events ORDER BY timestamp ASC").map(readActivityEvent),
     settings
   };
 }
@@ -253,7 +230,6 @@ function writeAppDatabase(db: SqlDatabase, database: AppDatabase) {
     db.run("DELETE FROM stimulation_sets");
     db.run("DELETE FROM sessions");
     db.run("DELETE FROM target_versions");
-    db.run("DELETE FROM activity_events");
     db.run("DELETE FROM settings");
     db.run("DELETE FROM app_metadata");
 
@@ -362,28 +338,6 @@ function writeAppDatabase(db: SqlDatabase, database: AppDatabase) {
     sessionStatement.free();
     setStatement.free();
 
-    const eventStatement = db.prepare(`
-      INSERT INTO activity_events (
-        id,
-        timestamp,
-        type,
-        entity_type,
-        entity_id,
-        payload_json
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    for (const event of database.activityEvents) {
-      eventStatement.run([
-        event.id,
-        event.timestamp,
-        event.type,
-        event.entityType ?? null,
-        event.entityId ?? null,
-        event.payload ? JSON.stringify(event.payload) : null
-      ]);
-    }
-    eventStatement.free();
-
     db.run("COMMIT");
   } catch (error) {
     db.run("ROLLBACK");
@@ -463,17 +417,6 @@ function readStimulationSet(row: Record<string, unknown>): StimulationSet {
   };
 }
 
-function readActivityEvent(row: Record<string, unknown>): ActivityEvent {
-  return {
-    id: stringValue(row.id),
-    timestamp: stringValue(row.timestamp),
-    type: stringValue(row.type),
-    entityType: optionalString(row.entity_type) as ActivityEvent["entityType"],
-    entityId: optionalString(row.entity_id),
-    payload: parseJsonObject(optionalString(row.payload_json))
-  };
-}
-
 function readMetadata(db: SqlDatabase, key: string) {
   const row = selectOne(db, "SELECT value FROM app_metadata WHERE key = ?", [key]);
   return row ? stringValue(row.value) : undefined;
@@ -516,14 +459,6 @@ function selectAll(db: SqlDatabase, sql: string, params: initSqlJs.BindParams = 
   return rows;
 }
 
-function parseJsonObject(value: string | undefined) {
-  if (!value) {
-    return undefined;
-  }
-
-  return JSON.parse(value) as Record<string, unknown>;
-}
-
 function stringValue(value: unknown) {
   if (typeof value !== "string") {
     throw new Error("Expected SQLite text value.");
@@ -554,7 +489,6 @@ function createEmptyDatabase(): AppDatabase {
     updatedAt: now,
     targets: [],
     sessions: [],
-    activityEvents: [],
     settings: {
       bilateralStimulation: {
         speed: 1,

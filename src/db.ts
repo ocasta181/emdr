@@ -1,4 +1,4 @@
-import type { ActivityEvent, Database, Session, Target } from "./types";
+import type { Database, Session, Target } from "./types";
 
 const STORAGE_KEY = "emdr-local-dev-db";
 
@@ -18,7 +18,6 @@ export function createEmptyDatabase(): Database {
     updatedAt: now,
     targets: [],
     sessions: [],
-    activityEvents: [],
     settings: {
       bilateralStimulation: {
         speed: 1,
@@ -26,22 +25,6 @@ export function createEmptyDatabase(): Database {
         dotColor: "green"
       }
     }
-  };
-}
-
-export function createEvent(
-  type: string,
-  entityType?: ActivityEvent["entityType"],
-  entityId?: string,
-  payload?: Record<string, unknown>
-): ActivityEvent {
-  return {
-    id: createId("event"),
-    timestamp: nowIso(),
-    type,
-    entityType,
-    entityId,
-    payload
   };
 }
 
@@ -99,23 +82,16 @@ export function reviseTarget(
     ...database,
     targets: database.targets
       .map((target) => (target.id === previous.id ? { ...target, isCurrent: false, updatedAt: now } : target))
-      .concat(nextVersion),
-    activityEvents: database.activityEvents.concat(
-      createEvent("target.versioned", "target", nextVersion.rootTargetId, {
-        previousVersionId: previous.id,
-        newVersionId: nextVersion.id
-      })
-    )
+      .concat(nextVersion)
   };
 }
 
-export function upsertSession(database: Database, session: Session, eventType: string) {
+export function upsertSession(database: Database, session: Session) {
   const exists = database.sessions.some((item) => item.id === session.id);
   return {
     ...database,
     sessions: exists
       ? database.sessions.map((item) => (item.id === session.id ? session : item))
-      : database.sessions.concat(session),
-    activityEvents: database.activityEvents.concat(createEvent(eventType, "session", session.id))
+      : database.sessions.concat(session)
   };
 }

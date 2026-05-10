@@ -20,7 +20,6 @@ The schema includes:
 - `target_versions`
 - `sessions`
 - `stimulation_sets`
-- `activity_events`
 - `settings`
 
 If a legacy MVP JSON database exists and no SQLite database exists yet, the Electron main process migrates that JSON data into SQLite on first load.
@@ -28,6 +27,6 @@ If a legacy MVP JSON database exists and no SQLite database exists yet, the Elec
 ## Consequences
 
 - Encryption can later wrap one SQLite database file.
-- Session, target, stimulation, activity, and settings data have explicit relational tables.
+- Session, target, stimulation, and settings data have explicit relational tables.
 - The UI does not need to change during this storage migration.
 - The current save path rewrites the full app data snapshot into SQLite. More granular writes can be added later if the data volume requires it.
