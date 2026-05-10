@@ -1,8 +1,8 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadAppDatabase, saveAppDatabase } from "./domain/app/repository.js";
 import { sqliteDatabasePath } from "./infrastructure/sqlite/database.js";
-import { loadAppDatabase, saveAppDatabase } from "./sqliteStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

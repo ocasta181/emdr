@@ -22,7 +22,7 @@ The schema includes:
 - `stimulation_set`
 - `setting`
 
-If a legacy MVP JSON database exists and no SQLite database exists yet, the Electron main process migrates that JSON data into SQLite on first load.
+No backward compatibility or legacy file migration is provided while the project is pre-release.
 
 ## Consequences
 

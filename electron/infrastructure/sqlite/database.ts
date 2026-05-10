@@ -15,10 +15,6 @@ export function sqliteDatabasePath(userDataPath: string) {
   return path.join(userDataPath, "emdr-local.sqlite");
 }
 
-export function legacyJsonDatabasePath(userDataPath: string) {
-  return path.join(userDataPath, "emdr-local.db.json");
-}
-
 export async function openSqliteDatabase(sqlitePath: string) {
   const SQL = await loadSql();
   await mkdir(path.dirname(sqlitePath), { recursive: true });
