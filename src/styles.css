@@ -103,7 +103,8 @@ label {
 
 nav,
 .steps,
-.buttonRow {
+.buttonRow,
+.colorSwatches {
   display: flex;
   gap: 10px;
 }
@@ -221,6 +222,10 @@ h2 {
   gap: 18px;
 }
 
+.stimulationGrid:has(.stimulus.running) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .stimulus {
   position: relative;
   display: grid;
@@ -233,7 +238,17 @@ h2 {
 }
 
 .stimulus.running {
+  min-height: calc(100vh - 170px);
   background: #0e0e0d;
+  border-color: #1b1b19;
+}
+
+.stimulationGrid:has(.stimulus.running) .setLogger {
+  display: none;
+}
+
+.stimulationGrid:has(.stimulus.running) .stimulusSettings {
+  opacity: 0.18;
 }
 
 .dot {
@@ -279,6 +294,54 @@ h2 {
   align-self: end;
   margin-bottom: 24px;
   z-index: 1;
+}
+
+.stimulusSettings {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 76px;
+  z-index: 1;
+}
+
+.settingsPanel {
+  max-width: 720px;
+}
+
+.settingsControls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 64px minmax(180px, 240px) auto;
+  align-items: end;
+  gap: 14px;
+}
+
+.settingsControls.compact {
+  grid-template-columns: minmax(180px, 1fr) 58px minmax(160px, 220px) auto;
+  max-width: 720px;
+}
+
+.speedReadout {
+  color: #d8c692;
+  min-height: 38px;
+  display: grid;
+  align-items: center;
+}
+
+.colorSwatches {
+  align-items: center;
+  min-height: 38px;
+}
+
+.colorSwatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid #4e4a41;
+  box-shadow: 0 0 14px currentColor;
+}
+
+.colorSwatch.active {
+  border-color: #f1eddf;
 }
 
 .setLogger {

@@ -1,27 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import type { Database } from "../../app/types";
+import { BilateralStimulationSettings, ballColors } from "../../setting/components/BilateralStimulationSettings";
+import { updateBilateralStimulationSettings } from "../../setting/service";
 import { createStimulationSet } from "../../stimulation-set/factory";
 import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
 import type { Assessment, SessionAggregate } from "../types";
-
-const colors = {
-  green: "#8fbf8f",
-  blue: "#8fb4d8",
-  white: "#f2efe8",
-  orange: "#d89b64"
-};
 
 type SessionStep = "assessment" | "stimulation" | "close" | "summary";
 
 export function SessionFlow({
   database,
   session,
+  onDatabaseChange,
   onPersist,
   onEnd
 }: {
   database: Database;
   session: SessionAggregate;
+  onDatabaseChange: (database: Database) => void;
   onPersist: (session: SessionAggregate) => void;
   onEnd: (session: SessionAggregate) => void;
 }) {
@@ -56,6 +53,7 @@ export function SessionFlow({
           <StimulationStep
             database={database}
             session={session}
+            onDatabaseChange={onDatabaseChange}
             onChange={(nextSession) => onPersist(nextSession)}
             onNext={() => setStep("close")}
           />
@@ -146,11 +144,13 @@ function AssessmentStep({
 function StimulationStep({
   database,
   session,
+  onDatabaseChange,
   onChange,
   onNext
 }: {
   database: Database;
   session: SessionAggregate;
+  onDatabaseChange: (database: Database) => void;
   onChange: (session: SessionAggregate) => void;
   onNext: () => void;
 }) {
@@ -160,6 +160,10 @@ function StimulationStep({
   const [disturbance, setDisturbance] = useState("");
   const settings = database.settings.bilateralStimulation;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function changeSettings(nextSettings: typeof settings) {
+    onDatabaseChange(updateBilateralStimulationSettings(database, nextSettings));
+  }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -210,12 +214,16 @@ function StimulationStep({
         <div
           className={`dot ${settings.dotSize}`}
           style={{
-            backgroundColor: colors[settings.dotColor],
+            color: ballColors[settings.dotColor],
+            backgroundColor: ballColors[settings.dotColor],
             animationDuration: `${2 / settings.speed}s`,
             animationPlayState: running ? "running" : "paused"
           }}
         />
         <div className="counter">{cycles} cycles</div>
+        <div className="stimulusSettings">
+          <BilateralStimulationSettings settings={settings} onChange={changeSettings} compact />
+        </div>
         <button className="stimulusButton" onClick={() => setRunning((current) => !current)}>
           {running ? "Stop" : "Start"} Visual Bilateral Stimulation
         </button>

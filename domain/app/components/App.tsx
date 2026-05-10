@@ -4,12 +4,13 @@ import type { SessionAggregate } from "../../session/types";
 import type { Target } from "../../target/entity";
 import type { Database } from "../types";
 import { SessionFlow } from "../../session/components/SessionFlow";
+import { Settings } from "../../setting/components/Settings";
 import { endSession as completeSession, saveSessionDraft, startSessionForTarget } from "../../session/service";
 import { Targets } from "../../target/components/Targets";
 import { createEmptyDatabase } from "../factory";
 import { Dashboard } from "./Dashboard";
 
-type View = "dashboard" | "targets" | "session";
+type View = "dashboard" | "targets" | "settings" | "session";
 
 export function App() {
   const [database, setDatabase] = useState<Database>(() => createEmptyDatabase());
@@ -70,13 +71,23 @@ export function App() {
           <button className={view === "targets" ? "active" : ""} onClick={() => setView("targets")}>
             Targets
           </button>
+          <button className={view === "settings" ? "active" : ""} onClick={() => setView("settings")}>
+            Settings
+          </button>
         </nav>
       </header>
 
       {view === "dashboard" && <Dashboard database={database} onStartSession={startSession} />}
       {view === "targets" && <Targets database={database} onChange={updateDatabase} />}
+      {view === "settings" && <Settings database={database} onChange={updateDatabase} />}
       {view === "session" && session && (
-        <SessionFlow database={database} session={session} onPersist={persistSession} onEnd={endSession} />
+        <SessionFlow
+          database={database}
+          session={session}
+          onDatabaseChange={updateDatabase}
+          onPersist={persistSession}
+          onEnd={endSession}
+        />
       )}
     </div>
   );
