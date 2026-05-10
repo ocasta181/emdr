@@ -29,6 +29,7 @@ The current build is an MVP focused on proving the core flow end to end with enc
 - Show an app-generated 256-bit recovery key during vault setup.
 - Prompt the user to store the recovery key somewhere safe.
 - Unlock encrypted local data with either password or recovery key.
+- Export and import encrypted vault files.
 - Start a session from an active target.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
@@ -47,7 +48,21 @@ The MVP stores the SQLite database inside an encrypted local vault file named `e
 - The recovery key can unlock the same encrypted data if the password is unavailable.
 - No plaintext SQLite database is written by the app.
 - SQLite migrations exist under `infrastructure/sqlite/migrations`.
-- Export/import is still follow-up work.
+- Export/import uses the same encrypted vault format.
+
+### Encrypted Export Format
+
+Encrypted exports use a `.emdr-vault` file extension. The file is a versioned JSON envelope containing encrypted SQLite bytes, not a JSON dump of application records.
+
+The current envelope identifies:
+
+- `format`: `emdr-local-vault`
+- `version`: `1`
+- `cipher`: `aes-256-gcm`
+- `kdf.name`: `scrypt`
+- `data.type`: `sqlite`
+
+Export copies the encrypted vault envelope to a user-selected file. Import validates the envelope, replaces the local encrypted vault, and then requires the user to unlock the imported data with that vault's password or recovery key.
 
 ## Architecture
 
@@ -163,7 +178,6 @@ Existing ADRs:
 
 ## Required Follow-Up Work
 
-- Support encrypted database export/import.
 - Package as a macOS `.app`.
 - Add audio bilateral stimulation.
 - Add automated tests.
