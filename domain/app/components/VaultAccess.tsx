@@ -49,10 +49,14 @@ export function VaultSetup({ onCreate }: { onCreate: (password: string) => Promi
 
 export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: string; onContinue: () => Promise<void> }) {
   return (
-    <AuthShell title="Recovery Code">
+    <AuthShell title="Recovery Key">
       <div className="form">
+        <p className="authNotice">
+          Store this recovery key somewhere safe. It can unlock encrypted local data if the password is unavailable,
+          and it is shown only during setup.
+        </p>
         <label>
-          Recovery code
+          Recovery key
           <textarea className="recoveryCode" readOnly spellCheck={false} value={formatRecoveryCode(recoveryCode)} />
         </label>
         <button onClick={() => void onContinue()}>Continue</button>
@@ -87,7 +91,7 @@ export function VaultUnlock({
       setError("");
       await onRecoveryUnlock(recoveryCode);
     } catch {
-      setError("Could not unlock with recovery code.");
+      setError("Could not unlock with recovery key.");
     }
   }
 
@@ -107,14 +111,14 @@ export function VaultUnlock({
       </form>
       <div className="form recoveryUnlock">
         <label>
-          Recovery code
+          Recovery key
           <textarea
             spellCheck={false}
             value={recoveryCode}
             onChange={(event) => setRecoveryCode(event.target.value)}
           />
         </label>
-        <button onClick={unlockWithRecovery}>Unlock With Recovery Code</button>
+        <button onClick={unlockWithRecovery}>Unlock With Recovery Key</button>
       </div>
       {error && <div className="formError">{error}</div>}
     </AuthShell>

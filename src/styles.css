@@ -94,6 +94,12 @@ label {
   padding: 10px 12px;
 }
 
+.authNotice {
+  margin: 0;
+  color: #bfb8aa;
+  line-height: 1.45;
+}
+
 .recoveryCode {
   min-height: 150px;
   color: #f4efe2;
