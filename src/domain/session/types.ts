@@ -1,3 +1,5 @@
+import type { StimulationSet } from "../stimulation-set/entity";
+
 export type Assessment = {
   image?: string;
   negativeCognition: string;
@@ -6,16 +8,6 @@ export type Assessment = {
   emotions?: string;
   disturbance?: number;
   bodyLocation?: string;
-};
-
-export type StimulationSet = {
-  id: string;
-  sessionId: string;
-  setNumber: number;
-  createdAt: string;
-  cycleCount: number;
-  observation: string;
-  disturbance?: number;
 };
 
 export type Session = {

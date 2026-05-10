@@ -1,7 +1,7 @@
-import type { ActivityEvent } from "../activity/types";
+import type { ActivityEvent } from "../activity/entity";
 import type { Session } from "../session/types";
 import type { Settings } from "../settings/types";
-import type { Target } from "../target/types";
+import type { Target } from "../target/entity";
 
 export type Database = {
   schemaVersion: 1;

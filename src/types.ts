@@ -1,5 +1,6 @@
-export type { ActivityEntity, ActivityEvent } from "./domain/activity/types";
+export type { ActivityEntity, ActivityEvent } from "./domain/activity/entity";
 export type { Database } from "./domain/app/types";
-export type { Assessment, Session, StimulationSet } from "./domain/session/types";
+export type { Assessment, Session } from "./domain/session/types";
 export type { BilateralStimulationSettings, Settings } from "./domain/settings/types";
-export type { Target, TargetStatus } from "./domain/target/types";
+export type { StimulationSet } from "./domain/stimulation-set/entity";
+export type { Target, TargetStatus } from "./domain/target/entity";
