@@ -61,6 +61,25 @@ const guideFrameUrls = [
   guideFrame11Url
 ];
 
+const guideBookFrameModules = import.meta.glob<string>("../../assets/animated-room/guide-book-*.svg", {
+  eager: true,
+  import: "default",
+  query: "?url"
+});
+
+const guideBookFrameNames: Record<GuideBookIntent, string[]> = {
+  pick_up_book: ["guide-book-pick-up-00.svg", "guide-book-pick-up-01.svg", "guide-book-pick-up-02.svg"],
+  hold_book_closed: ["guide-book-hold-closed-00.svg", "guide-book-hold-closed-01.svg", "guide-book-hold-closed-02.svg"],
+  open_book: ["guide-book-open-00.svg", "guide-book-open-01.svg", "guide-book-open-02.svg"],
+  hold_book_open: ["guide-book-hold-open-00.svg", "guide-book-hold-open-01.svg", "guide-book-hold-open-02.svg"],
+  flip_book_pages: ["guide-book-flip-pages-00.svg", "guide-book-flip-pages-01.svg", "guide-book-flip-pages-02.svg"],
+  write_in_book: ["guide-book-writing-00.svg", "guide-book-writing-01.svg", "guide-book-writing-02.svg"],
+  close_book: ["guide-book-close-00.svg", "guide-book-close-01.svg", "guide-book-close-02.svg"],
+  put_book_down: ["guide-book-put-down-00.svg", "guide-book-put-down-01.svg", "guide-book-put-down-02.svg"]
+};
+
+type GuideClipKey = GuideState | GuideBookIntent;
+
 export function RoomScene({
   mode,
   guideState,
@@ -115,10 +134,10 @@ export function RoomScene({
       const moon = new Graphics();
       const guideTextures = await Promise.all(guideFrameUrls.map((url) => Assets.load<Texture>(url)));
       const orbTexture = await Assets.load(orbUrl);
-      const guideFrames = createGuideFrames(guideTextures);
+      const guideBookTextures = await loadGuideBookTextures();
+      const guideFrames = createGuideFrames(guideTextures, guideBookTextures);
       const guide = new AnimatedSprite(guideFrames.idle);
       const targetBook = new Container();
-      const guideBook = new Graphics();
       const orb = new Sprite(orbTexture);
       const labels = new Container();
       const dimmer = new Graphics();
@@ -138,7 +157,7 @@ export function RoomScene({
       targetBook.on("pointertap", () => callbackRef.current("targets"));
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hill, labels, targetBook, guide, guideBook);
+      stage.addChild(background, moon, hill, labels, targetBook, guide);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
@@ -161,7 +180,7 @@ export function RoomScene({
       let elapsed = 0;
       let lastWidth = 0;
       let lastHeight = 0;
-      let currentGuideState: GuideState = "idle";
+      let currentGuideClip: GuideClipKey = "idle";
       let settledTargetBookMode: TargetBookMode = "at_rest";
       let desiredTargetBookMode: TargetBookMode = "at_rest";
       let activeBookClip: GuideBookIntent | null = null;
@@ -277,7 +296,7 @@ export function RoomScene({
         }
 
         const guideIntent = activeBookClip ?? runtime.sceneViewModel.guideIntent;
-        const renderedGuideState = guideStateForIntent(guideIntent, runtime.guideState);
+        const renderedGuideClip = guideClipForIntent(guideIntent, runtime.guideState);
         const independentBookState = activeBookClip
           ? independentBookStateForClip(activeBookClip, activeBookProgress)
           : runtime.sceneViewModel.independentBookState;
@@ -286,15 +305,14 @@ export function RoomScene({
         if (targetBookLabel) {
           targetBookLabel.visible = targetBook.visible;
         }
-        drawGuideBook(guideBook, guideIntent, activeBookProgress, targetBookLayout, guide.x, guide.y, guide.width);
 
         const floorY = height * 0.78;
         const breath = Math.sin(elapsed * 1.6) * 4;
         guide.y = floorY + 10 + breath;
         guide.alpha = runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1;
-        if (renderedGuideState !== currentGuideState) {
-          currentGuideState = renderedGuideState;
-          guide.textures = guideFrames[renderedGuideState];
+        if (renderedGuideClip !== currentGuideClip) {
+          currentGuideClip = renderedGuideClip;
+          guide.textures = guideFrames[renderedGuideClip];
           guide.gotoAndPlay(0);
         }
 
@@ -335,13 +353,37 @@ export function RoomScene({
   return <div ref={hostRef} className="roomScene" />;
 }
 
-function createGuideFrames(frames: Texture[]): Record<GuideState, Texture[]> {
+function createGuideFrames(
+  frames: Texture[],
+  bookFrames: Record<GuideBookIntent, Texture[]>
+): Record<GuideClipKey, Texture[]> {
   return {
     idle: guideStateFrames.idle.map((frameIndex) => frames[frameIndex]),
     listening: guideStateFrames.listening.map((frameIndex) => frames[frameIndex]),
     speaking: guideStateFrames.speaking.map((frameIndex) => frames[frameIndex]),
-    thinking: guideStateFrames.thinking.map((frameIndex) => frames[frameIndex])
+    thinking: guideStateFrames.thinking.map((frameIndex) => frames[frameIndex]),
+    ...bookFrames
   };
+}
+
+async function loadGuideBookTextures(): Promise<Record<GuideBookIntent, Texture[]>> {
+  const entries = await Promise.all(
+    Object.entries(guideBookFrameNames).map(async ([intent, frameNames]) => [
+      intent,
+      await Promise.all(frameNames.map((frameName) => Assets.load<Texture>(guideBookFrameUrl(frameName))))
+    ])
+  );
+
+  return Object.fromEntries(entries) as Record<GuideBookIntent, Texture[]>;
+}
+
+function guideBookFrameUrl(frameName: string) {
+  const key = `../../assets/animated-room/${frameName}`;
+  const url = guideBookFrameModules[key];
+  if (!url) {
+    throw new Error(`Missing guide book frame: ${frameName}`);
+  }
+  return url;
 }
 
 function drawRestingTargetBook(book: Container, x: number, y: number, scale: number) {
@@ -364,136 +406,11 @@ function drawRestingTargetBook(book: Container, x: number, y: number, scale: num
   book.addChild(shadow, cover);
 }
 
-function drawGuideBook(
-  book: Graphics,
-  intent: GuideIntent,
-  progress: number,
-  targetBookLayout: { x: number; y: number; scale: number },
-  guideX: number,
-  guideY: number,
-  guideWidth: number
-) {
-  book.clear();
-  book.visible = false;
-
-  if (!isGuideBookIntent(intent) || !guideOwnsBook(intent, progress)) return;
-
-  const easedProgress = easeInOut(progress);
-  const heldX = guideX + guideWidth * 0.08;
-  const heldY = guideY - guideWidth * 0.45;
-  let x = heldX;
-  let y = heldY;
-
-  if (intent === "pick_up_book") {
-    const handoff = guideBookClips.pick_up_book.handoff!.progress;
-    const localProgress = easeInOut(Math.max(0, (progress - handoff) / (1 - handoff)));
-    x = lerp(targetBookLayout.x, heldX, localProgress);
-    y = lerp(targetBookLayout.y - 30 * targetBookLayout.scale, heldY, localProgress);
-  }
-
-  if (intent === "put_book_down") {
-    const handoff = guideBookClips.put_book_down.handoff!.progress;
-    const localProgress = easeInOut(Math.min(1, progress / handoff));
-    x = lerp(heldX, targetBookLayout.x, localProgress);
-    y = lerp(heldY, targetBookLayout.y - 30 * targetBookLayout.scale, localProgress);
-  }
-
-  const openAmount = openAmountForIntent(intent, easedProgress);
-  const scale = Math.max(0.7, Math.min(1.05, guideWidth / 210));
-  book.visible = true;
-
-  if (openAmount < 0.2) {
-    drawClosedHeldBook(book, x, y, scale);
-    return;
-  }
-
-  drawOpenHeldBook(book, x, y, scale, intent, easedProgress);
-}
-
-function drawClosedHeldBook(book: Graphics, x: number, y: number, scale: number) {
-  const width = 112 * scale;
-  const height = 72 * scale;
-  book.roundRect(x - width / 2, y - height / 2, width, height, 8 * scale).fill(0x4b1823);
-  book.roundRect(x - width / 2 + 7 * scale, y - height / 2 + 7 * scale, width - 14 * scale, height - 14 * scale, 5 * scale).stroke({
-    color: 0xae7b4a,
-    width: 2 * scale,
-    alpha: 0.72
-  });
-  book.rect(x - width / 2 + 14 * scale, y - height / 2 + 8 * scale, 10 * scale, height - 16 * scale).fill({
-    color: 0x2f0e16,
-    alpha: 0.82
-  });
-}
-
-function drawOpenHeldBook(book: Graphics, x: number, y: number, scale: number, intent: GuideBookIntent, progress: number) {
-  const width = 154 * scale;
-  const height = 82 * scale;
-  const pageWidth = width / 2 - 4 * scale;
-
-  book.roundRect(x - width / 2 - 6 * scale, y - height / 2 - 5 * scale, width + 12 * scale, height + 10 * scale, 8 * scale).fill(0x4b1823);
-  book.roundRect(x - width / 2, y - height / 2, pageWidth, height, 5 * scale).fill(0xe7d8bd);
-  book.roundRect(x + 4 * scale, y - height / 2, pageWidth, height, 5 * scale).fill(0xeadfc9);
-  book.rect(x - 2 * scale, y - height / 2 + 3 * scale, 4 * scale, height - 6 * scale).fill({
-    color: 0x8f6c45,
-    alpha: 0.64
-  });
-
-  for (let line = 0; line < 4; line += 1) {
-    const lineY = y - height * 0.26 + line * 12 * scale;
-    book.moveTo(x - width * 0.38, lineY).lineTo(x - width * 0.1, lineY).stroke({ color: 0x725f49, width: scale, alpha: 0.32 });
-    book.moveTo(x + width * 0.1, lineY).lineTo(x + width * 0.38, lineY).stroke({ color: 0x725f49, width: scale, alpha: 0.32 });
-  }
-
-  if (intent === "flip_book_pages") {
-    const sweep = Math.sin(progress * Math.PI);
-    const turningWidth = Math.max(6 * scale, pageWidth * sweep);
-    book.roundRect(x - turningWidth * 0.15, y - height / 2 + 4 * scale, turningWidth, height - 8 * scale, 5 * scale).fill({
-      color: 0xf2e8d2,
-      alpha: 0.8
-    });
-  }
-
-  if (intent === "write_in_book") {
-    const penX = x + width * 0.26 + Math.sin(progress * Math.PI * 2) * 10 * scale;
-    const penY = y - height * 0.08 + Math.cos(progress * Math.PI * 2) * 5 * scale;
-    book.moveTo(penX - 16 * scale, penY - 18 * scale).lineTo(penX + 4 * scale, penY + 8 * scale).stroke({
-      color: 0x2d241b,
-      width: 3 * scale,
-      alpha: 0.88
-    });
-    book.circle(penX + 5 * scale, penY + 9 * scale, 2.4 * scale).fill(0x2d241b);
-  }
-}
-
-function guideStateForIntent(intent: GuideIntent, fallback: GuideState): GuideState {
+function guideClipForIntent(intent: GuideIntent, fallback: GuideState): GuideClipKey {
   if (!isGuideBookIntent(intent)) return fallback;
-  if (guideBookClips[intent].focus === "user") return "speaking";
-  return "thinking";
-}
-
-function guideOwnsBook(intent: GuideBookIntent, progress: number) {
-  const clip = guideBookClips[intent];
-  if (!clip.handoff) return clip.startsWithGuideBook || clip.endsWithGuideBook;
-  if (clip.handoff.action === "attach_to_guide") return progress >= clip.handoff.progress;
-  return progress < clip.handoff.progress;
-}
-
-function openAmountForIntent(intent: GuideBookIntent, progress: number) {
-  if (intent === "open_book") return progress;
-  if (intent === "close_book") return 1 - progress;
-  if (intent === "hold_book_open" || intent === "flip_book_pages" || intent === "write_in_book") return 1;
-  return 0;
+  return intent;
 }
 
 function isGuideBookIntent(intent: GuideIntent): intent is GuideBookIntent {
   return Object.prototype.hasOwnProperty.call(guideBookClips, intent);
-}
-
-function easeInOut(value: number) {
-  const clamped = Math.max(0, Math.min(1, value));
-  return clamped * clamped * (3 - 2 * clamped);
-}
-
-function lerp(start: number, end: number, progress: number) {
-  return start + (end - start) * progress;
 }
