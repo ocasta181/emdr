@@ -1,15 +1,22 @@
 import { app, BrowserWindow, ipcMain, session } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadAppDatabase, saveAppDatabase } from "../infrastructure/sqlite/app-store.js";
-import { sqliteDatabasePath } from "../infrastructure/sqlite/connection.js";
+import {
+  appVaultStatus,
+  createAppVault,
+  loadAppDatabase,
+  saveAppDatabase,
+  unlockAppVaultWithPassword,
+  unlockAppVaultWithRecoveryCode
+} from "../infrastructure/sqlite/app-store.js";
+import { vaultPath } from "../infrastructure/security/vault.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
 
 function databasePath() {
-  return sqliteDatabasePath(app.getPath("userData"));
+  return vaultPath(app.getPath("userData"));
 }
 
 async function createWindow() {
@@ -43,6 +50,24 @@ app.whenReady().then(async () => {
       (isDev && details.url.startsWith("http://127.0.0.1:5173"));
 
     callback({ cancel: !allowed });
+  });
+
+  ipcMain.handle("vault:status", async () => {
+    return appVaultStatus(app.getPath("userData"));
+  });
+
+  ipcMain.handle("vault:create", async (_event, password: unknown) => {
+    return createAppVault(app.getPath("userData"), String(password));
+  });
+
+  ipcMain.handle("vault:unlock-password", async (_event, password: unknown) => {
+    await unlockAppVaultWithPassword(app.getPath("userData"), String(password));
+    return { ok: true };
+  });
+
+  ipcMain.handle("vault:unlock-recovery", async (_event, recoveryCode: unknown) => {
+    await unlockAppVaultWithRecoveryCode(app.getPath("userData"), String(recoveryCode));
+    return { ok: true };
   });
 
   ipcMain.handle("db:load", async () => {

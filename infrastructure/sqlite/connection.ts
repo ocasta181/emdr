@@ -1,9 +1,6 @@
 import initSqlJs from "sql.js";
 import type { BindParams, Database as SqlDatabase, SqlJsStatic } from "sql.js";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import path from "node:path";
 
 const require = createRequire(import.meta.url);
 
@@ -11,25 +8,13 @@ let sqlPromise: Promise<SqlJsStatic> | undefined;
 
 export type SqliteDatabase = SqlDatabase;
 
-export function sqliteDatabasePath(userDataPath: string) {
-  return path.join(userDataPath, "emdr-local.sqlite");
-}
-
-export async function openSqliteDatabase(sqlitePath: string) {
+export async function createSqliteDatabase(bytes?: Uint8Array) {
   const SQL = await loadSql();
-  await mkdir(path.dirname(sqlitePath), { recursive: true });
-
-  if (await fileHasData(sqlitePath)) {
-    return new SQL.Database(await readFile(sqlitePath));
-  }
-
-  return new SQL.Database();
+  return bytes ? new SQL.Database(bytes) : new SQL.Database();
 }
 
-export async function persistSqliteDatabase(db: SqlDatabase, sqlitePath: string) {
-  const temporaryPath = `${sqlitePath}.tmp`;
-  await writeFile(temporaryPath, Buffer.from(db.export()));
-  await rename(temporaryPath, sqlitePath);
+export function exportSqliteDatabase(db: SqlDatabase) {
+  return Buffer.from(db.export());
 }
 
 export function selectOne(db: SqlDatabase, sql: string, params: BindParams = []) {
@@ -79,8 +64,4 @@ async function loadSql() {
     locateFile: () => require.resolve("sql.js/dist/sql-wasm.wasm")
   });
   return sqlPromise;
-}
-
-async function fileHasData(filePath: string) {
-  return existsSync(filePath) && (await stat(filePath)).size > 0;
 }

@@ -1,9 +1,16 @@
 import {
-  openSqliteDatabase,
-  persistSqliteDatabase,
-  sqliteDatabasePath,
+  createSqliteDatabase,
+  exportSqliteDatabase,
   type SqliteDatabase
 } from "./connection.js";
+import {
+  createVault,
+  saveVault,
+  unlockVaultWithPassword,
+  unlockVaultWithRecoveryCode,
+  vaultExists,
+  type VaultStatus
+} from "../security/vault.js";
 import { runMigrations } from "./migrations/index.js";
 import { newAppMetadataRepository } from "../../domain/app-metadata/repository.js";
 import { createEmptyDatabase } from "../../domain/app/factory.js";
@@ -20,6 +27,29 @@ import { newTargetRepository } from "../../domain/target/repository.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;
+let activeDataKey: Buffer | undefined;
+
+export function appVaultStatus(userDataPath: string): VaultStatus {
+  if (activePath === userDataPath && databasePromise && activeDataKey) return "unlocked";
+  return vaultExists(userDataPath) ? "locked" : "setupRequired";
+}
+
+export async function createAppVault(userDataPath: string, password: string) {
+  const db = await createInitializedDatabase();
+  const { recoveryCode, dataKey } = await createVault(userDataPath, password, exportSqliteDatabase(db));
+  setActiveDatabase(userDataPath, db, dataKey);
+  return { recoveryCode };
+}
+
+export async function unlockAppVaultWithPassword(userDataPath: string, password: string) {
+  const unlocked = await unlockVaultWithPassword(userDataPath, password);
+  setActiveDatabase(userDataPath, await openDatabaseFromBytes(unlocked.plaintext), unlocked.dataKey);
+}
+
+export async function unlockAppVaultWithRecoveryCode(userDataPath: string, recoveryCode: string) {
+  const unlocked = await unlockVaultWithRecoveryCode(userDataPath, recoveryCode);
+  setActiveDatabase(userDataPath, await openDatabaseFromBytes(unlocked.plaintext), unlocked.dataKey);
+}
 
 export async function loadAppDatabase(userDataPath: string): Promise<Database> {
   const db = await openDatabase(userDataPath);
@@ -29,30 +59,42 @@ export async function loadAppDatabase(userDataPath: string): Promise<Database> {
 export async function saveAppDatabase(userDataPath: string, database: Database) {
   const db = await openDatabase(userDataPath);
   writeAppDatabase(db, database);
-  await persistSqliteDatabase(db, sqliteDatabasePath(userDataPath));
+  await saveActiveDatabase(userDataPath, db);
 }
 
 async function openDatabase(userDataPath: string) {
-  if (databasePromise && activePath === userDataPath) {
+  if (databasePromise && activePath === userDataPath && activeDataKey) {
     return databasePromise;
   }
 
-  activePath = userDataPath;
-  databasePromise = openDatabaseFromDisk(userDataPath);
-  return databasePromise;
+  throw new Error("Encrypted data is locked.");
 }
 
-async function openDatabaseFromDisk(userDataPath: string) {
-  const sqlitePath = sqliteDatabasePath(userDataPath);
-  const db = await openSqliteDatabase(sqlitePath);
+async function createInitializedDatabase() {
+  const db = await createSqliteDatabase();
   runMigrations(db);
+  writeAppDatabase(db, createEmptyDatabase());
+  return db;
+}
 
-  if (!newAppMetadataRepository(db).find("createdAt")) {
-    writeAppDatabase(db, createEmptyDatabase());
-    await persistSqliteDatabase(db, sqlitePath);
+async function openDatabaseFromBytes(bytes: Buffer) {
+  const db = await createSqliteDatabase(bytes);
+  runMigrations(db);
+  return db;
+}
+
+function setActiveDatabase(userDataPath: string, db: SqliteDatabase, dataKey: Buffer) {
+  activePath = userDataPath;
+  activeDataKey = dataKey;
+  databasePromise = Promise.resolve(db);
+}
+
+async function saveActiveDatabase(userDataPath: string, db: SqliteDatabase) {
+  if (!activeDataKey || activePath !== userDataPath) {
+    throw new Error("Encrypted data is locked.");
   }
 
-  return db;
+  await saveVault(userDataPath, activeDataKey, exportSqliteDatabase(db));
 }
 
 function readAppDatabase(db: SqliteDatabase): Database {
