@@ -11,6 +11,7 @@ import {
 import { createTarget } from "./domain/target/factory";
 import { activeTargets, currentTargets, reviseTarget } from "./domain/target/service";
 import { loadDatabase, saveDatabase } from "./db";
+import { optionalNumber } from "./support/form";
 import { createId, nowIso } from "./support/ids";
 import type { Assessment, Database, SessionAggregate, StimulationSet, TargetStatus, Target } from "./types";
 
@@ -504,12 +505,6 @@ function SummaryStep({ session, onEnd }: { session: SessionAggregate; onEnd: () 
       <button onClick={onEnd}>End Session</button>
     </div>
   );
-}
-
-function optionalNumber(value: string) {
-  if (value === "") return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
