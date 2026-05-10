@@ -3,19 +3,19 @@ import {
   persistSqliteDatabase,
   sqliteDatabasePath,
   type SqliteDatabase
-} from "../../infrastructure/sqlite/database.js";
-import { runMigrations } from "../../infrastructure/sqlite/migrations/index.js";
-import { newAppMetadataRepository } from "../app-metadata/repository.js";
-import { newSessionRepository } from "../session/repository.js";
-import type { Session } from "../session/entity.js";
-import type { SessionAggregate } from "../session/types.js";
-import { newSettingRepository } from "../setting/repository.js";
-import type { Settings } from "../setting/types.js";
-import { newStimulationSetRepository } from "../stimulation-set/repository.js";
-import type { StimulationSet } from "../stimulation-set/entity.js";
-import { newTargetRepository } from "../target/repository.js";
-import { createEmptyDatabase } from "./factory.js";
-import type { Database } from "./types.js";
+} from "./database.js";
+import { runMigrations } from "./migrations/index.js";
+import { newAppMetadataRepository } from "../../domain/app-metadata/repository.js";
+import { createEmptyDatabase } from "../../domain/app/factory.js";
+import type { Database } from "../../domain/app/types.js";
+import { newSessionRepository } from "../../domain/session/repository.js";
+import type { Session } from "../../domain/session/entity.js";
+import type { SessionAggregate } from "../../domain/session/types.js";
+import { newSettingRepository } from "../../domain/setting/repository.js";
+import type { Settings } from "../../domain/setting/types.js";
+import { newStimulationSetRepository } from "../../domain/stimulation-set/repository.js";
+import type { StimulationSet } from "../../domain/stimulation-set/entity.js";
+import { newTargetRepository } from "../../domain/target/repository.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;
