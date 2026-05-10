@@ -6,14 +6,14 @@ import {
   createEmptyDatabase,
   createEvent,
   createId,
-  headTargets,
+  currentTargets,
   loadDatabase,
   nowIso,
   saveDatabase,
   upsertSession,
-  versionTarget
+  reviseTarget
 } from "./db";
-import type { Assessment, Database, Session, StimulationSet, TargetStatus, TargetVersion } from "./types";
+import type { Assessment, Database, Session, StimulationSet, TargetStatus, Target } from "./types";
 
 const colors = {
   green: "#8fbf8f",
@@ -45,16 +45,16 @@ function App() {
     setDatabase(next);
   }
 
-  function startSession(target: TargetVersion) {
+  function startSession(target: Target) {
     const nextSession: Session = {
       id: createId("session"),
       targetRootId: target.rootTargetId,
-      targetVersionId: target.id,
+      targetId: target.id,
       startedAt: nowIso(),
       assessment: {
         negativeCognition: target.negativeCognition,
         positiveCognition: target.positiveCognition,
-        subjectiveUnitsOfDisturbance: target.currentSud
+        disturbance: target.currentDisturbance
       },
       stimulationSets: []
     };
@@ -74,11 +74,11 @@ function App() {
       ...nextSession,
       endedAt: nowIso()
     };
-    const target = database.targets.find((item) => item.id === ended.targetVersionId);
+    const target = database.targets.find((item) => item.id === ended.targetId);
     let nextDatabase = upsertSession(database, ended, "session.ended");
 
-    if (target && typeof ended.finalSud === "number") {
-      nextDatabase = versionTarget(nextDatabase, target, { currentSud: ended.finalSud });
+    if (target && typeof ended.finalDisturbance === "number") {
+      nextDatabase = reviseTarget(nextDatabase, target, { currentDisturbance: ended.finalDisturbance });
     }
 
     setSession(null);
@@ -116,8 +116,8 @@ function App() {
   );
 }
 
-function Dashboard({ database, onStartSession }: { database: Database; onStartSession: (target: TargetVersion) => void }) {
-  const targets = headTargets(database);
+function Dashboard({ database, onStartSession }: { database: Database; onStartSession: (target: Target) => void }) {
+  const targets = currentTargets(database);
   const active = targets.filter((target) => target.status === "active");
   const completed = targets.filter((target) => target.status === "completed");
   const endedSessions = database.sessions.filter((item) => item.endedAt);
@@ -143,7 +143,7 @@ function Dashboard({ database, onStartSession }: { database: Database; onStartSe
                 <h2>{target.description}</h2>
                 <p>{target.clusterTag || "No cluster"}</p>
               </div>
-              <div className="sud">Disturbance {target.currentSud ?? "-"}</div>
+              <div className="sud">Disturbance {target.currentDisturbance ?? "-"}</div>
               <button onClick={() => onStartSession(target)}>Start Session</button>
             </article>
           ))}
@@ -160,12 +160,12 @@ function Dashboard({ database, onStartSession }: { database: Database; onStartSe
             .reverse()
             .slice(0, 8)
             .map((session) => {
-              const target = database.targets.find((item) => item.id === session.targetVersionId);
+              const target = database.targets.find((item) => item.id === session.targetId);
               return (
                 <div className="historyRow" key={session.id}>
                   <span>{new Date(session.startedAt).toLocaleString()}</span>
                   <span>{target?.description ?? "Unknown target"}</span>
-                  <span>Final disturbance {session.finalSud ?? "-"}</span>
+                  <span>Final disturbance {session.finalDisturbance ?? "-"}</span>
                 </div>
               );
             })}
@@ -185,16 +185,16 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function Targets({ database, onChange }: { database: Database; onChange: (database: Database) => void }) {
-  const [editing, setEditing] = useState<TargetVersion | null>(null);
-  const targets = headTargets(database);
+  const [editing, setEditing] = useState<Target | null>(null);
+  const targets = currentTargets(database);
 
   function createTarget() {
     const now = nowIso();
     const rootTargetId = createId("target_root");
-    const target: TargetVersion = {
+    const target: Target = {
       id: createId("target"),
       rootTargetId,
-      isHead: true,
+      isCurrent: true,
       createdAt: now,
       updatedAt: now,
       description: "New target",
@@ -211,9 +211,9 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
     setEditing(target);
   }
 
-  function saveTarget(target: TargetVersion) {
+  function saveTarget(target: Target) {
     if (!editing) return;
-    onChange(versionTarget(database, editing, target));
+    onChange(reviseTarget(database, editing, target));
     setEditing(null);
   }
 
@@ -233,7 +233,7 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
                   {target.status} · {target.clusterTag || "No cluster"}
                 </p>
               </div>
-              <div className="sud">Disturbance {target.currentSud ?? "-"}</div>
+              <div className="sud">Disturbance {target.currentDisturbance ?? "-"}</div>
               <button onClick={() => setEditing(target)}>Edit</button>
             </article>
           ))}
@@ -250,12 +250,12 @@ function Targets({ database, onChange }: { database: Database; onChange: (databa
   );
 }
 
-function TargetForm({ target, onSave }: { target: TargetVersion; onSave: (target: TargetVersion) => void }) {
+function TargetForm({ target, onSave }: { target: Target; onSave: (target: Target) => void }) {
   const [draft, setDraft] = useState(target);
 
   useEffect(() => setDraft(target), [target]);
 
-  function set<K extends keyof TargetVersion>(key: K, value: TargetVersion[K]) {
+  function set<K extends keyof Target>(key: K, value: Target[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -290,8 +290,8 @@ function TargetForm({ target, onSave }: { target: TargetVersion; onSave: (target
             type="number"
             min="0"
             max="10"
-            value={draft.initialSud ?? ""}
-            onChange={(event) => set("initialSud", optionalNumber(event.target.value))}
+            value={draft.initialDisturbance ?? ""}
+            onChange={(event) => set("initialDisturbance", optionalNumber(event.target.value))}
           />
         </label>
         <label>
@@ -300,8 +300,8 @@ function TargetForm({ target, onSave }: { target: TargetVersion; onSave: (target
             type="number"
             min="0"
             max="10"
-            value={draft.currentSud ?? ""}
-            onChange={(event) => set("currentSud", optionalNumber(event.target.value))}
+            value={draft.currentDisturbance ?? ""}
+            onChange={(event) => set("currentDisturbance", optionalNumber(event.target.value))}
           />
         </label>
       </div>
@@ -334,7 +334,7 @@ function SessionFlow({
   onEnd: (session: Session) => void;
 }) {
   const [step, setStep] = useState<"assessment" | "stimulation" | "close" | "summary">("assessment");
-  const target = database.targets.find((item) => item.id === session.targetVersionId);
+  const target = database.targets.find((item) => item.id === session.targetId);
 
   return (
     <main className="screen">
@@ -423,8 +423,8 @@ function AssessmentStep({
             type="number"
             min="1"
             max="7"
-            value={assessment.validityOfCognition ?? ""}
-            onChange={(event) => set("validityOfCognition", optionalNumber(event.target.value))}
+            value={assessment.believability ?? ""}
+            onChange={(event) => set("believability", optionalNumber(event.target.value))}
           />
         </label>
         <label>
@@ -433,8 +433,8 @@ function AssessmentStep({
             type="number"
             min="0"
             max="10"
-            value={assessment.subjectiveUnitsOfDisturbance ?? ""}
-            onChange={(event) => set("subjectiveUnitsOfDisturbance", optionalNumber(event.target.value))}
+            value={assessment.disturbance ?? ""}
+            onChange={(event) => set("disturbance", optionalNumber(event.target.value))}
           />
         </label>
       </div>
@@ -501,7 +501,7 @@ function StimulationStep({
       createdAt: nowIso(),
       cycleCount: cycles,
       observation,
-      subjectiveUnitsOfDisturbance: optionalNumber(sud)
+      disturbance: optionalNumber(sud)
     };
 
     onChange({
@@ -549,7 +549,7 @@ function StimulationStep({
           {session.stimulationSets.map((set) => (
             <article key={set.id}>
               <strong>Set {set.setNumber}</strong>
-              <span>Disturbance {set.subjectiveUnitsOfDisturbance ?? "-"}</span>
+              <span>Disturbance {set.disturbance ?? "-"}</span>
               <p>{set.observation}</p>
             </article>
           ))}
@@ -576,8 +576,8 @@ function CloseStep({
           type="number"
           min="0"
           max="10"
-          value={session.finalSud ?? ""}
-          onChange={(event) => onChange({ ...session, finalSud: optionalNumber(event.target.value) })}
+          value={session.finalDisturbance ?? ""}
+          onChange={(event) => onChange({ ...session, finalDisturbance: optionalNumber(event.target.value) })}
         />
       </label>
       <label>
@@ -599,7 +599,7 @@ function SummaryStep({ session, onEnd }: { session: Session; onEnd: () => void }
         <dt>Sets</dt>
         <dd>{session.stimulationSets.length}</dd>
         <dt>Final disturbance</dt>
-        <dd>{session.finalSud ?? "-"}</dd>
+        <dd>{session.finalDisturbance ?? "-"}</dd>
       </dl>
       <button onClick={onEnd}>End Session</button>
     </div>

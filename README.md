@@ -22,7 +22,7 @@ The current build is an MVP focused on proving the core flow end to end. Several
 ## Current MVP
 
 - Create and edit versioned targets.
-- Keep prior target versions using `parentVersionId`, `rootTargetId`, and `isHead`.
+- Keep prior target versions using `parentTargetId`, `rootTargetId`, and `isCurrent`.
 - Start a session from an active target.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
@@ -40,19 +40,19 @@ The MVP stores data in a local SQLite database. Encryption is a required future 
 Targets are versioned records. A logical target is represented by a root target id and one or more target-version rows.
 
 ```ts
-type TargetVersion = {
+type Target = {
   id: string;
   rootTargetId: string;
-  parentVersionId?: string;
-  isHead: boolean;
+  parentTargetId?: string;
+  isCurrent: boolean;
   createdAt: string;
   updatedAt: string;
   description: string;
   negativeCognition: string;
   positiveCognition: string;
   clusterTag?: string;
-  initialSud?: number;
-  currentSud?: number;
+  initialDisturbance?: number;
+  currentDisturbance?: number;
   status: "active" | "completed" | "deferred";
   notes?: string;
 };
@@ -66,12 +66,12 @@ Each session references the target version that was active when the session bega
 type Session = {
   id: string;
   targetRootId: string;
-  targetVersionId: string;
+  targetId: string;
   startedAt: string;
   endedAt?: string;
   assessment: Assessment;
   stimulationSets: StimulationSet[];
-  finalSud?: number;
+  finalDisturbance?: number;
   notes?: string;
 };
 ```

@@ -1,4 +1,4 @@
-import type { ActivityEvent, Database, Session, TargetVersion } from "./types";
+import type { ActivityEvent, Database, Session, Target } from "./types";
 
 const STORAGE_KEY = "emdr-local-dev-db";
 
@@ -68,29 +68,29 @@ export async function saveDatabase(database: Database) {
   }
 }
 
-export function headTargets(database: Database) {
+export function currentTargets(database: Database) {
   return database.targets
-    .filter((target) => target.isHead)
-    .sort((a, b) => (b.currentSud ?? -1) - (a.currentSud ?? -1));
+    .filter((target) => target.isCurrent)
+    .sort((a, b) => (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1));
 }
 
 export function activeTargets(database: Database) {
-  return headTargets(database).filter((target) => target.status === "active");
+  return currentTargets(database).filter((target) => target.status === "active");
 }
 
-export function versionTarget(
+export function reviseTarget(
   database: Database,
-  previous: TargetVersion,
-  patch: Partial<Omit<TargetVersion, "id" | "rootTargetId" | "parentVersionId" | "createdAt">>
+  previous: Target,
+  patch: Partial<Omit<Target, "id" | "rootTargetId" | "parentTargetId" | "createdAt">>
 ): Database {
   const now = nowIso();
-  const nextVersion: TargetVersion = {
+  const nextVersion: Target = {
     ...previous,
     ...patch,
     id: createId("target"),
     rootTargetId: previous.rootTargetId,
-    parentVersionId: previous.id,
-    isHead: true,
+    parentTargetId: previous.id,
+    isCurrent: true,
     createdAt: now,
     updatedAt: now
   };
@@ -98,7 +98,7 @@ export function versionTarget(
   return {
     ...database,
     targets: database.targets
-      .map((target) => (target.id === previous.id ? { ...target, isHead: false, updatedAt: now } : target))
+      .map((target) => (target.id === previous.id ? { ...target, isCurrent: false, updatedAt: now } : target))
       .concat(nextVersion),
     activityEvents: database.activityEvents.concat(
       createEvent("target.versioned", "target", nextVersion.rootTargetId, {
