@@ -1,10 +1,10 @@
-import type { Database } from "./types";
-import type { SessionAggregate } from "../session/types";
-import type { Target } from "../target/entity";
-import { createSessionForTarget } from "../session/factory";
-import { reviseTarget } from "../target/service";
-import { replaceById } from "../../support/collection";
-import { nowIso } from "../../support/ids";
+import type { Database } from "./types.js";
+import type { SessionAggregate } from "../session/types.js";
+import type { Target } from "../target/entity.js";
+import { createSessionForTarget } from "../session/factory.js";
+import { reviseTarget } from "../target/service.js";
+import { replaceById } from "../../support/collection.js";
+import { nowIso } from "../../support/ids.js";
 
 export function startSessionForTarget(database: Database, target: Target) {
   const session = createSessionForTarget(target);

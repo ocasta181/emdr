@@ -1,5 +1,5 @@
-import { createId, nowIso } from "../../support/ids";
-import type { StimulationSet } from "./entity";
+import { createId, nowIso } from "../../support/ids.js";
+import type { StimulationSet } from "./entity.js";
 
 type StimulationSetDraft = Pick<StimulationSet, "sessionId" | "setNumber" | "cycleCount" | "observation"> &
   Partial<Pick<StimulationSet, "disturbance">>;

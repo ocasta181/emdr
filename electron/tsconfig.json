@@ -10,5 +10,5 @@
     "outDir": "../dist-electron",
     "rootDir": ".."
   },
-  "include": ["*.ts", "*.cts", "../infrastructure/**/*.ts", "domain/**/*.ts"]
+  "include": ["*.ts", "*.cts", "../domain/**/*.ts", "../infrastructure/**/*.ts", "../support/**/*.ts"]
 }

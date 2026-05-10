@@ -1,5 +1,5 @@
-import type { StimulationSet } from "../stimulation-set/entity";
-import type { Session } from "./entity";
+import type { StimulationSet } from "../stimulation-set/entity.js";
+import type { Session } from "./entity.js";
 
 export type Assessment = {
   image?: string;

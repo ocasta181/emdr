@@ -3,7 +3,7 @@ import {
   persistSqliteDatabase,
   sqliteDatabasePath,
   type SqliteDatabase
-} from "../../../infrastructure/sqlite/database.js";
+} from "../../infrastructure/sqlite/database.js";
 import { ensureAppMetadataTable, readAppMetadata, replaceAppMetadata } from "../app-metadata/repository.js";
 import { ensureSessionTable, readSessions, replaceSessions } from "../session/repository.js";
 import type { Session } from "../session/entity.js";
@@ -13,17 +13,18 @@ import type { Settings } from "../setting/types.js";
 import { ensureStimulationSetTable, readStimulationSets, replaceStimulationSets } from "../stimulation-set/repository.js";
 import type { StimulationSet } from "../stimulation-set/entity.js";
 import { ensureTargetTable, readTargets, replaceTargets } from "../target/repository.js";
-import type { AppDatabase } from "./types.js";
+import { createEmptyDatabase } from "./factory.js";
+import type { Database } from "./types.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;
 
-export async function loadAppDatabase(userDataPath: string): Promise<AppDatabase> {
+export async function loadAppDatabase(userDataPath: string): Promise<Database> {
   const db = await openDatabase(userDataPath);
   return readAppDatabase(db);
 }
 
-export async function saveAppDatabase(userDataPath: string, database: AppDatabase) {
+export async function saveAppDatabase(userDataPath: string, database: Database) {
   const db = await openDatabase(userDataPath);
   writeAppDatabase(db, database);
   await persistSqliteDatabase(db, sqliteDatabasePath(userDataPath));
@@ -65,7 +66,7 @@ function ensureSchema(db: SqliteDatabase) {
   ensureSettingTable(db);
 }
 
-function readAppDatabase(db: SqliteDatabase): AppDatabase {
+function readAppDatabase(db: SqliteDatabase): Database {
   const createdAt = readAppMetadata(db, "createdAt") ?? new Date().toISOString();
   const updatedAt = readAppMetadata(db, "updatedAt") ?? createdAt;
 
@@ -79,7 +80,7 @@ function readAppDatabase(db: SqliteDatabase): AppDatabase {
   };
 }
 
-function writeAppDatabase(db: SqliteDatabase, database: AppDatabase) {
+function writeAppDatabase(db: SqliteDatabase, database: Database) {
   db.run("BEGIN TRANSACTION");
 
   try {
@@ -163,23 +164,5 @@ function toSessionAggregate(session: Session, stimulationSets: StimulationSet[])
     stimulationSets,
     finalDisturbance: session.finalDisturbance,
     notes: session.notes
-  };
-}
-
-function createEmptyDatabase(): AppDatabase {
-  const now = new Date().toISOString();
-  return {
-    schemaVersion: 1,
-    createdAt: now,
-    updatedAt: now,
-    targets: [],
-    sessions: [],
-    settings: {
-      bilateralStimulation: {
-        speed: 1,
-        dotSize: "medium",
-        dotColor: "green"
-      }
-    }
   };
 }

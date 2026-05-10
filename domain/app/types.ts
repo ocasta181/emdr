@@ -1,6 +1,6 @@
-import type { SessionAggregate } from "../session/types";
-import type { Settings } from "../setting/types";
-import type { Target } from "../target/entity";
+import type { SessionAggregate } from "../session/types.js";
+import type { Settings } from "../setting/types.js";
+import type { Target } from "../target/entity.js";
 
 export type Database = {
   schemaVersion: 1;

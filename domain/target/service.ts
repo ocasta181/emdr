@@ -1,7 +1,7 @@
-import type { Database } from "../app/types";
-import type { Target } from "./entity";
-import { nowIso } from "../../support/ids";
-import { createTargetRevision } from "./factory";
+import type { Database } from "../app/types.js";
+import type { Target } from "./entity.js";
+import { nowIso } from "../../support/ids.js";
+import { createTargetRevision } from "./factory.js";
 
 export function currentTargets(database: Database) {
   return database.targets

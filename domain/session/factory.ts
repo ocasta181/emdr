@@ -1,6 +1,6 @@
-import { createId, nowIso } from "../../support/ids";
-import type { Target } from "../target/entity";
-import type { SessionAggregate } from "./types";
+import { createId, nowIso } from "../../support/ids.js";
+import type { Target } from "../target/entity.js";
+import type { SessionAggregate } from "./types.js";
 
 export function createSessionForTarget(target: Target): SessionAggregate {
   return {

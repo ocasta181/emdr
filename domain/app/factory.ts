@@ -1,5 +1,5 @@
-import type { Database } from "./types";
-import { nowIso } from "../../support/ids";
+import type { Database } from "./types.js";
+import { nowIso } from "../../support/ids.js";
 
 export function createEmptyDatabase(): Database {
   const now = nowIso();
