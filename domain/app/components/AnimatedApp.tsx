@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { RoomScene, type GuideState, type RoomObjectId } from "../../../src/animation/RoomScene";
+import { deriveSceneViewModel, type SceneContext } from "../../../src/animation/guideSceneModel";
 
 type AnimatedPanel = "chat" | "targets" | "history" | "settings" | null;
 
@@ -17,25 +18,41 @@ export function AnimatedApp() {
   const [stimulationSpeed, setStimulationSpeed] = useState(1);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>(["I want to work with a target."]);
+  const [targetMode, setTargetMode] = useState<SceneContext["targetMode"]>("closed");
 
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
+      setTargetMode("closed");
       setPanel("chat");
       setLineIndex((current) => (current + 1) % proctorLines.length);
+      return;
+    }
+    if (objectId === "targets") {
+      setTargetMode("reading");
+      setPanel("targets");
       return;
     }
     if (objectId === "settings" && !stimulationRunning) {
       return;
     }
+    setTargetMode("closed");
     setPanel(objectId);
   }
 
   function toggleStimulation() {
     setStimulationRunning((current) => {
       const next = !current;
+      if (next) setTargetMode("closed");
       setPanel(next ? null : "chat");
       return next;
     });
+  }
+
+  function closePanel() {
+    if (panel === "targets") {
+      setTargetMode("closed");
+    }
+    setPanel(null);
   }
 
   function submitChat(event: FormEvent) {
@@ -58,12 +75,20 @@ export function AnimatedApp() {
           : panel
             ? "thinking"
             : "idle";
+  const sceneViewModel = deriveSceneViewModel({
+    targetMode,
+    stimulationRunning,
+    panel,
+    guideSpeaking: panel === "chat",
+    userTyping: Boolean(chatDraft.trim())
+  });
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
       <RoomScene
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
         guideState={guideState}
+        sceneViewModel={sceneViewModel}
         stimulationRunning={stimulationRunning}
         stimulationColor={stimulationColor}
         stimulationSpeed={stimulationSpeed}
@@ -76,7 +101,14 @@ export function AnimatedApp() {
           <div className="subtle">Animated room prototype</div>
         </div>
         <div className="buttonRow">
-          <button onClick={() => setPanel("chat")}>Guide</button>
+          <button
+            onClick={() => {
+              setTargetMode("closed");
+              setPanel("chat");
+            }}
+          >
+            Guide
+          </button>
           <button onClick={toggleStimulation}>
             {stimulationRunning ? "Pause" : "Start"} Set
           </button>
@@ -86,7 +118,7 @@ export function AnimatedApp() {
 
       {panel && (
         <aside className={panelClass}>
-          <button className="panelClose" aria-label="Close panel" onClick={() => setPanel(null)}>
+          <button className="panelClose" aria-label="Close panel" onClick={closePanel}>
             Close
           </button>
           {panel === "chat" && (
@@ -121,7 +153,10 @@ export function AnimatedApp() {
             <>
               <h1>Targets</h1>
               <p className="authNotice">This panel will map to target selection and agent-drafted target review.</p>
-              <button>Create target draft</button>
+              <div className="buttonRow">
+                <button onClick={() => setTargetMode("browsing")}>Flip pages</button>
+                <button onClick={() => setTargetMode("writing")}>Write target</button>
+              </div>
             </>
           )}
 

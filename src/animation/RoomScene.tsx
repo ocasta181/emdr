@@ -1,5 +1,14 @@
 import { useEffect, useRef } from "react";
 import { AnimatedSprite, Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
+import {
+  guideBookClips,
+  independentBookStateForClip,
+  targetBookTransition,
+  type GuideBookIntent,
+  type GuideIntent,
+  type SceneViewModel,
+  type TargetBookMode
+} from "./guideSceneModel";
 import guideFrame00Url from "../../assets/animated-room/guide-00.png?url";
 import guideFrame01Url from "../../assets/animated-room/guide-01.png?url";
 import guideFrame02Url from "../../assets/animated-room/guide-02.png?url";
@@ -26,6 +35,17 @@ const guideStateFrames: Record<GuideState, number[]> = {
   thinking: [9, 10, 11]
 };
 
+const bookClipDurations: Record<GuideBookIntent, number> = {
+  pick_up_book: 1.35,
+  hold_book_closed: 1,
+  open_book: 1,
+  hold_book_open: 1,
+  flip_book_pages: 1.2,
+  write_in_book: 1,
+  close_book: 0.9,
+  put_book_down: 1.25
+};
+
 const guideFrameUrls = [
   guideFrame00Url,
   guideFrame01Url,
@@ -44,6 +64,7 @@ const guideFrameUrls = [
 export function RoomScene({
   mode,
   guideState,
+  sceneViewModel,
   stimulationRunning,
   stimulationColor,
   stimulationSpeed,
@@ -51,6 +72,7 @@ export function RoomScene({
 }: {
   mode: RoomMode;
   guideState: GuideState;
+  sceneViewModel: SceneViewModel;
   stimulationRunning: boolean;
   stimulationColor: string;
   stimulationSpeed: number;
@@ -58,9 +80,9 @@ export function RoomScene({
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
-  const runtimeRef = useRef({ mode, guideState, stimulationRunning, stimulationColor, stimulationSpeed });
+  const runtimeRef = useRef({ mode, guideState, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed });
   callbackRef.current = onObjectSelected;
-  runtimeRef.current = { mode, guideState, stimulationRunning, stimulationColor, stimulationSpeed };
+  runtimeRef.current = { mode, guideState, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -95,6 +117,8 @@ export function RoomScene({
       const orbTexture = await Assets.load(orbUrl);
       const guideFrames = createGuideFrames(guideTextures);
       const guide = new AnimatedSprite(guideFrames.idle);
+      const targetBook = new Container();
+      const guideBook = new Graphics();
       const orb = new Sprite(orbTexture);
       const labels = new Container();
       const dimmer = new Graphics();
@@ -109,9 +133,12 @@ export function RoomScene({
       guide.anchor.set(0.5, 1);
       guide.animationSpeed = 0.035;
       guide.play();
+      targetBook.eventMode = "static";
+      targetBook.cursor = "pointer";
+      targetBook.on("pointertap", () => callbackRef.current("targets"));
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hill, labels, guide);
+      stage.addChild(background, moon, hill, labels, targetBook, guide, guideBook);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
@@ -135,6 +162,12 @@ export function RoomScene({
       let lastWidth = 0;
       let lastHeight = 0;
       let currentGuideState: GuideState = "idle";
+      let settledTargetBookMode: TargetBookMode = "at_rest";
+      let desiredTargetBookMode: TargetBookMode = "at_rest";
+      let activeBookClip: GuideBookIntent | null = null;
+      let bookClipQueue: GuideBookIntent[] = [];
+      let bookClipStartedAt = 0;
+      let targetBookLayout = { x: 0, y: 0, scale: 1 };
 
       function drawLabel(text: string, x: number, y: number) {
         const label = new Text({
@@ -176,12 +209,19 @@ export function RoomScene({
 
         labels.removeChildren();
         drawLabel("Targets", width * 0.12 + 47, height * 0.41);
+        drawLabel("Target book", width * 0.2, floorY + 48);
         drawLabel("Settings", width * 0.82 + 40, height * 0.73);
         drawLabel("History", width * 0.68, height * 0.82);
 
         guide.position.set(width * 0.5, floorY + 10);
         guide.width = Math.min(220, width * 0.2);
         guide.height = guide.width * 1.18;
+        targetBookLayout = {
+          x: width * 0.2,
+          y: floorY + 6,
+          scale: Math.max(0.78, Math.min(1.15, width / 1180))
+        };
+        drawRestingTargetBook(targetBook, targetBookLayout.x, targetBookLayout.y, targetBookLayout.scale);
 
         const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
         guideHotspot.clear();
@@ -189,7 +229,9 @@ export function RoomScene({
 
         const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
         targetHotspot.clear();
-        targetHotspot.roundRect(width * 0.12, height * 0.15, 96, 190, 10).fill({ color: 0xd8c692, alpha: 0.045 });
+        targetHotspot
+          .roundRect(targetBookLayout.x - 96, targetBookLayout.y - 84, 192, 116, 14)
+          .fill({ color: 0xd8c692, alpha: 0.035 });
 
         const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
         historyHotspot.clear();
@@ -212,13 +254,45 @@ export function RoomScene({
           lastHeight = height;
         }
 
+        if (runtime.sceneViewModel.targetBookMode !== desiredTargetBookMode) {
+          desiredTargetBookMode = runtime.sceneViewModel.targetBookMode;
+          bookClipQueue = targetBookTransition(settledTargetBookMode, desiredTargetBookMode);
+          activeBookClip = bookClipQueue.shift() ?? null;
+          bookClipStartedAt = elapsed;
+          if (activeBookClip && guideBookClips[activeBookClip].loops) {
+            settledTargetBookMode = desiredTargetBookMode;
+          }
+        }
+
+        let activeBookProgress = activeBookClip ? Math.min(1, (elapsed - bookClipStartedAt) / bookClipDurations[activeBookClip]) : 1;
+        if (activeBookClip && activeBookProgress >= 1 && !guideBookClips[activeBookClip].loops) {
+          activeBookClip = bookClipQueue.shift() ?? null;
+          bookClipStartedAt = elapsed;
+          activeBookProgress = 0;
+          if (activeBookClip && guideBookClips[activeBookClip].loops) {
+            settledTargetBookMode = desiredTargetBookMode;
+          }
+          if (!activeBookClip) {
+            settledTargetBookMode = desiredTargetBookMode;
+          }
+        }
+
+        const guideIntent = activeBookClip ?? runtime.sceneViewModel.guideIntent;
+        const renderedGuideState = guideStateForIntent(guideIntent, runtime.guideState);
+        const independentBookState = activeBookClip
+          ? independentBookStateForClip(activeBookClip, activeBookProgress)
+          : runtime.sceneViewModel.independentBookState;
+        targetBook.visible = independentBookState === "visible";
+        hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
+        drawGuideBook(guideBook, guideIntent, activeBookProgress, targetBookLayout, guide.x, guide.y, guide.width);
+
         const floorY = height * 0.78;
         const breath = Math.sin(elapsed * 1.6) * 4;
         guide.y = floorY + 10 + breath;
         guide.alpha = runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1;
-        if (runtime.guideState !== currentGuideState) {
-          currentGuideState = runtime.guideState;
-          guide.textures = guideFrames[runtime.guideState];
+        if (renderedGuideState !== currentGuideState) {
+          currentGuideState = renderedGuideState;
+          guide.textures = guideFrames[renderedGuideState];
           guide.gotoAndPlay(0);
         }
 
@@ -266,4 +340,158 @@ function createGuideFrames(frames: Texture[]): Record<GuideState, Texture[]> {
     speaking: guideStateFrames.speaking.map((frameIndex) => frames[frameIndex]),
     thinking: guideStateFrames.thinking.map((frameIndex) => frames[frameIndex])
   };
+}
+
+function drawRestingTargetBook(book: Container, x: number, y: number, scale: number) {
+  book.removeChildren();
+  book.position.set(x, y);
+  book.scale.set(scale);
+
+  const shadow = new Graphics();
+  shadow.ellipse(0, 2, 76, 18).fill({ color: 0x080706, alpha: 0.36 });
+
+  const cover = new Graphics();
+  cover.roundRect(-70, -58, 140, 92, 9).fill(0x4b1823);
+  cover.roundRect(-62, -50, 124, 76, 6).stroke({ color: 0x9b6a45, width: 2, alpha: 0.74 });
+  cover.roundRect(-60, -48, 120, 72, 5).fill({ color: 0x5c202a, alpha: 0.72 });
+  cover.rect(-55, -46, 12, 68).fill({ color: 0x2f0e16, alpha: 0.82 });
+  cover.moveTo(-24, -36).lineTo(44, -36).stroke({ color: 0xb78a55, width: 1.5, alpha: 0.48 });
+  cover.moveTo(-24, -18).lineTo(38, -18).stroke({ color: 0xb78a55, width: 1.5, alpha: 0.4 });
+  cover.moveTo(-24, 0).lineTo(44, 0).stroke({ color: 0xb78a55, width: 1.5, alpha: 0.34 });
+
+  book.addChild(shadow, cover);
+}
+
+function drawGuideBook(
+  book: Graphics,
+  intent: GuideIntent,
+  progress: number,
+  targetBookLayout: { x: number; y: number; scale: number },
+  guideX: number,
+  guideY: number,
+  guideWidth: number
+) {
+  book.clear();
+  book.visible = false;
+
+  if (!isGuideBookIntent(intent) || !guideOwnsBook(intent, progress)) return;
+
+  const easedProgress = easeInOut(progress);
+  const heldX = guideX + guideWidth * 0.08;
+  const heldY = guideY - guideWidth * 0.45;
+  let x = heldX;
+  let y = heldY;
+
+  if (intent === "pick_up_book") {
+    const handoff = guideBookClips.pick_up_book.handoff!.progress;
+    const localProgress = easeInOut(Math.max(0, (progress - handoff) / (1 - handoff)));
+    x = lerp(targetBookLayout.x, heldX, localProgress);
+    y = lerp(targetBookLayout.y - 30 * targetBookLayout.scale, heldY, localProgress);
+  }
+
+  if (intent === "put_book_down") {
+    const handoff = guideBookClips.put_book_down.handoff!.progress;
+    const localProgress = easeInOut(Math.min(1, progress / handoff));
+    x = lerp(heldX, targetBookLayout.x, localProgress);
+    y = lerp(heldY, targetBookLayout.y - 30 * targetBookLayout.scale, localProgress);
+  }
+
+  const openAmount = openAmountForIntent(intent, easedProgress);
+  const scale = Math.max(0.7, Math.min(1.05, guideWidth / 210));
+  book.visible = true;
+
+  if (openAmount < 0.2) {
+    drawClosedHeldBook(book, x, y, scale);
+    return;
+  }
+
+  drawOpenHeldBook(book, x, y, scale, intent, easedProgress);
+}
+
+function drawClosedHeldBook(book: Graphics, x: number, y: number, scale: number) {
+  const width = 112 * scale;
+  const height = 72 * scale;
+  book.roundRect(x - width / 2, y - height / 2, width, height, 8 * scale).fill(0x4b1823);
+  book.roundRect(x - width / 2 + 7 * scale, y - height / 2 + 7 * scale, width - 14 * scale, height - 14 * scale, 5 * scale).stroke({
+    color: 0xae7b4a,
+    width: 2 * scale,
+    alpha: 0.72
+  });
+  book.rect(x - width / 2 + 14 * scale, y - height / 2 + 8 * scale, 10 * scale, height - 16 * scale).fill({
+    color: 0x2f0e16,
+    alpha: 0.82
+  });
+}
+
+function drawOpenHeldBook(book: Graphics, x: number, y: number, scale: number, intent: GuideBookIntent, progress: number) {
+  const width = 154 * scale;
+  const height = 82 * scale;
+  const pageWidth = width / 2 - 4 * scale;
+
+  book.roundRect(x - width / 2 - 6 * scale, y - height / 2 - 5 * scale, width + 12 * scale, height + 10 * scale, 8 * scale).fill(0x4b1823);
+  book.roundRect(x - width / 2, y - height / 2, pageWidth, height, 5 * scale).fill(0xe7d8bd);
+  book.roundRect(x + 4 * scale, y - height / 2, pageWidth, height, 5 * scale).fill(0xeadfc9);
+  book.rect(x - 2 * scale, y - height / 2 + 3 * scale, 4 * scale, height - 6 * scale).fill({
+    color: 0x8f6c45,
+    alpha: 0.64
+  });
+
+  for (let line = 0; line < 4; line += 1) {
+    const lineY = y - height * 0.26 + line * 12 * scale;
+    book.moveTo(x - width * 0.38, lineY).lineTo(x - width * 0.1, lineY).stroke({ color: 0x725f49, width: scale, alpha: 0.32 });
+    book.moveTo(x + width * 0.1, lineY).lineTo(x + width * 0.38, lineY).stroke({ color: 0x725f49, width: scale, alpha: 0.32 });
+  }
+
+  if (intent === "flip_book_pages") {
+    const sweep = Math.sin(progress * Math.PI);
+    const turningWidth = Math.max(6 * scale, pageWidth * sweep);
+    book.roundRect(x - turningWidth * 0.15, y - height / 2 + 4 * scale, turningWidth, height - 8 * scale, 5 * scale).fill({
+      color: 0xf2e8d2,
+      alpha: 0.8
+    });
+  }
+
+  if (intent === "write_in_book") {
+    const penX = x + width * 0.26 + Math.sin(progress * Math.PI * 2) * 10 * scale;
+    const penY = y - height * 0.08 + Math.cos(progress * Math.PI * 2) * 5 * scale;
+    book.moveTo(penX - 16 * scale, penY - 18 * scale).lineTo(penX + 4 * scale, penY + 8 * scale).stroke({
+      color: 0x2d241b,
+      width: 3 * scale,
+      alpha: 0.88
+    });
+    book.circle(penX + 5 * scale, penY + 9 * scale, 2.4 * scale).fill(0x2d241b);
+  }
+}
+
+function guideStateForIntent(intent: GuideIntent, fallback: GuideState): GuideState {
+  if (!isGuideBookIntent(intent)) return fallback;
+  if (guideBookClips[intent].focus === "user") return "speaking";
+  return "thinking";
+}
+
+function guideOwnsBook(intent: GuideBookIntent, progress: number) {
+  const clip = guideBookClips[intent];
+  if (!clip.handoff) return clip.startsWithGuideBook || clip.endsWithGuideBook;
+  if (clip.handoff.action === "attach_to_guide") return progress >= clip.handoff.progress;
+  return progress < clip.handoff.progress;
+}
+
+function openAmountForIntent(intent: GuideBookIntent, progress: number) {
+  if (intent === "open_book") return progress;
+  if (intent === "close_book") return 1 - progress;
+  if (intent === "hold_book_open" || intent === "flip_book_pages" || intent === "write_in_book") return 1;
+  return 0;
+}
+
+function isGuideBookIntent(intent: GuideIntent): intent is GuideBookIntent {
+  return Object.prototype.hasOwnProperty.call(guideBookClips, intent);
+}
+
+function easeInOut(value: number) {
+  const clamped = Math.max(0, Math.min(1, value));
+  return clamped * clamped * (3 - 2 * clamped);
+}
+
+function lerp(start: number, end: number, progress: number) {
+  return start + (end - start) * progress;
 }
