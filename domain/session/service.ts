@@ -1,7 +1,7 @@
-import type { Database } from "./types.js";
-import type { SessionAggregate } from "../session/types.js";
+import type { Database } from "../app/types.js";
+import type { SessionAggregate } from "./types.js";
 import type { Target } from "../target/entity.js";
-import { createSessionForTarget } from "../session/factory.js";
+import { createSessionForTarget } from "./factory.js";
 import { reviseTarget } from "../target/service.js";
 import { replaceById } from "../../support/collection.js";
 import { nowIso } from "../../support/ids.js";

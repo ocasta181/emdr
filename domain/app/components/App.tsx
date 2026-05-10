@@ -4,9 +4,9 @@ import type { SessionAggregate } from "../../session/types";
 import type { Target } from "../../target/entity";
 import type { Database } from "../types";
 import { SessionFlow } from "../../session/components/SessionFlow";
+import { endSession as completeSession, saveSessionDraft, startSessionForTarget } from "../../session/service";
 import { Targets } from "../../target/components/Targets";
 import { createEmptyDatabase } from "../factory";
-import { endSession as completeSession, saveSessionDraft, startSessionForTarget } from "../service";
 import { Dashboard } from "./Dashboard";
 
 type View = "dashboard" | "targets" | "session";
