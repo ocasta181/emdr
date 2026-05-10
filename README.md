@@ -23,6 +23,9 @@ The current build is an MVP focused on proving the core flow end to end. Several
 
 - Create and edit versioned targets.
 - Keep prior target versions using `parentTargetId`, `rootTargetId`, and `isCurrent`.
+- Create an encrypted local vault protected by a password.
+- Show a 256-bit recovery code during vault setup.
+- Unlock encrypted local data with either password or recovery code.
 - Start a session from an active target.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
@@ -30,9 +33,20 @@ The current build is an MVP focused on proving the core flow end to end. Several
 - End a session with final notes and final disturbance score.
 - Update the current target disturbance score from the latest session.
 
+## Persistence
+
+The MVP stores the SQLite database inside an encrypted local vault file named `emdr-local.vault`.
+
+- App data is encrypted at rest with AES-256-GCM.
+- The password unlock path uses scrypt to derive a wrapping key.
+- The recovery code is 256 bits and is shown once during vault setup.
+- The recovery code can unlock the same encrypted data if the password is unavailable.
+- No plaintext SQLite database is written by the app.
+- Export/import is still follow-up work.
+
 ## Data Model
 
-The MVP stores data in a local SQLite database. Encryption is a required future milestone.
+The application domain is persisted in the local SQLite database inside the encrypted vault.
 
 ### Target
 
@@ -93,11 +107,7 @@ Existing ADRs:
 
 ## Required Follow-Up Work
 
-- Encrypt all app data at rest.
-- Require a password to unlock local data.
-- Use a strong password-based key derivation function.
 - Support encrypted database export/import.
-- Use a 256-bit recovery/export key.
 - Package as a macOS `.app`.
 - Add audio bilateral stimulation.
 - Add database migrations.
