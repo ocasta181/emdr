@@ -8,10 +8,10 @@ import {
   saveSessionDraft,
   startSessionForTarget
 } from "./domain/app/service";
+import { createStimulationSet } from "./domain/stimulation-set/factory";
 import { Targets } from "./domain/target/components/Targets";
 import { loadDatabase, saveDatabase } from "./db";
 import { optionalNumber } from "./support/form";
-import { createId, nowIso } from "./support/ids";
 import type { Assessment, Database, SessionAggregate, StimulationSet, Target } from "./types";
 
 const colors = {
@@ -264,15 +264,13 @@ function StimulationStep({
   }, [running]);
 
   function logSet() {
-    const nextSet: StimulationSet = {
-      id: createId("set"),
+    const nextSet: StimulationSet = createStimulationSet({
       sessionId: session.id,
       setNumber: session.stimulationSets.length + 1,
-      createdAt: nowIso(),
       cycleCount: cycles,
       observation,
       disturbance: optionalNumber(sud)
-    };
+    });
 
     onChange({
       ...session,
