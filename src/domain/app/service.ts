@@ -5,24 +5,6 @@ import { reviseTarget } from "../target/service";
 import { replaceById } from "../../support/collection";
 import { createId, nowIso } from "../../support/ids";
 
-export function createEmptyDatabase(): Database {
-  const now = nowIso();
-  return {
-    schemaVersion: 1,
-    createdAt: now,
-    updatedAt: now,
-    targets: [],
-    sessions: [],
-    settings: {
-      bilateralStimulation: {
-        speed: 1,
-        dotSize: "medium",
-        dotColor: "green"
-      }
-    }
-  };
-}
-
 export function startSessionForTarget(database: Database, target: Target) {
   const session: SessionAggregate = {
     id: createId("session"),
