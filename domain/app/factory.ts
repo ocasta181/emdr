@@ -1,5 +1,6 @@
 import type { Database } from "./types.js";
 import { nowIso } from "../../support/ids.js";
+import { createDefaultSettings } from "../setting/factory.js";
 
 export function createEmptyDatabase(): Database {
   const now = nowIso();
@@ -9,12 +10,6 @@ export function createEmptyDatabase(): Database {
     updatedAt: now,
     targets: [],
     sessions: [],
-    settings: {
-      bilateralStimulation: {
-        speed: 1,
-        dotSize: "medium",
-        dotColor: "green"
-      }
-    }
+    settings: createDefaultSettings()
   };
 }

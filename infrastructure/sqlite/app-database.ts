@@ -8,9 +8,10 @@ import { runMigrations } from "./migrations/index.js";
 import { newAppMetadataRepository } from "../../domain/app-metadata/repository.js";
 import { createEmptyDatabase } from "../../domain/app/factory.js";
 import type { Database } from "../../domain/app/types.js";
+import { createSessionAggregate, createSessionFromAggregate } from "../../domain/session/factory.js";
 import { newSessionRepository } from "../../domain/session/repository.js";
-import type { Session } from "../../domain/session/entity.js";
 import type { SessionAggregate } from "../../domain/session/types.js";
+import { createDefaultSettings } from "../../domain/setting/factory.js";
 import { newSettingRepository } from "../../domain/setting/repository.js";
 import type { Settings } from "../../domain/setting/types.js";
 import { newStimulationSetRepository } from "../../domain/stimulation-set/repository.js";
@@ -74,7 +75,7 @@ function writeAppDatabase(db: SqliteDatabase, database: Database) {
 
   try {
     newTargetRepository(db).replaceAll(database.targets);
-    newSessionRepository(db).replaceAll(database.sessions.map(toSession));
+    newSessionRepository(db).replaceAll(database.sessions.map(createSessionFromAggregate));
     newStimulationSetRepository(db).replaceAll(database.sessions.flatMap((session) => session.stimulationSets));
     newSettingRepository(db).replaceAll([
       { key: "bilateralStimulation", valueJson: JSON.stringify(database.settings.bilateralStimulation) }
@@ -100,58 +101,16 @@ function readSessionAggregates(db: SqliteDatabase): SessionAggregate[] {
     setsBySession.set(set.sessionId, sets);
   }
 
-  return newSessionRepository(db).all().map((session) => toSessionAggregate(session, setsBySession.get(session.id) ?? []));
+  return newSessionRepository(db)
+    .all()
+    .map((session) => createSessionAggregate(session, setsBySession.get(session.id) ?? []));
 }
 
 function readSettings(db: SqliteDatabase): Settings {
   const bilateralStimulation = newSettingRepository(db).find("bilateralStimulation");
 
   return {
-    bilateralStimulation: bilateralStimulation ? JSON.parse(bilateralStimulation.valueJson) : {
-      speed: 1,
-      dotSize: "medium",
-      dotColor: "green"
-    }
-  };
-}
-
-function toSession(session: SessionAggregate): Session {
-  return {
-    id: session.id,
-    targetRootId: session.targetRootId,
-    targetId: session.targetId,
-    startedAt: session.startedAt,
-    endedAt: session.endedAt,
-    assessmentImage: session.assessment.image,
-    assessmentNegativeCognition: session.assessment.negativeCognition,
-    assessmentPositiveCognition: session.assessment.positiveCognition,
-    assessmentBelievability: session.assessment.believability,
-    assessmentEmotions: session.assessment.emotions,
-    assessmentDisturbance: session.assessment.disturbance,
-    assessmentBodyLocation: session.assessment.bodyLocation,
-    finalDisturbance: session.finalDisturbance,
-    notes: session.notes
-  };
-}
-
-function toSessionAggregate(session: Session, stimulationSets: StimulationSet[]): SessionAggregate {
-  return {
-    id: session.id,
-    targetRootId: session.targetRootId,
-    targetId: session.targetId,
-    startedAt: session.startedAt,
-    endedAt: session.endedAt,
-    assessment: {
-      image: session.assessmentImage,
-      negativeCognition: session.assessmentNegativeCognition,
-      positiveCognition: session.assessmentPositiveCognition,
-      believability: session.assessmentBelievability,
-      emotions: session.assessmentEmotions,
-      disturbance: session.assessmentDisturbance,
-      bodyLocation: session.assessmentBodyLocation
-    },
-    stimulationSets,
-    finalDisturbance: session.finalDisturbance,
-    notes: session.notes
+    ...createDefaultSettings(),
+    ...(bilateralStimulation ? { bilateralStimulation: JSON.parse(bilateralStimulation.valueJson) } : {})
   };
 }
