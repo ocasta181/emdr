@@ -57,6 +57,11 @@ select {
   padding: 10px 12px;
 }
 
+input[type="color"] {
+  min-height: 46px;
+  padding: 4px;
+}
+
 textarea {
   min-height: 110px;
   resize: vertical;
