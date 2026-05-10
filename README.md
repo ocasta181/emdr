@@ -1,8 +1,8 @@
 # EMDR Local
 
-EMDR Local is a macOS-first desktop Electron application for private, local Eye Movement Desensitization and Reprocessing session tracking and bilateral stimulation. It is intended to run entirely on the user's machine.
+EMDR Local is a macOS-first desktop Electron application for private, local Eye Movement Desensitization and Reprocessing session tracking and bilateral stimulation. It runs entirely on the user's machine.
 
-The current build is an MVP focused on proving the core flow end to end. Several privacy and clinical-research features are intentionally tracked as follow-up work rather than half-implemented.
+The current build is an MVP focused on proving the core flow end to end with encrypted local persistence. Several privacy, packaging, and clinical-research features are intentionally tracked as follow-up work rather than half-implemented.
 
 ## Decisions So Far
 
@@ -13,22 +13,26 @@ The current build is an MVP focused on proving the core flow end to end. Several
 - The first supported platform is macOS.
 - The first theme is dark.
 - The first implementation uses Electron, React, TypeScript, and Vite.
+- Dependencies and commands use `pnpm`.
 - A "session" means one clinical EMDR work session in the app. Every session is complete when the user ends it.
 - A target may require many sessions. Targets are unfinished until the user explicitly marks them complete.
 - Local logging/telemetry is planned, but the use cases and event taxonomy need to be defined before implementation.
 - Bilateral stimulation is spelled out in user-facing copy. Visual bilateral stimulation ships first; audio bilateral stimulation is a later feature.
 - Markdown export is not planned. Backup/export should be encrypted database export.
+- Authenticator app support is not a replacement for recovery. It may be considered later as an additional unlock factor.
 
 ## Current MVP
 
 - Create and edit versioned targets.
 - Keep prior target versions using `parentTargetId`, `rootTargetId`, and `isCurrent`.
 - Create an encrypted local vault protected by a password.
-- Show a 256-bit recovery code during vault setup.
-- Unlock encrypted local data with either password or recovery code.
+- Show an app-generated 256-bit recovery key during vault setup.
+- Prompt the user to store the recovery key somewhere safe.
+- Unlock encrypted local data with either password or recovery key.
 - Start a session from an active target.
 - Capture assessment fields.
 - Run visual bilateral stimulation with a moving dot.
+- Persist visual bilateral stimulation speed and dot color settings.
 - Log stimulation sets with observations and optional disturbance score.
 - End a session with final notes and final disturbance score.
 - Update the current target disturbance score from the latest session.
@@ -39,10 +43,31 @@ The MVP stores the SQLite database inside an encrypted local vault file named `e
 
 - App data is encrypted at rest with AES-256-GCM.
 - The password unlock path uses scrypt to derive a wrapping key.
-- The recovery code is 256 bits and is shown once during vault setup.
-- The recovery code can unlock the same encrypted data if the password is unavailable.
+- The recovery key is 256 bits, app-generated, and shown once during vault setup.
+- The recovery key can unlock the same encrypted data if the password is unavailable.
 - No plaintext SQLite database is written by the app.
+- SQLite migrations exist under `infrastructure/sqlite/migrations`.
 - Export/import is still follow-up work.
+
+## Architecture
+
+The code is organized around domain concepts rather than horizontal stack layers.
+
+```text
+domain/
+  app/
+  app-metadata/
+  session/
+  setting/
+  stimulation-set/
+  target/
+
+infrastructure/
+  security/
+  sqlite/
+```
+
+Each persisted domain has its own `entity.ts` and thin typed `repository.ts`. Shared CRUD behavior lives in `infrastructure/sqlite/repository.ts`. Table definitions live in migration files, not repositories.
 
 ## Data Model
 
@@ -73,7 +98,7 @@ type Target = {
 
 ### Session
 
-Each session references the target version that was active when the session began. Later target edits do not rewrite historical session context.
+Each session references the target version that was active when the session began. Later target edits do not rewrite historical session context. The UI works with a `SessionAggregate`; the `session` table stores assessment fields as columns.
 
 ```ts
 type Session = {
@@ -82,10 +107,41 @@ type Session = {
   targetId: string;
   startedAt: string;
   endedAt?: string;
-  assessment: Assessment;
-  stimulationSets: StimulationSet[];
+  assessmentImage?: string;
+  assessmentNegativeCognition: string;
+  assessmentPositiveCognition: string;
+  assessmentBelievability?: number;
+  assessmentEmotions?: string;
+  assessmentDisturbance?: number;
+  assessmentBodyLocation?: string;
   finalDisturbance?: number;
   notes?: string;
+};
+```
+
+### Stimulation Set
+
+```ts
+type StimulationSet = {
+  id: string;
+  sessionId: string;
+  setNumber: number;
+  createdAt: string;
+  cycleCount: number;
+  observation: string;
+  disturbance?: number;
+};
+```
+
+### Setting
+
+Settings are stored in the singular `setting` table as keyed JSON values.
+
+```ts
+type BilateralStimulationSettings = {
+  speed: number;
+  dotSize: "small" | "medium" | "large";
+  dotColor: "green" | "blue" | "white" | "orange";
 };
 ```
 
@@ -110,8 +166,8 @@ Existing ADRs:
 - Support encrypted database export/import.
 - Package as a macOS `.app`.
 - Add audio bilateral stimulation.
-- Add database migrations.
 - Add automated tests.
+- Add migration tests.
 - Define local logging use cases, event names, retention expectations, and domain model before adding log storage.
 - Add clinician/research ADRs before making stronger workflow claims.
 
