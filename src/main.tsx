@@ -1,18 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
-import {
-  activeTargets,
-  createEmptyDatabase,
-  createId,
-  currentTargets,
-  loadDatabase,
-  nowIso,
-  saveDatabase,
-  upsertSession,
-  reviseTarget
-} from "./db";
-import type { Assessment, Database, Session, StimulationSet, TargetStatus, Target } from "./types";
+import { createEmptyDatabase } from "./domain/app/service";
+import { upsertSession } from "./domain/session/service";
+import { activeTargets, currentTargets, reviseTarget } from "./domain/target/service";
+import { loadDatabase, saveDatabase } from "./db";
+import { createId, nowIso } from "./support/ids";
+import type { Assessment, Database, SessionAggregate, StimulationSet, TargetStatus, Target } from "./types";
 
 const colors = {
   green: "#8fbf8f",
@@ -25,7 +19,7 @@ function App() {
   const [database, setDatabase] = useState<Database>(() => createEmptyDatabase());
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<"dashboard" | "targets" | "session">("dashboard");
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<SessionAggregate | null>(null);
 
   useEffect(() => {
     loadDatabase().then((loadedDatabase) => {
@@ -45,7 +39,7 @@ function App() {
   }
 
   function startSession(target: Target) {
-    const nextSession: Session = {
+    const nextSession: SessionAggregate = {
       id: createId("session"),
       targetRootId: target.rootTargetId,
       targetId: target.id,
@@ -63,12 +57,12 @@ function App() {
     setView("session");
   }
 
-  function persistSession(nextSession: Session) {
+  function persistSession(nextSession: SessionAggregate) {
     setSession(nextSession);
     setDatabase(upsertSession(database, nextSession));
   }
 
-  function endSession(nextSession: Session) {
+  function endSession(nextSession: SessionAggregate) {
     const ended = {
       ...nextSession,
       endedAt: nowIso()
@@ -326,9 +320,9 @@ function SessionFlow({
   onEnd
 }: {
   database: Database;
-  session: Session;
-  onPersist: (session: Session) => void;
-  onEnd: (session: Session) => void;
+  session: SessionAggregate;
+  onPersist: (session: SessionAggregate) => void;
+  onEnd: (session: SessionAggregate) => void;
 }) {
   const [step, setStep] = useState<"assessment" | "stimulation" | "close" | "summary">("assessment");
   const target = database.targets.find((item) => item.id === session.targetId);
@@ -455,8 +449,8 @@ function StimulationStep({
   onNext
 }: {
   database: Database;
-  session: Session;
-  onChange: (session: Session) => void;
+  session: SessionAggregate;
+  onChange: (session: SessionAggregate) => void;
   onNext: () => void;
 }) {
   const [running, setRunning] = useState(false);
@@ -561,8 +555,8 @@ function CloseStep({
   onChange,
   onEnd
 }: {
-  session: Session;
-  onChange: (session: Session) => void;
+  session: SessionAggregate;
+  onChange: (session: SessionAggregate) => void;
   onEnd: () => void;
 }) {
   return (
@@ -586,7 +580,7 @@ function CloseStep({
   );
 }
 
-function SummaryStep({ session, onEnd }: { session: Session; onEnd: () => void }) {
+function SummaryStep({ session, onEnd }: { session: SessionAggregate; onEnd: () => void }) {
   return (
     <div className="summary">
       <h2>Session Summary</h2>

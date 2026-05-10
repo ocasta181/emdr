@@ -1,4 +1,4 @@
-import type { Session } from "../session/types";
+import type { SessionAggregate } from "../session/types";
 import type { Settings } from "../settings/types";
 import type { Target } from "../target/entity";
 
@@ -7,6 +7,6 @@ export type Database = {
   createdAt: string;
   updatedAt: string;
   targets: Target[];
-  sessions: Session[];
+  sessions: SessionAggregate[];
   settings: Settings;
 };

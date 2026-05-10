@@ -17,10 +17,10 @@ The app stores a relational SQLite database at `emdr-local.sqlite` in Electron's
 The schema includes:
 
 - `app_metadata`
-- `target_versions`
-- `sessions`
-- `stimulation_sets`
-- `settings`
+- `target`
+- `session`
+- `stimulation_set`
+- `setting`
 
 If a legacy MVP JSON database exists and no SQLite database exists yet, the Electron main process migrates that JSON data into SQLite on first load.
 

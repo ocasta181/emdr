@@ -1,4 +1,5 @@
 import type { StimulationSet } from "../stimulation-set/entity";
+import type { Session } from "./entity";
 
 export type Assessment = {
   image?: string;
@@ -10,14 +11,16 @@ export type Assessment = {
   bodyLocation?: string;
 };
 
-export type Session = {
-  id: string;
-  targetRootId: string;
-  targetId: string;
-  startedAt: string;
-  endedAt?: string;
+export type SessionAggregate = Omit<
+  Session,
+  | "assessmentImage"
+  | "assessmentNegativeCognition"
+  | "assessmentPositiveCognition"
+  | "assessmentBelievability"
+  | "assessmentEmotions"
+  | "assessmentDisturbance"
+  | "assessmentBodyLocation"
+> & {
   assessment: Assessment;
   stimulationSets: StimulationSet[];
-  finalDisturbance?: number;
-  notes?: string;
 };

@@ -1,4 +1,4 @@
-export type SessionEntity = {
+export type Session = {
   id: string;
   targetRootId: string;
   targetId: string;
