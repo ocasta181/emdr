@@ -1,9 +1,14 @@
+import { ulid } from "ulid";
+
 export function nowIso() {
   return new Date().toISOString();
 }
 
 export function createId(prefix: string) {
-  return `${prefix}_${crypto.randomUUID()}`;
+  if (!/^[a-z]{3}$/.test(prefix)) {
+    throw new Error(`ID prefix must be exactly three lowercase letters: ${prefix}`);
+  }
+  return `${prefix}_${ulid()}`;
 }
 
 export function replaceById<T extends { id: string }>(items: T[], item: T) {

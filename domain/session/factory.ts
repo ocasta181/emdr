@@ -4,9 +4,11 @@ import type { Session } from "./entity.js";
 import type { SessionAggregate } from "./types.js";
 import type { StimulationSet } from "../stimulation-set/entity.js";
 
+export const SESSION_ID_PREFIX = "ses";
+
 export function createSessionForTarget(target: Target): SessionAggregate {
   return {
-    id: createId("session"),
+    id: createId(SESSION_ID_PREFIX),
     targetRootId: target.rootTargetId,
     targetId: target.id,
     startedAt: nowIso(),

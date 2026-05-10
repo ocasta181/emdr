@@ -9,12 +9,15 @@ type TargetDraft = Pick<Target, "description" | "negativeCognition" | "positiveC
     >
   >;
 
+export const TARGET_ID_PREFIX = "tgt";
+export const TARGET_ROOT_ID_PREFIX = "trg";
+
 export function createTarget(draft: TargetDraft): Target {
   const now = nowIso();
-  const rootTargetId = createId("target_root");
+  const rootTargetId = createId(TARGET_ROOT_ID_PREFIX);
 
   return {
-    id: createId("target"),
+    id: createId(TARGET_ID_PREFIX),
     rootTargetId,
     isCurrent: true,
     createdAt: now,
@@ -33,7 +36,7 @@ export function createTargetRevision(
   return {
     ...previous,
     ...patch,
-    id: createId("target"),
+    id: createId(TARGET_ID_PREFIX),
     rootTargetId: previous.rootTargetId,
     parentTargetId: previous.id,
     isCurrent: true,
