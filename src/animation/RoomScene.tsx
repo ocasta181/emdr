@@ -163,22 +163,22 @@ export function RoomScene({
         hill.roundRect(width * 0.82, height * 0.56, 80, 110, 8).fill("#383229");
         hill.circle(width * 0.82 + 40, height * 0.55, 30).fill("#52442f");
 
-        labels.removeChildren();
-        targetBookLabel = drawLabel("Target book", width * 0.2, floorY + 48);
-        drawLabel("Settings", width * 0.82 + 40, height * 0.73);
-        drawLabel("History", width * 0.68, height * 0.82);
-
         guide.position.set(width * 0.5, floorY + 10);
         guide.width = Math.min(260, width * 0.23);
         guide.height = guide.width;
         targetBookLayout = {
-          x: width * 0.2,
-          y: floorY + 6,
-          scale: Math.max(1.25, Math.min(1.75, width / 760))
+          x: guide.x - guide.width * 0.55,
+          y: guide.y,
+          scale: guide.width / guideSpriteCellSize
         };
         targetBook.position.set(targetBookLayout.x, targetBookLayout.y);
         targetBook.width = guideSpriteCellSize * targetBookLayout.scale;
         targetBook.height = guideSpriteCellSize * targetBookLayout.scale;
+
+        labels.removeChildren();
+        targetBookLabel = drawLabel("Target book", targetBookLayout.x, targetBookLayout.y + 34);
+        drawLabel("Settings", width * 0.82 + 40, height * 0.73);
+        drawLabel("History", width * 0.68, height * 0.82);
 
         const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
         guideHotspot.clear();
@@ -187,7 +187,7 @@ export function RoomScene({
         const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
         targetHotspot.clear();
         targetHotspot
-          .roundRect(targetBookLayout.x - 96, targetBookLayout.y - 84, 192, 116, 14)
+          .roundRect(targetBookLayout.x - 72, targetBookLayout.y - 78, 144, 108, 14)
           .fill({ color: 0xd8c692, alpha: 0.035 });
 
         const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;

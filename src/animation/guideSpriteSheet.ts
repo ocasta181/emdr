@@ -1,7 +1,7 @@
 import { Rectangle, Texture } from "pixi.js";
 import type { GuideSpriteClip } from "./guideSceneModel";
 
-export const guideSpriteFrameRate = 12;
+export const guideSpriteFrameRate = 8;
 export const guideSpriteCellSize = 128;
 
 export type GuideSpriteSheet = {
