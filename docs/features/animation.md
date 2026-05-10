@@ -63,7 +63,7 @@ React should own application state and durable UI. PixiJS should own real-time v
 
 PixiJS is a better fit than plain CSS for the room because it provides a WebGL-backed 2D scene graph, sprites, containers, filters, ticker-based animation, and pointer events. It is much lighter than introducing a full game engine while still giving the app a game-like rendering layer.
 
-Electron can support this target comfortably. A 15 FPS animated room is not a technical stretch. The target should still be 60 FPS on typical hardware, with graceful degradation when the local agent or camera process is busy.
+Electron can support this target comfortably. Character animation should use a deliberately choppy 12 FPS sprite cadence, while PixiJS still renders scene effects and stimulation movement at normal ticker speed with graceful degradation when the local agent or camera process is busy.
 
 ## Scene Responsibilities
 
@@ -73,7 +73,7 @@ The PixiJS scene should handle:
 - rendering background, midground, foreground, and UI-adjacent scene elements;
 - ambient motion such as cloth, lanterns, dust, clouds, fireflies, or mist;
 - clickable room object hit areas;
-- guide character idle, listening, speaking, thinking, and session states;
+- guide character idle, speaking, thinking, book, and session states;
 - bilateral stimulation object movement;
 - visual focus states for selected room objects;
 - resize behavior for windowed and fullscreen modes.
@@ -107,7 +107,7 @@ For maintainability, React should treat the PixiJS scene as a controlled child c
 ```ts
 type RoomSceneProps = {
   mode: "idle" | "chat" | "session" | "stimulation" | "review";
-  guideState: "idle" | "listening" | "thinking" | "speaking";
+  sceneViewModel: SceneViewModel;
   stimulation?: {
     running: boolean;
     speed: number;
@@ -140,33 +140,36 @@ Target access should be represented through a book interaction, not through unre
 
 The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
 
-The guide-book animation contract is defined in `src/animation/guideSceneModel.ts`.
+The guide-book animation contract is defined in `src/animation/guideSceneModel.ts`. Domain and panel state derive a semantic `SceneViewModel`; the PixiJS renderer maps that view model through a guide pose graph and then into sprite-sheet clips.
 
-Required guide book animation intents:
+Required guide poses and actions:
 
-- `pick_up_book`: looking at the book;
-- `hold_book_closed`: looking at the user;
-- `open_book`: looking at the book;
-- `hold_book_open`: looking at the user;
-- `flip_book_pages`: looking at the book;
-- `write_in_book`: looking at the book;
-- `close_book`: looking at the book;
-- `put_book_down`: looking at the book.
+- `idle`;
+- `speaking`;
+- `thinking`;
+- `idle_closed_book`;
+- `speaking_closed_book`;
+- `thinking_closed_book`;
+- `idle_open_book`;
+- `speaking_open_book`;
+- `thinking_open_book`;
+- `flip_book_pages`;
+- `write_in_book`.
 
 Possession handoff rules:
 
-- At the beginning of `pick_up_book`, the guide sprite does not include the book and the independent book sprite is visible.
-- During `pick_up_book`, the independent book sprite is hidden once the guide takes possession; from that point, the book is part of the guide animation.
+- At the beginning of `idle -> idle_closed_book`, the guide sprite does not include the book and the independent book sprite is visible.
+- During `idle -> idle_closed_book`, the independent book sprite is hidden once the guide takes possession; from that point, the book is part of the guide animation.
 - During all held-book states, the independent book sprite remains hidden.
-- During `put_book_down`, the book remains part of the guide animation until the guide releases it.
-- After release in `put_book_down`, the independent book sprite becomes visible at the resting location while the guide returns hands to center without the book.
+- During the reversed `idle -> idle_closed_book` transition, the book remains part of the guide animation until the guide releases it.
+- After release, the independent book sprite becomes visible at the resting location while the guide returns hands to center without the book.
 
 Target access mapping:
 
-- reading targets: `pick_up_book -> hold_book_closed -> open_book -> hold_book_open`;
+- reading targets: `idle -> idle_closed_book -> idle_open_book`;
 - browsing target versions or target history: `flip_book_pages`;
-- creating or editing targets: `pick_up_book -> hold_book_closed -> open_book -> write_in_book`;
-- leaving target work: `close_book -> put_book_down`.
+- creating or editing targets: `idle -> idle_closed_book -> idle_open_book -> write_in_book`;
+- leaving target work: reverse `idle_closed_book -> idle_open_book`, then reverse `idle -> idle_closed_book`.
 
 Domain states should not reference art assets directly. Workflow state maps to a scene view model, and the PixiJS scene maps that view model to sprites and animation clips.
 
@@ -210,13 +213,12 @@ Start with a small asset set:
 
 - one background image;
 - one foreground overlay;
-- guide character idle animation;
-- guide character speaking/listening/thinking poses;
+- guide character sprite sheet with semantic pose and transition clips;
 - stimulation object variants;
 - object highlight glows;
 - panel frame textures only if needed.
 
-Prefer atlased PNG/WebP sprites or Rive animations for character motion. Avoid making the first version dependent on a large asset pipeline.
+Prefer atlased PNG/WebP sprites or Rive animations for character motion. The current guide prototype uses a single 154-cell PNG sheet with the standalone book in the final cell.
 
 Suggested first directory shape:
 
