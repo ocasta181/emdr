@@ -1,23 +1,13 @@
 import type { Database } from "./types";
 import type { SessionAggregate } from "../session/types";
 import type { Target } from "../target/entity";
+import { createSessionForTarget } from "../session/factory";
 import { reviseTarget } from "../target/service";
 import { replaceById } from "../../support/collection";
-import { createId, nowIso } from "../../support/ids";
+import { nowIso } from "../../support/ids";
 
 export function startSessionForTarget(database: Database, target: Target) {
-  const session: SessionAggregate = {
-    id: createId("session"),
-    targetRootId: target.rootTargetId,
-    targetId: target.id,
-    startedAt: nowIso(),
-    assessment: {
-      negativeCognition: target.negativeCognition,
-      positiveCognition: target.positiveCognition,
-      disturbance: target.currentDisturbance
-    },
-    stimulationSets: []
-  };
+  const session = createSessionForTarget(target);
 
   return {
     database: saveSessionDraft(database, session),
