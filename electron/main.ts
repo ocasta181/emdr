@@ -20,7 +20,7 @@ async function createWindow() {
     title: "EMDR Local",
     backgroundColor: "#171614",
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
