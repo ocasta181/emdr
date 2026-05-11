@@ -69,25 +69,25 @@ fixing renderer or build issues.
 
 Checklist:
 
-- [ ] Create `src/main/api/app.ts` with `Start()` as the main-process startup
+- [x] Create `src/main/api/app.ts` with `Start()` as the main-process startup
   handoff.
-- [ ] Create `src/main/api/registry.ts` for the central IPC route registry.
-- [ ] Create `src/main/api/modules.ts` for dependency injection and module
+- [x] Create `src/main/api/registry.ts` for the central IPC route registry.
+- [x] Create `src/main/api/modules.ts` for dependency injection and module
   initialization.
-- [ ] Create `src/main/internal/domain` as the future bounded-context root.
-- [ ] Create `src/main/internal/lib/{ipc,store,vault,agent,electron}` as the
+- [x] Create `src/main/internal/domain` as the future bounded-context root.
+- [x] Create `src/main/internal/lib/{ipc,store,vault,agent,electron}` as the
   future infrastructure roots.
-- [ ] Make `electron/main.ts` call `Start()` and stop owning startup directly.
-- [ ] Keep behavior equivalent where code is moved, even if existing compile
+- [x] Make `electron/main.ts` call `Start()` and stop owning startup directly.
+- [x] Keep behavior equivalent where code is moved, even if existing compile
   errors remain.
-- [ ] Run `pnpm run check:architecture:staged` before committing.
+- [x] Run `pnpm run check:architecture:staged` before committing.
 
 Exit criteria:
 
-- [ ] `electron/main.ts` is a thin entrypoint.
-- [ ] Main startup lives in `src/main/api/app.ts`.
-- [ ] The route registry type and registration surface exist.
-- [ ] `modules.ts` is the place future domain module wiring will happen.
+- [x] `electron/main.ts` is a thin entrypoint.
+- [x] Main startup lives in `src/main/api/app.ts`.
+- [x] The route registry type and registration surface exist.
+- [x] `modules.ts` is the place future domain module wiring will happen.
 
 ## Phase 2: Move Current Main Runtime Into API
 
@@ -96,20 +96,20 @@ the existing generic channels temporarily.
 
 Checklist:
 
-- [ ] Move window creation setup into `src/main/internal/lib/electron`.
-- [ ] Move network guard setup into `src/main/internal/lib/electron`.
-- [ ] Move raw IPC helper logic into `src/main/internal/lib/ipc`.
-- [ ] Register the current vault and `db:*` handlers through
+- [x] Move window creation setup into `src/main/internal/lib/electron`.
+- [x] Move network guard setup into `src/main/internal/lib/electron`.
+- [x] Move raw IPC helper logic into `src/main/internal/lib/ipc`.
+- [x] Register the current vault and `db:*` handlers through
   `src/main/api/registry.ts` as transitional routes.
-- [ ] Initialize current store and vault dependencies through
+- [x] Initialize current store and vault dependencies through
   `src/main/api/modules.ts`.
-- [ ] Keep native dialog access behind Electron adapters.
+- [x] Keep native dialog access behind Electron adapters.
 
 Exit criteria:
 
-- [ ] `src/main/api/app.ts` owns Electron startup and module registration.
-- [ ] `electron/main.ts` has no domain, store, vault, or IPC handler logic.
-- [ ] Current runtime behavior is still represented, even if the renderer build
+- [x] `src/main/api/app.ts` owns Electron startup and module registration.
+- [x] `electron/main.ts` has no domain, store, vault, or IPC handler logic.
+- [x] Current runtime behavior is still represented, even if the renderer build
   is not fixed yet.
 
 ## Phase 3: Introduce Domain Self-Registered Routes

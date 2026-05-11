@@ -6,5 +6,5 @@ export type MainModule = {
 };
 
 export type InitializeOptions = {
-  registry: ApiRegistry;
+  getUserDataPath: () => string;
 };
