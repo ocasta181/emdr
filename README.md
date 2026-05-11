@@ -1,8 +1,8 @@
 # EMDR Local
 
-EMDR Local is a macOS-first desktop Electron application for private, local Eye Movement Desensitization and Reprocessing session tracking and bilateral stimulation. It runs entirely on the user's machine.
+EMDR Local is a macOS-first desktop Electron application for private, locally-guided Eye Movement Desensitization and Reprocessing practice. A bundled local LLM acts as a structured guide through EMDR session flows. Everything — the app, the model, and all user data — runs entirely on the user's machine.
 
-The current build is an MVP focused on proving the core flow end to end with encrypted local persistence. Several privacy, packaging, and clinical-research features are intentionally tracked as follow-up work rather than half-implemented.
+The current build is an MVP focused on proving the core flow end to end with encrypted local persistence. The local guide agent is in active development. Several privacy, packaging, and clinical-research features are intentionally tracked as follow-up work rather than half-implemented.
 
 ## Decisions So Far
 
@@ -67,23 +67,16 @@ Export copies the encrypted vault envelope to a user-selected file. Import valid
 
 ## Architecture
 
-The code is organized around domain concepts rather than horizontal stack layers.
+The application uses a hub-and-spoke architecture with four components:
 
-```text
-domain/
-  app/
-  app-metadata/
-  session/
-  setting/
-  stimulation-set/
-  target/
+- **Core Engine** (Electron main process) — single source of truth for application state. Coordinates all other components.
+- **Presentation** (Electron renderer, React) — display logic only. Communicates with the Core Engine over bidirectional IPC.
+- **Agent** (llama.cpp sidecar) — local LLM that acts as the Guide. Proposes structured actions validated by the Core Engine.
+- **Persistence** (encrypted SQLite) — accessed exclusively through typed repositories.
 
-infrastructure/
-  security/
-  sqlite/
-```
+Layering: `SqliteDatabase → Repository → Service → IPC → UI`. No layer may skip a level.
 
-Each persisted domain has its own `entity.ts` and thin typed `repository.ts`. Shared CRUD behavior lives in `infrastructure/sqlite/repository.ts`. Table definitions live in migration files, not repositories.
+See [docs/architecture.md](docs/architecture.md) for the full specification including data flow diagrams, layering rules, and IPC conventions.
 
 ## Session State Machine
 
