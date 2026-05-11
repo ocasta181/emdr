@@ -1,8 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
-import { deriveSceneViewModel, type SceneContext } from "../../../src/animation/guideSceneModel";
-
-type AnimatedPanel = "chat" | "targets" | "history" | "settings" | null;
+import { deriveSceneViewModel } from "../../../src/animation/guideSceneModel";
+import {
+  animatedPanelForState,
+  animatedRoomStimulationRunning,
+  initialAnimatedRoomState,
+  transitionAnimatedRoomState
+} from "../animatedRoomMachine";
 
 const proctorLines = [
   "I can help you set up a target, run a set, or review prior notes.",
@@ -11,48 +15,32 @@ const proctorLines = [
 ];
 
 export function AnimatedApp() {
-  const [panel, setPanel] = useState<AnimatedPanel>("chat");
+  const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
   const [lineIndex, setLineIndex] = useState(0);
-  const [stimulationRunning, setStimulationRunning] = useState(false);
   const [stimulationColor, setStimulationColor] = useState("#9cc7df");
   const [stimulationSpeed, setStimulationSpeed] = useState(1);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>(["I want to work with a target."]);
-  const [targetMode, setTargetMode] = useState<SceneContext["targetMode"]>("closed");
 
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
-      setTargetMode("closed");
-      setPanel("chat");
+      dispatchRoomEvent({ type: "select_guide" });
       setLineIndex((current) => (current + 1) % proctorLines.length);
       return;
     }
     if (objectId === "targets") {
-      setTargetMode("reading");
-      setPanel("targets");
+      dispatchRoomEvent({ type: "select_targets" });
       return;
     }
-    if (objectId === "settings" && !stimulationRunning) {
-      return;
-    }
-    setTargetMode("closed");
-    setPanel(objectId);
+    dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
   function toggleStimulation() {
-    setStimulationRunning((current) => {
-      const next = !current;
-      if (next) setTargetMode("closed");
-      setPanel(next ? null : "chat");
-      return next;
-    });
+    dispatchRoomEvent({ type: stimulationRunning ? "pause_stimulation" : "start_stimulation" });
   }
 
   function closePanel() {
-    if (panel === "targets") {
-      setTargetMode("closed");
-    }
-    setPanel(null);
+    dispatchRoomEvent({ type: "close_panel" });
   }
 
   function submitChat(event: FormEvent) {
@@ -63,14 +51,10 @@ export function AnimatedApp() {
     setChatDraft("");
   }
 
+  const panel = animatedPanelForState(roomState);
+  const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const sceneViewModel = deriveSceneViewModel({
-    targetMode,
-    stimulationRunning,
-    panel,
-    guideSpeaking: panel === "chat",
-    userTyping: Boolean(chatDraft.trim())
-  });
+  const sceneViewModel = deriveSceneViewModel(roomState);
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -81,6 +65,7 @@ export function AnimatedApp() {
         stimulationColor={stimulationColor}
         stimulationSpeed={stimulationSpeed}
         onObjectSelected={selectObject}
+        onGuideActionComplete={() => dispatchRoomEvent({ type: "finish_target_action" })}
       />
 
       <header className="animatedTopbar">
@@ -91,8 +76,7 @@ export function AnimatedApp() {
         <div className="buttonRow">
           <button
             onClick={() => {
-              setTargetMode("closed");
-              setPanel("chat");
+              dispatchRoomEvent({ type: "select_guide" });
             }}
           >
             Guide
@@ -100,7 +84,7 @@ export function AnimatedApp() {
           <button onClick={toggleStimulation}>
             {stimulationRunning ? "Pause" : "Start"} Set
           </button>
-          {stimulationRunning && <button onClick={() => setPanel("settings")}>Ball settings</button>}
+          {stimulationRunning && <button onClick={() => dispatchRoomEvent({ type: "select_settings" })}>Ball settings</button>}
         </div>
       </header>
 
@@ -142,8 +126,18 @@ export function AnimatedApp() {
               <h1>Targets</h1>
               <p className="authNotice">This panel will map to target selection and agent-drafted target review.</p>
               <div className="buttonRow">
-                <button onClick={() => setTargetMode("browsing")}>Flip pages</button>
-                <button onClick={() => setTargetMode("writing")}>Write target</button>
+                <button
+                  className={roomState === "targets_browsing" ? "active" : undefined}
+                  onClick={() => dispatchRoomEvent({ type: "browse_targets" })}
+                >
+                  Flip pages
+                </button>
+                <button
+                  className={roomState === "targets_writing" ? "active" : undefined}
+                  onClick={() => dispatchRoomEvent({ type: "write_target" })}
+                >
+                  Write target
+                </button>
               </div>
             </>
           )}

@@ -1,4 +1,4 @@
-import type { SessionFlowState } from "../../domain/session/types";
+import type { AnimatedRoomState } from "../../domain/app/animatedRoomMachine";
 
 export type GuideActivity = "idle" | "speaking" | "thinking" | "stimulation_focus" | "paused";
 
@@ -17,15 +17,6 @@ export type SceneViewModel = {
   guideAction: GuideBookAction | null;
   objects: SceneObjectState;
   focus: SceneFocus;
-};
-
-export type SceneContext = {
-  targetMode?: "closed" | "reading" | "writing" | "browsing";
-  sessionState?: SessionFlowState;
-  stimulationRunning?: boolean;
-  panel?: "chat" | "targets" | "history" | "settings" | null;
-  guideSpeaking?: boolean;
-  userTyping?: boolean;
 };
 
 export type GuidePose =
@@ -84,65 +75,25 @@ const transitionEdges: Array<{ from: GuidePose; to: GuidePose; clip: GuideTransi
   { from: "idle_open_book", to: "thinking_open_book", clip: "idle_open_book_to_thinking_open_book" }
 ];
 
-export function deriveSceneViewModel(context: SceneContext): SceneViewModel {
-  if (context.stimulationRunning || context.sessionState === "stimulation") {
-    return {
-      guideActivity: "stimulation_focus",
-      guideAction: null,
-      objects: { targetBook: "at_rest" },
-      focus: "stimulation"
-    };
+export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
+  switch (state) {
+    case "guide":
+      return baseViewModel("speaking", "guide");
+    case "idle":
+      return baseViewModel("idle", "guide");
+    case "targets_reading":
+      return targetBookViewModel("idle", null, "open_read");
+    case "targets_browsing":
+      return targetBookViewModel("idle", "flip_book_pages", "open_read");
+    case "targets_writing":
+      return targetBookViewModel("idle", "write_in_book", "open_write");
+    case "history":
+      return baseViewModel("thinking", "history");
+    case "stimulation":
+      return baseViewModel("stimulation_focus", "stimulation");
+    case "stimulation_settings":
+      return baseViewModel("stimulation_focus", "settings");
   }
-
-  if (context.targetMode === "writing") {
-    return {
-      guideActivity: "idle",
-      guideAction: "write_in_book",
-      objects: { targetBook: "open_write" },
-      focus: "target_book"
-    };
-  }
-
-  if (context.targetMode === "browsing") {
-    return {
-      guideActivity: "idle",
-      guideAction: "flip_book_pages",
-      objects: { targetBook: "open_read" },
-      focus: "target_book"
-    };
-  }
-
-  if (context.targetMode === "reading" || context.panel === "targets") {
-    return {
-      guideActivity: "idle",
-      guideAction: null,
-      objects: { targetBook: "open_read" },
-      focus: "target_book"
-    };
-  }
-
-  if (context.sessionState === "interjection") {
-    return {
-      guideActivity: "paused",
-      guideAction: null,
-      objects: { targetBook: "at_rest" },
-      focus: "guide"
-    };
-  }
-
-  if (context.guideSpeaking || context.panel === "chat") {
-    return baseViewModel("speaking", "guide");
-  }
-
-  if (context.panel === "settings") {
-    return baseViewModel("thinking", "settings");
-  }
-
-  if (context.panel === "history") {
-    return baseViewModel("thinking", "history");
-  }
-
-  return baseViewModel("idle", "guide");
 }
 
 export function guideAnimationForScene(viewModel: SceneViewModel): DesiredGuideAnimation {
@@ -245,5 +196,18 @@ function baseViewModel(guideActivity: GuideActivity, focus: SceneFocus): SceneVi
     guideAction: null,
     objects: { targetBook: "at_rest" },
     focus
+  };
+}
+
+function targetBookViewModel(
+  guideActivity: GuideActivity,
+  guideAction: GuideBookAction | null,
+  targetBook: TargetBookState
+): SceneViewModel {
+  return {
+    guideActivity,
+    guideAction,
+    objects: { targetBook },
+    focus: "target_book"
   };
 }

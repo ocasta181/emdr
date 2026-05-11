@@ -1,7 +1,7 @@
 import { Rectangle, Texture } from "pixi.js";
 import type { GuideSpriteClip } from "./guideSceneModel";
 
-export const guideSpriteFrameRate = 8;
+export const guideSpriteFrameRate = 5;
 export const guideSpriteCellSize = 128;
 
 export type GuideSpriteSheet = {
@@ -29,8 +29,8 @@ const guideClipFrames: Record<GuideSpriteClip, { start: number; count: number }>
   speaking_open_book: { start: 113, count: 8 },
   idle_open_book_to_thinking_open_book: { start: 121, count: 5 },
   thinking_open_book: { start: 126, count: 10 },
-  flip_book_pages: { start: 136, count: 10 },
-  write_in_book: { start: 146, count: 8 }
+  flip_book_pages: { start: 121, count: 4 },
+  write_in_book: { start: 141, count: 13 }
 };
 
 export function createGuideSpriteSheet(sheetTexture: Texture): GuideSpriteSheet {

@@ -26,7 +26,8 @@ export function RoomScene({
   stimulationRunning,
   stimulationColor,
   stimulationSpeed,
-  onObjectSelected
+  onObjectSelected,
+  onGuideActionComplete
 }: {
   mode: RoomMode;
   sceneViewModel: SceneViewModel;
@@ -34,11 +35,14 @@ export function RoomScene({
   stimulationColor: string;
   stimulationSpeed: number;
   onObjectSelected: (objectId: RoomObjectId) => void;
+  onGuideActionComplete: () => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
+  const actionCompleteRef = useRef(onGuideActionComplete);
   const runtimeRef = useRef({ mode, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed });
   callbackRef.current = onObjectSelected;
+  actionCompleteRef.current = onGuideActionComplete;
   runtimeRef.current = { mode, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed };
 
   useEffect(() => {
@@ -123,8 +127,8 @@ export function RoomScene({
       let currentPose: GuidePose = "idle";
       let activeTransition: GuideTransitionStep | null = null;
       let activeAction: GuideBookAction | null = null;
+      let completedAction: GuideBookAction | null = null;
       let targetBookLayout = { x: 0, y: 0, scale: 1 };
-      let targetBookLabel: Text | null = null;
 
       function drawLabel(text: string, x: number, y: number) {
         const label = new Text({
@@ -166,17 +170,17 @@ export function RoomScene({
         guide.position.set(width * 0.5, floorY + 10);
         guide.width = Math.min(260, width * 0.23);
         guide.height = guide.width;
+        const targetBookSize = guide.width * 0.46;
         targetBookLayout = {
-          x: guide.x - guide.width * 0.55,
-          y: guide.y,
-          scale: guide.width / guideSpriteCellSize
+          x: guide.x - guide.width * 0.32,
+          y: guide.y - guide.width * 0.02,
+          scale: targetBookSize / guideSpriteCellSize
         };
         targetBook.position.set(targetBookLayout.x, targetBookLayout.y);
         targetBook.width = guideSpriteCellSize * targetBookLayout.scale;
         targetBook.height = guideSpriteCellSize * targetBookLayout.scale;
 
         labels.removeChildren();
-        targetBookLabel = drawLabel("Target book", targetBookLayout.x, targetBookLayout.y + 34);
         drawLabel("Settings", width * 0.82 + 40, height * 0.73);
         drawLabel("History", width * 0.68, height * 0.82);
 
@@ -187,8 +191,8 @@ export function RoomScene({
         const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
         targetHotspot.clear();
         targetHotspot
-          .roundRect(targetBookLayout.x - 72, targetBookLayout.y - 78, 144, 108, 14)
-          .fill({ color: 0xd8c692, alpha: 0.035 });
+          .roundRect(targetBookLayout.x - 54, targetBookLayout.y - 54, 108, 72, 12)
+          .fill({ color: 0xffffff, alpha: 0.001 });
 
         const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
         historyHotspot.clear();
@@ -202,8 +206,13 @@ export function RoomScene({
       function syncGuideAnimation(desired: DesiredGuideAnimation) {
         if (activeTransition) return;
 
+        if (!desired.action || desired.action !== completedAction) {
+          completedAction = null;
+        }
+
         if (currentPose !== desired.pose) {
           activeAction = null;
+          completedAction = null;
           const [nextTransition] = planGuidePoseTransitions(currentPose, desired.pose);
           if (nextTransition) {
             activeTransition = nextTransition;
@@ -223,15 +232,39 @@ export function RoomScene({
         }
 
         if (desired.action) {
+          if (completedAction === desired.action) {
+            playGuideClip(currentPose, { loop: true });
+            return;
+          }
+
           if (activeAction !== desired.action) {
             activeAction = desired.action;
-            playGuideClip(desired.action, { loop: true });
+            playGuideActionClip(desired.action, () => {
+              activeAction = null;
+              completedAction = desired.action;
+              playGuideClip(currentPose, { loop: true });
+              actionCompleteRef.current();
+            });
           }
           return;
         }
 
+        completedAction = null;
         activeAction = null;
         playGuideClip(currentPose, { loop: true });
+      }
+
+      function playGuideActionClip(clip: GuideBookAction, onComplete: () => void) {
+        const clipKey = `${clip}:action:${currentPose}`;
+        if (clipKey === activeClipKey) return;
+
+        activeClipKey = clipKey;
+        const idleFrame = guideSheet.clips[currentPose][0];
+        guide.textures = [idleFrame, ...guideSheet.clips[clip], idleFrame];
+        guide.loop = false;
+        guide.animationSpeed = guideSpriteFrameRate / 60;
+        guide.onComplete = onComplete;
+        guide.gotoAndPlay(0);
       }
 
       function playGuideClip(
@@ -255,9 +288,6 @@ export function RoomScene({
           : independentBookStateForPose(currentPose);
         targetBook.visible = independentBookState === "visible";
         hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
-        if (targetBookLabel) {
-          targetBookLabel.visible = targetBook.visible;
-        }
       }
 
       function activeTransitionProgress() {
