@@ -1,17 +1,17 @@
 import { Rectangle, Texture } from "pixi.js";
-import type { GuideSpriteClip } from "./guideSceneModel";
+import type { GuidePose } from "./guideSceneModel";
 
 export const guideSpriteFrameRate = 5;
 export const guideSpriteCellSize = 128;
 
 export type GuideSpriteSheet = {
-  clips: Record<GuideSpriteClip, Texture[]>;
+  clips: Record<GuidePose, Texture[]>;
   bookAtRest: Texture;
 };
 
 const sheetColumns = 14;
 
-const guideClipFrames: Record<GuideSpriteClip, { start: number; count: number }> = {
+const guidePoseFrames: Record<GuidePose, { start: number; count: number }> = {
   idle: { start: 1, count: 10 },
   speaking: { start: 11, count: 8 },
   thinking: { start: 19, count: 10 },
@@ -35,11 +35,11 @@ const guideClipFrames: Record<GuideSpriteClip, { start: number; count: number }>
 
 export function createGuideSpriteSheet(sheetTexture: Texture): GuideSpriteSheet {
   const clips = Object.fromEntries(
-    Object.entries(guideClipFrames).map(([clip, frameRange]) => [
+    Object.entries(guidePoseFrames).map(([clip, frameRange]) => [
       clip,
       createFrameRange(sheetTexture, frameRange.start, frameRange.count)
     ])
-  ) as Record<GuideSpriteClip, Texture[]>;
+  ) as Record<GuidePose, Texture[]>;
 
   return {
     clips,

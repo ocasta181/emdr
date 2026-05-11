@@ -4,8 +4,6 @@ export type GuideActivity = "idle" | "speaking" | "thinking" | "stimulation_focu
 
 export type TargetBookState = "at_rest" | "held_closed" | "open_read" | "open_write";
 
-export type GuideBookAction = "flip_book_pages" | "write_in_book";
-
 export type SceneFocus = "guide" | "target_book" | "stimulation" | "settings" | "history";
 
 export type SceneObjectState = {
@@ -14,51 +12,50 @@ export type SceneObjectState = {
 
 export type SceneViewModel = {
   guideActivity: GuideActivity;
-  guideAction: GuideBookAction | null;
+  guidePose: GuidePose | null;
   objects: SceneObjectState;
   focus: SceneFocus;
 };
+
+export type GuideIdlePose = "idle" | "idle_closed_book" | "idle_open_book";
 
 export type GuidePose =
   | "idle"
   | "speaking"
   | "thinking"
-  | "idle_closed_book"
-  | "speaking_closed_book"
-  | "thinking_closed_book"
-  | "idle_open_book"
-  | "speaking_open_book"
-  | "thinking_open_book";
-
-export type GuideTransitionClip =
   | "idle_to_speaking"
   | "idle_to_thinking"
   | "idle_to_idle_closed_book"
+  | "idle_closed_book"
   | "idle_closed_book_to_speaking_closed_book"
+  | "speaking_closed_book"
   | "idle_closed_book_to_thinking_closed_book"
+  | "thinking_closed_book"
   | "idle_closed_book_to_idle_open_book"
+  | "idle_open_book"
   | "idle_open_book_to_speaking_open_book"
-  | "idle_open_book_to_thinking_open_book";
-
-export type GuideSpriteClip = GuidePose | GuideBookAction | GuideTransitionClip;
+  | "speaking_open_book"
+  | "idle_open_book_to_thinking_open_book"
+  | "thinking_open_book"
+  | "flip_book_pages"
+  | "write_in_book";
 
 export type GuideTransitionStep = {
-  from: GuidePose;
-  to: GuidePose;
-  clip: GuideTransitionClip;
+  from: GuideIdlePose;
+  to: GuideIdlePose;
+  pose: GuidePose;
   reverse: boolean;
 };
 
 export type DesiredGuideAnimation = {
   pose: GuidePose;
-  action: GuideBookAction | null;
 };
 
 export type IndependentBookState = "visible" | "hidden";
 
-const transitionEdges: Array<{ from: GuidePose; to: GuidePose; clip: GuideTransitionClip }> = [
-  { from: "idle", to: "idle_closed_book", clip: "idle_to_idle_closed_book" },
-  { from: "idle_closed_book", to: "idle_open_book", clip: "idle_closed_book_to_idle_open_book" }
+const idlePoseTransitions: Array<{ from: GuideIdlePose; to: GuideIdlePose; pose: GuidePose }> = [
+  { from: "idle", to: "idle_closed_book", pose: "idle_to_idle_closed_book" },
+  { from: "idle_closed_book", to: "idle_open_book", pose: "idle_closed_book_to_idle_open_book" }
 ];
 
 export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
@@ -84,16 +81,15 @@ export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
 
 export function guideAnimationForScene(viewModel: SceneViewModel): DesiredGuideAnimation {
   return {
-    pose: guidePoseForScene(viewModel),
-    action: viewModel.guideAction
+    pose: guidePoseForScene(viewModel)
   };
 }
 
-export function planGuidePoseTransitions(from: GuidePose, to: GuidePose): GuideTransitionStep[] {
+export function planGuidePoseTransitions(from: GuideIdlePose, to: GuideIdlePose): GuideTransitionStep[] {
   if (from === to) return [];
 
-  const queue: Array<{ pose: GuidePose; path: GuideTransitionStep[] }> = [{ pose: from, path: [] }];
-  const visited = new Set<GuidePose>([from]);
+  const queue: Array<{ pose: GuideIdlePose; path: GuideTransitionStep[] }> = [{ pose: from, path: [] }];
+  const visited = new Set<GuideIdlePose>([from]);
 
   while (queue.length > 0) {
     const next = queue.shift();
@@ -134,7 +130,20 @@ export function independentBookStateForTransition(
   return clampedProgress >= 0.58 ? "visible" : "hidden";
 }
 
+export function idlePoseForGuidePose(pose: GuidePose): GuideIdlePose {
+  if (pose === "idle") return "idle";
+  if (pose.endsWith("_closed_book")) return "idle_closed_book";
+  if (pose.endsWith("_open_book") || pose === "flip_book_pages" || pose === "write_in_book") return "idle_open_book";
+  return "idle";
+}
+
+export function isOneShotGuidePose(pose: GuidePose): boolean {
+  return pose === "flip_book_pages" || pose === "write_in_book";
+}
+
 function guidePoseForScene(viewModel: SceneViewModel): GuidePose {
+  if (viewModel.guidePose) return viewModel.guidePose;
+
   const activity = normalizeGuideActivity(viewModel.guideActivity);
 
   if (viewModel.objects.targetBook === "held_closed") {
@@ -158,14 +167,14 @@ function normalizeGuideActivity(activity: GuideActivity): "idle" | "speaking" | 
   return "idle";
 }
 
-function transitionStepsFrom(from: GuidePose): GuideTransitionStep[] {
-  return transitionEdges.flatMap((edge): GuideTransitionStep[] => {
+function transitionStepsFrom(from: GuideIdlePose): GuideTransitionStep[] {
+  return idlePoseTransitions.flatMap((edge): GuideTransitionStep[] => {
     if (edge.from === from) {
-      return [{ from, to: edge.to, clip: edge.clip, reverse: false }];
+      return [{ from, to: edge.to, pose: edge.pose, reverse: false }];
     }
 
     if (edge.to === from) {
-      return [{ from, to: edge.from, clip: edge.clip, reverse: true }];
+      return [{ from, to: edge.from, pose: edge.pose, reverse: true }];
     }
 
     return [];
@@ -179,7 +188,7 @@ function guidePoseIncludesBook(pose: GuidePose) {
 function baseViewModel(guideActivity: GuideActivity, focus: SceneFocus): SceneViewModel {
   return {
     guideActivity,
-    guideAction: null,
+    guidePose: null,
     objects: { targetBook: "at_rest" },
     focus
   };
@@ -187,12 +196,12 @@ function baseViewModel(guideActivity: GuideActivity, focus: SceneFocus): SceneVi
 
 function targetBookViewModel(
   guideActivity: GuideActivity,
-  guideAction: GuideBookAction | null,
+  guidePose: GuidePose | null,
   targetBook: TargetBookState
 ): SceneViewModel {
   return {
     guideActivity,
-    guideAction,
+    guidePose,
     objects: { targetBook },
     focus: "target_book"
   };

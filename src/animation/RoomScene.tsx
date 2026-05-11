@@ -2,13 +2,14 @@ import { useEffect, useRef } from "react";
 import { AnimatedSprite, Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import {
   guideAnimationForScene,
+  idlePoseForGuidePose,
   independentBookStateForPose,
   independentBookStateForTransition,
+  isOneShotGuidePose,
   planGuidePoseTransitions,
   type DesiredGuideAnimation,
-  type GuideBookAction,
+  type GuideIdlePose,
   type GuidePose,
-  type GuideSpriteClip,
   type GuideTransitionStep,
   type SceneViewModel
 } from "./guideSceneModel";
@@ -124,10 +125,10 @@ export function RoomScene({
       let lastWidth = 0;
       let lastHeight = 0;
       let activeClipKey = "";
-      let currentPose: GuidePose = "idle";
+      let currentIdlePose: GuideIdlePose = "idle";
       let activeTransition: GuideTransitionStep | null = null;
-      let activeAction: GuideBookAction | null = null;
-      let completedAction: GuideBookAction | null = null;
+      let activePose: GuidePose | null = null;
+      let completedPose: GuidePose | null = null;
       let targetBookLayout = { x: 0, y: 0, scale: 1 };
 
       function drawLabel(text: string, x: number, y: number) {
@@ -206,21 +207,19 @@ export function RoomScene({
       function syncGuideAnimation(desired: DesiredGuideAnimation) {
         if (activeTransition) return;
 
-        if (!desired.action || desired.action !== completedAction) {
-          completedAction = null;
-        }
+        const targetIdlePose = idlePoseForGuidePose(desired.pose);
 
-        if (currentPose !== desired.pose) {
-          activeAction = null;
-          completedAction = null;
-          const [nextTransition] = planGuidePoseTransitions(currentPose, desired.pose);
+        if (currentIdlePose !== targetIdlePose) {
+          activePose = null;
+          completedPose = null;
+          const [nextTransition] = planGuidePoseTransitions(currentIdlePose, targetIdlePose);
           if (nextTransition) {
             activeTransition = nextTransition;
-            playGuideClip(nextTransition.clip, {
+            playGuidePose(nextTransition.pose, {
               reverse: nextTransition.reverse,
               loop: false,
               onComplete: () => {
-                currentPose = nextTransition.to;
+                currentIdlePose = nextTransition.to;
                 activeTransition = null;
                 syncGuideAnimation(guideAnimationForScene(runtimeRef.current.sceneViewModel));
               }
@@ -228,54 +227,44 @@ export function RoomScene({
             return;
           }
 
-          currentPose = desired.pose;
+          currentIdlePose = targetIdlePose;
         }
 
-        if (desired.action) {
-          if (completedAction === desired.action) {
-            playGuideClip(currentPose, { loop: true });
+        if (isOneShotGuidePose(desired.pose)) {
+          if (completedPose === desired.pose) {
+            playGuidePose(currentIdlePose, { loop: true });
             return;
           }
 
-          if (activeAction !== desired.action) {
-            activeAction = desired.action;
-            playGuideActionClip(desired.action, () => {
-              activeAction = null;
-              completedAction = desired.action;
-              playGuideClip(currentPose, { loop: true });
-              actionCompleteRef.current();
+          if (activePose !== desired.pose) {
+            activePose = desired.pose;
+            playGuidePose(desired.pose, {
+              loop: false,
+              onComplete: () => {
+                activePose = null;
+                completedPose = desired.pose;
+                playGuidePose(currentIdlePose, { loop: true });
+                actionCompleteRef.current();
+              }
             });
           }
           return;
         }
 
-        completedAction = null;
-        activeAction = null;
-        playGuideClip(currentPose, { loop: true });
+        completedPose = null;
+        activePose = null;
+        playGuidePose(desired.pose, { loop: true });
       }
 
-      function playGuideActionClip(clip: GuideBookAction, onComplete: () => void) {
-        const clipKey = `${clip}:action:${currentPose}`;
-        if (clipKey === activeClipKey) return;
-
-        activeClipKey = clipKey;
-        const idleFrame = guideSheet.clips[currentPose][0];
-        guide.textures = [idleFrame, ...guideSheet.clips[clip], idleFrame];
-        guide.loop = false;
-        guide.animationSpeed = guideSpriteFrameRate / 60;
-        guide.onComplete = onComplete;
-        guide.gotoAndPlay(0);
-      }
-
-      function playGuideClip(
-        clip: GuideSpriteClip,
+      function playGuidePose(
+        pose: GuidePose,
         options: { reverse?: boolean; loop: boolean; onComplete?: () => void }
       ) {
-        const clipKey = `${clip}:${options.reverse ? "reverse" : "forward"}:${options.loop ? "loop" : "once"}`;
+        const clipKey = `${pose}:${options.reverse ? "reverse" : "forward"}:${options.loop ? "loop" : "once"}`;
         if (clipKey === activeClipKey) return;
 
         activeClipKey = clipKey;
-        guide.textures = options.reverse ? guideSheet.clips[clip].slice().reverse() : guideSheet.clips[clip];
+        guide.textures = options.reverse ? guideSheet.clips[pose].slice().reverse() : guideSheet.clips[pose];
         guide.loop = options.loop;
         guide.animationSpeed = guideSpriteFrameRate / 60;
         guide.onComplete = options.onComplete ?? undefined;
@@ -285,7 +274,7 @@ export function RoomScene({
       function syncTargetBookVisibility() {
         const independentBookState = activeTransition
           ? independentBookStateForTransition(activeTransition, activeTransitionProgress())
-          : independentBookStateForPose(currentPose);
+          : independentBookStateForPose(currentIdlePose);
         targetBook.visible = independentBookState === "visible";
         hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
       }
