@@ -1,5 +1,26 @@
+import type { SQLBaseRepository } from "../../core/internal/repository/base.js";
+import { nowIso } from "../../utils.js";
+import type { Target } from "../target/entity.js";
+import type { Session } from "./entity.js";
+import { createSessionForTarget, createSessionFromAggregate } from "./factory.js";
 import { sessionStateGraph } from "./flow.js";
 import type { SessionFlowAction, SessionFlowState, SessionStateNode } from "./types.js";
+
+export function startSession(repo: SQLBaseRepository<Session>, target: Target): Session {
+  const aggregate = createSessionForTarget(target);
+  const session = createSessionFromAggregate(aggregate);
+  repo.insert(session);
+  return session;
+}
+
+export function endSession(repo: SQLBaseRepository<Session>, sessionId: string): Session {
+  const session = repo.find(sessionId);
+  if (!session) {
+    throw new Error(`Session not found: ${sessionId}`);
+  }
+  repo.update(sessionId, { endedAt: nowIso() } as Partial<Session>);
+  return { ...session, endedAt: nowIso() };
+}
 
 const sessionStateNodeByState = new Map(sessionStateGraph.map((node) => [node.state, node]));
 
