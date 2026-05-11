@@ -16,5 +16,6 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": ["src", "domain", "utils.ts", "stateGraph.ts"]
+  "include": ["src", "domain", "utils.ts", "stateGraph.ts"],
+  "exclude": ["domain/vault"]
 }
