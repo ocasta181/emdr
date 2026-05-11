@@ -3,14 +3,14 @@ import type { SessionStateNode } from "./types.js";
 export const sessionStateGraph = [
   {
     state: "idle",
-    actions: [
+    edges: [
       { action: "start_session", to: "target_selection" },
       { action: "select_target", to: "preparation" }
     ]
   },
   {
     state: "target_selection",
-    actions: [
+    edges: [
       { action: "select_target", to: "preparation" },
       { action: "create_target_draft", to: "target_selection" },
       { action: "return_to_idle", to: "idle" }
@@ -18,7 +18,7 @@ export const sessionStateGraph = [
   },
   {
     state: "preparation",
-    actions: [
+    edges: [
       { action: "update_assessment", to: "preparation" },
       { action: "approve_assessment", to: "stimulation" },
       { action: "request_grounding", to: "interjection" },
@@ -27,7 +27,7 @@ export const sessionStateGraph = [
   },
   {
     state: "stimulation",
-    actions: [
+    edges: [
       { action: "start_stimulation", to: "stimulation" },
       { action: "log_stimulation_set", to: "stimulation" },
       { action: "pause_stimulation", to: "interjection" },
@@ -37,7 +37,7 @@ export const sessionStateGraph = [
   },
   {
     state: "interjection",
-    actions: [
+    edges: [
       { action: "continue_stimulation", to: "stimulation" },
       { action: "request_grounding", to: "interjection" },
       { action: "begin_closure", to: "closure" }
@@ -45,7 +45,7 @@ export const sessionStateGraph = [
   },
   {
     state: "closure",
-    actions: [
+    edges: [
       { action: "request_review", to: "review" },
       { action: "continue_stimulation", to: "stimulation" },
       { action: "request_grounding", to: "interjection" }
@@ -53,14 +53,14 @@ export const sessionStateGraph = [
   },
   {
     state: "review",
-    actions: [
+    edges: [
       { action: "close_session", to: "post_session" },
       { action: "begin_closure", to: "closure" }
     ]
   },
   {
     state: "post_session",
-    actions: [
+    edges: [
       { action: "return_to_idle", to: "idle" },
       { action: "start_session", to: "target_selection" }
     ]

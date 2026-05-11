@@ -1,3 +1,5 @@
+import type { StateGraphEdge, StateGraphNode } from "../../stateGraph.js";
+
 export type BookState = "on_ground" | "in_hand_closed" | "in_hand_open";
 
 export type GuideAction =
@@ -14,15 +16,9 @@ export type GuideAnimationIntent =
   | { type: "book_state"; bookState: BookState }
   | { type: "action"; action: GuideAction };
 
-export type GuideAnimationNode = {
-  state: BookState;
-  edges: GuideAnimationEdge[];
-};
+export type GuideAnimationEdge = StateGraphEdge<BookState, GuideAction>;
 
-export type GuideAnimationEdge = {
-  action: GuideAction;
-  to: BookState;
-};
+export type GuideAnimationNode = StateGraphNode<BookState, GuideAction, GuideAnimationEdge>;
 
 export type GuideAnimationStep = {
   from: BookState;

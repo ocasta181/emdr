@@ -46,21 +46,33 @@ Avoid introducing unclear clinical or internal terms into the action vocabulary.
 
 The session flow should be represented as a directed graph inspired by the guide animation graph. Each graph node is a session state. Each outgoing edge is an action with a target state.
 
-The graph should be the single source of truth for valid state movement:
+All state graphs should use the same generic directed graph shape:
 
 ```ts
-type SessionStateNode = {
-  state: SessionFlowState;
-  edges: SessionStateAction[];
+type StateGraphEdge<State extends string, Action extends string> = {
+  action: Action;
+  to: State;
 };
 
-type SessionStateAction = {
-  action: SessionFlowAction;
-  to: SessionFlowState;
+type StateGraphNode<
+  State extends string,
+  Action extends string,
+  Edge extends StateGraphEdge<State, Action> = StateGraphEdge<State, Action>
+> = {
+  state: State;
+  edges: Edge[];
 };
 ```
 
-The current `sessionFlowDefinitions` structure is already close to this, but the cleanup should remove parallel action/tool tables and make all validation derive from the graph.
+Domain-specific graphs should specialize those types rather than invent their own node vocabulary:
+
+```ts
+type SessionStateAction = StateGraphEdge<SessionFlowState, SessionFlowAction>;
+
+type SessionStateNode = StateGraphNode<SessionFlowState, SessionFlowAction, SessionStateAction>;
+```
+
+The session graph should be the single source of truth for valid state movement. The current `sessionStateGraph` structure is already close to this, but the cleanup should remove parallel action/tool tables and make all validation derive from the graph.
 
 Expected graph-derived operations:
 
@@ -105,7 +117,7 @@ Event handlers should dispatch actions from the graph:
 const actions = availableActions(flowState);
 ```
 
-Buttons can filter or label those actions for presentation, but the graph remains the only authority for whether an action is possible.
+Buttons can filter or label those edge actions for presentation, but the graph remains the only authority for whether an action is possible.
 
 ## Animated Room State
 
@@ -221,6 +233,8 @@ type GuideAnimationEdge = {
   };
 };
 ```
+
+This is the same graph edge shape with guide-specific clip metadata attached to each edge.
 
 With clip metadata on edges:
 

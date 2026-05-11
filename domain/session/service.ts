@@ -12,11 +12,11 @@ function sessionStateNode(state: SessionFlowState): SessionStateNode {
 }
 
 export function availableSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
-  return sessionStateNode(state).actions.map((edge) => edge.action);
+  return sessionStateNode(state).edges.map((edge) => edge.action);
 }
 
 export function nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
-  const edge = sessionStateNode(state).actions.find((item) => item.action === action);
+  const edge = sessionStateNode(state).edges.find((item) => item.action === action);
   if (!edge) {
     throw new Error(`Action ${action} is not allowed from ${state}.`);
   }

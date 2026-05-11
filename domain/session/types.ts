@@ -1,5 +1,6 @@
 import type { StimulationSet } from "../stimulation-set/entity.js";
 import type { Session } from "./entity.js";
+import type { StateGraphEdge, StateGraphNode } from "../../stateGraph.js";
 
 export type Assessment = {
   image?: string;
@@ -51,12 +52,6 @@ export type SessionFlowAction =
   | "close_session"
   | "return_to_idle";
 
-export type SessionStateAction = {
-  action: SessionFlowAction;
-  to: SessionFlowState;
-};
+export type SessionStateAction = StateGraphEdge<SessionFlowState, SessionFlowAction>;
 
-export type SessionStateNode = {
-  state: SessionFlowState;
-  actions: SessionStateAction[];
-};
+export type SessionStateNode = StateGraphNode<SessionFlowState, SessionFlowAction, SessionStateAction>;
