@@ -3,19 +3,23 @@ import type { StimulationSet } from "./entity.js";
 import type { StimulationSetDraft } from "./types.js";
 import { createStimulationSet } from "./factory.js";
 
-export function logStimulationSet(repo: SQLBaseRepository<StimulationSet>, draft: StimulationSetDraft) {
-  const existingSets = repo.findBy("sessionId", draft.sessionId);
-  const set = createStimulationSet({
-    sessionId: draft.sessionId,
-    setNumber: existingSets.length + 1,
-    cycleCount: draft.cycleCount,
-    observation: draft.observation,
-    disturbance: draft.disturbance
-  });
-  repo.insert(set);
-  return set;
-}
+export class StimulationSetService {
+  constructor(private readonly repo: Pick<SQLBaseRepository<StimulationSet>, "findBy" | "insert">) {}
 
-export function listBySession(repo: SQLBaseRepository<StimulationSet>, sessionId: string) {
-  return repo.findBy("sessionId", sessionId);
+  logStimulationSet(draft: StimulationSetDraft): StimulationSet {
+    const existingSets = this.repo.findBy("sessionId", draft.sessionId);
+    const set = createStimulationSet({
+      sessionId: draft.sessionId,
+      setNumber: existingSets.length + 1,
+      cycleCount: draft.cycleCount,
+      observation: draft.observation,
+      disturbance: draft.disturbance
+    });
+    this.repo.insert(set);
+    return set;
+  }
+
+  listBySession(sessionId: string): StimulationSet[] {
+    return this.repo.findBy("sessionId", sessionId);
+  }
 }

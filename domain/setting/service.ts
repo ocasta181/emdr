@@ -3,25 +3,26 @@ import { createDefaultSettings } from "./factory.js";
 import type { Setting } from "./entity.js";
 import type { BilateralStimulationSettings, Settings } from "./types.js";
 
-export function getSettings(repo: SQLBaseRepository<Setting>): Settings {
-  const row = repo.find("bilateralStimulation");
-  return {
-    ...createDefaultSettings(),
-    ...(row ? { bilateralStimulation: JSON.parse(row.valueJson) } : {})
-  };
-}
+export class SettingService {
+  constructor(private readonly repo: Pick<SQLBaseRepository<Setting>, "find" | "insert" | "update">) {}
 
-export function updateBilateralStimulationSettings(
-  repo: SQLBaseRepository<Setting>,
-  patch: Partial<BilateralStimulationSettings>
-): BilateralStimulationSettings {
-  const current = getSettings(repo).bilateralStimulation;
-  const updated = { ...current, ...patch };
-  const row = repo.find("bilateralStimulation");
-  if (row) {
-    repo.update("bilateralStimulation", { valueJson: JSON.stringify(updated) } as Partial<Setting>);
-  } else {
-    repo.insert({ key: "bilateralStimulation", valueJson: JSON.stringify(updated) } as Setting);
+  getSettings(): Settings {
+    const row = this.repo.find("bilateralStimulation");
+    return {
+      ...createDefaultSettings(),
+      ...(row ? { bilateralStimulation: JSON.parse(row.valueJson) } : {})
+    };
   }
-  return updated;
+
+  updateBilateralStimulationSettings(patch: Partial<BilateralStimulationSettings>): BilateralStimulationSettings {
+    const current = this.getSettings().bilateralStimulation;
+    const updated = { ...current, ...patch };
+    const row = this.repo.find("bilateralStimulation");
+    if (row) {
+      this.repo.update("bilateralStimulation", { valueJson: JSON.stringify(updated) } as Partial<Setting>);
+    } else {
+      this.repo.insert({ key: "bilateralStimulation", valueJson: JSON.stringify(updated) } as Setting);
+    }
+    return updated;
+  }
 }
