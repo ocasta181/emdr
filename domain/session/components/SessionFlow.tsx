@@ -6,7 +6,7 @@ import { createStimulationSet } from "../../stimulation-set/factory";
 import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
 import type { Assessment, SessionAggregate, SessionFlowAction, SessionFlowState } from "../types";
-import { getSessionFlowStateDefinition, nextSessionFlowState, sessionFlowStateLabels } from "../service";
+import { getSessionFlowStateDetails, nextSessionFlowState, sessionFlowStateLabels } from "../service";
 
 export function SessionFlow({
   database,
@@ -23,7 +23,7 @@ export function SessionFlow({
 }) {
   const [flowState, setFlowState] = useState<SessionFlowState>("preparation");
   const target = database.targets.find((item) => item.id === session.targetId);
-  const stateDefinition = getSessionFlowStateDefinition(flowState);
+  const stateDetails = getSessionFlowStateDetails(flowState);
 
   function applyAction(action: SessionFlowAction) {
     setFlowState((current) => nextSessionFlowState(current, action));
@@ -41,7 +41,7 @@ export function SessionFlow({
           <div>
             <h1>Session</h1>
             <p>{target?.description}</p>
-            <p>{stateDefinition.description}</p>
+            <p>{stateDetails.description}</p>
           </div>
           <div className="steps">
             {(["preparation", "stimulation", "interjection", "closure", "review"] satisfies SessionFlowState[]).map(

@@ -67,10 +67,14 @@ export type SessionFlowTransition = {
   nextState: SessionFlowState;
 };
 
-export type SessionFlowStateDefinition = {
+export type SessionFlowDefinition = {
+  state: SessionFlowState;
+  transitions: SessionFlowTransition[];
+};
+
+export type SessionFlowStateDetails = {
   state: SessionFlowState;
   label: string;
   description: string;
-  transitions: SessionFlowTransition[];
   allowedAgentTools: AgentToolName[];
 };
