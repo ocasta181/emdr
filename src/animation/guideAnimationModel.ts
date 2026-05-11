@@ -1,199 +1,160 @@
 import type { AnimatedGuideState } from "../../domain/app/animatedGuideMachine";
 
-export type GuideActivity = "idle" | "speaking" | "thinking" | "paused";
+export type BookState = "on_ground" | "in_hand_closed" | "in_hand_open";
 
-export type TargetBookState = "at_rest" | "held_closed" | "open_read" | "open_write";
+export type GuideAction =
+  | "pick_up_book"
+  | "put_down_book"
+  | "open_book"
+  | "close_book"
+  | "flip_through_book"
+  | "write_in_book"
+  | "speak"
+  | "think";
 
-export type GuideObjectState = {
-  targetBook: TargetBookState;
+export type GuideAnimationIntent =
+  | { type: "book_state"; bookState: BookState }
+  | { type: "action"; action: GuideAction };
+
+export type GuideAnimationNode = {
+  state: BookState;
+  edges: GuideAnimationEdge[];
 };
 
-export type GuideAnimationViewModel = {
-  guideActivity: GuideActivity;
-  guidePose: GuidePose | null;
-  objects: GuideObjectState;
+export type GuideAnimationEdge = {
+  action: GuideAction;
+  to: BookState;
 };
 
-export type GuideIdlePose = "idle" | "idle_closed_book" | "idle_open_book";
-
-export type GuidePose =
-  | "idle"
-  | "speaking"
-  | "thinking"
-  | "idle_to_speaking"
-  | "idle_to_thinking"
-  | "idle_to_idle_closed_book"
-  | "idle_closed_book"
-  | "idle_closed_book_to_speaking_closed_book"
-  | "speaking_closed_book"
-  | "idle_closed_book_to_thinking_closed_book"
-  | "thinking_closed_book"
-  | "idle_closed_book_to_idle_open_book"
-  | "idle_open_book"
-  | "idle_open_book_to_speaking_open_book"
-  | "speaking_open_book"
-  | "idle_open_book_to_thinking_open_book"
-  | "thinking_open_book"
-  | "flip_book_pages"
-  | "write_in_book";
-
-export type GuideTransitionStep = {
-  from: GuideIdlePose;
-  to: GuideIdlePose;
-  pose: GuidePose;
-  reverse: boolean;
-};
-
-export type DesiredGuideAnimation = {
-  pose: GuidePose;
+export type GuideAnimationStep = {
+  from: BookState;
+  to: BookState;
+  action: GuideAction;
 };
 
 export type IndependentBookState = "visible" | "hidden";
 
-const idlePoseTransitions: Array<{ from: GuideIdlePose; to: GuideIdlePose; pose: GuidePose }> = [
-  { from: "idle", to: "idle_closed_book", pose: "idle_to_idle_closed_book" },
-  { from: "idle_closed_book", to: "idle_open_book", pose: "idle_closed_book_to_idle_open_book" }
-];
+export const guideAnimationGraph = [
+  {
+    state: "on_ground",
+    edges: [
+      { action: "pick_up_book", to: "in_hand_closed" },
+      { action: "speak", to: "on_ground" },
+      { action: "think", to: "on_ground" }
+    ]
+  },
+  {
+    state: "in_hand_closed",
+    edges: [
+      { action: "put_down_book", to: "on_ground" },
+      { action: "open_book", to: "in_hand_open" },
+      { action: "speak", to: "in_hand_closed" },
+      { action: "think", to: "in_hand_closed" }
+    ]
+  },
+  {
+    state: "in_hand_open",
+    edges: [
+      { action: "close_book", to: "in_hand_closed" },
+      { action: "flip_through_book", to: "in_hand_open" },
+      { action: "write_in_book", to: "in_hand_open" },
+      { action: "speak", to: "in_hand_open" },
+      { action: "think", to: "in_hand_open" }
+    ]
+  }
+] satisfies GuideAnimationNode[];
 
-export function deriveGuideAnimationViewModel(state: AnimatedGuideState): GuideAnimationViewModel {
+const guideAnimationNodeByState = new Map(guideAnimationGraph.map((node) => [node.state, node]));
+
+export function deriveGuideAnimationIntent(state: AnimatedGuideState): GuideAnimationIntent {
   switch (state) {
     case "speaking":
-      return baseViewModel("speaking");
+      return { type: "action", action: "speak" };
     case "idle":
-      return baseViewModel("idle");
+      return { type: "book_state", bookState: "on_ground" };
     case "targets_reading":
-      return targetBookViewModel("idle", null, "open_read");
+      return { type: "book_state", bookState: "in_hand_open" };
     case "targets_browsing":
-      return targetBookViewModel("idle", "flip_book_pages", "open_read");
+      return { type: "action", action: "flip_through_book" };
     case "targets_writing":
-      return targetBookViewModel("idle", "write_in_book", "open_write");
+      return { type: "action", action: "write_in_book" };
     case "thinking":
-      return baseViewModel("thinking");
+      return { type: "action", action: "think" };
   }
 }
 
-export function guideAnimationForViewModel(viewModel: GuideAnimationViewModel): DesiredGuideAnimation {
-  return {
-    pose: guidePoseForViewModel(viewModel)
-  };
+export function guideAnimationIntentKey(intent: GuideAnimationIntent): string {
+  return intent.type === "action" ? `action:${intent.action}` : `book_state:${intent.bookState}`;
 }
 
-export function planGuidePoseTransitions(from: GuideIdlePose, to: GuideIdlePose): GuideTransitionStep[] {
+export function planGuideAnimation(from: BookState, intent: GuideAnimationIntent): GuideAnimationStep[] {
+  return intent.type === "action" ? planPathToAction(from, intent.action) : planPathToBookState(from, intent.bookState);
+}
+
+export function planPathToBookState(from: BookState, to: BookState): GuideAnimationStep[] {
   if (from === to) return [];
 
-  const queue: Array<{ pose: GuideIdlePose; path: GuideTransitionStep[] }> = [{ pose: from, path: [] }];
-  const visited = new Set<GuideIdlePose>([from]);
+  const queue: Array<{ state: BookState; path: GuideAnimationStep[] }> = [{ state: from, path: [] }];
+  const visited = new Set<BookState>([from]);
 
   while (queue.length > 0) {
-    const next = queue.shift();
-    if (!next) break;
+    const current = queue.shift();
+    if (!current) break;
 
-    for (const step of transitionStepsFrom(next.pose)) {
-      if (visited.has(step.to)) continue;
-      const path = next.path.concat(step);
-      if (step.to === to) return path;
-      visited.add(step.to);
-      queue.push({ pose: step.to, path });
+    const node = guideAnimationNodeByState.get(current.state);
+    if (!node) {
+      throw new Error(`Unknown guide animation book state: ${current.state}`);
+    }
+
+    for (const edge of node.edges) {
+      if (visited.has(edge.to)) continue;
+
+      const step = { from: current.state, to: edge.to, action: edge.action };
+      const path = current.path.concat(step);
+      if (edge.to === to) return path;
+
+      visited.add(edge.to);
+      queue.push({ state: edge.to, path });
     }
   }
 
-  return [];
+  throw new Error(`No guide animation path from ${from} to ${to}.`);
 }
 
-export function independentBookStateForPose(pose: GuidePose): IndependentBookState {
-  return guidePoseIncludesBook(pose) ? "hidden" : "visible";
-}
+export function planPathToAction(from: BookState, action: GuideAction): GuideAnimationStep[] {
+  const candidates = guideAnimationGraph.flatMap((node) =>
+    node.edges
+      .filter((edge) => edge.action === action)
+      .map((edge) => ({
+        path: planPathToBookState(from, node.state),
+        step: { from: node.state, to: edge.to, action: edge.action }
+      }))
+  );
 
-export function independentBookStateForTransition(
-  transition: GuideTransitionStep,
-  progress: number
-): IndependentBookState {
-  const fromHasBook = guidePoseIncludesBook(transition.from);
-  const toHasBook = guidePoseIncludesBook(transition.to);
-  const clampedProgress = Math.max(0, Math.min(1, progress));
-
-  if (fromHasBook === toHasBook) {
-    return fromHasBook ? "hidden" : "visible";
+  const shortest = candidates.sort((left, right) => left.path.length - right.path.length)[0];
+  if (!shortest) {
+    throw new Error(`No guide animation action: ${action}`);
   }
 
-  if (!fromHasBook && toHasBook) {
+  return shortest.path.concat(shortest.step);
+}
+
+export function independentBookStateForBookState(state: BookState): IndependentBookState {
+  return state === "on_ground" ? "visible" : "hidden";
+}
+
+export function independentBookStateForStep(step: GuideAnimationStep, progress: number): IndependentBookState {
+  const fromVisible = independentBookStateForBookState(step.from) === "visible";
+  const toVisible = independentBookStateForBookState(step.to) === "visible";
+  const clampedProgress = Math.max(0, Math.min(1, progress));
+
+  if (fromVisible === toVisible) {
+    return fromVisible ? "visible" : "hidden";
+  }
+
+  if (fromVisible && !toVisible) {
     return clampedProgress < 0.42 ? "visible" : "hidden";
   }
 
   return clampedProgress >= 0.58 ? "visible" : "hidden";
-}
-
-export function idlePoseForGuidePose(pose: GuidePose): GuideIdlePose {
-  if (pose === "idle") return "idle";
-  if (pose.endsWith("_closed_book")) return "idle_closed_book";
-  if (pose.endsWith("_open_book") || pose === "flip_book_pages" || pose === "write_in_book") return "idle_open_book";
-  return "idle";
-}
-
-export function isOneShotGuidePose(pose: GuidePose): boolean {
-  return pose === "flip_book_pages" || pose === "write_in_book";
-}
-
-function guidePoseForViewModel(viewModel: GuideAnimationViewModel): GuidePose {
-  if (viewModel.guidePose) return viewModel.guidePose;
-
-  const activity = normalizeGuideActivity(viewModel.guideActivity);
-
-  if (viewModel.objects.targetBook === "held_closed") {
-    if (activity === "speaking") return "speaking_closed_book";
-    if (activity === "thinking") return "thinking_closed_book";
-    return "idle_closed_book";
-  }
-
-  if (viewModel.objects.targetBook === "open_read" || viewModel.objects.targetBook === "open_write") {
-    if (activity === "speaking") return "speaking_open_book";
-    if (activity === "thinking") return "thinking_open_book";
-    return "idle_open_book";
-  }
-
-  return activity;
-}
-
-function normalizeGuideActivity(activity: GuideActivity): "idle" | "speaking" | "thinking" {
-  if (activity === "speaking" || activity === "thinking") return activity;
-  if (activity === "paused") return "thinking";
-  return "idle";
-}
-
-function transitionStepsFrom(from: GuideIdlePose): GuideTransitionStep[] {
-  return idlePoseTransitions.flatMap((edge): GuideTransitionStep[] => {
-    if (edge.from === from) {
-      return [{ from, to: edge.to, pose: edge.pose, reverse: false }];
-    }
-
-    if (edge.to === from) {
-      return [{ from, to: edge.from, pose: edge.pose, reverse: true }];
-    }
-
-    return [];
-  });
-}
-
-function guidePoseIncludesBook(pose: GuidePose) {
-  return pose.endsWith("_book");
-}
-
-function baseViewModel(guideActivity: GuideActivity): GuideAnimationViewModel {
-  return {
-    guideActivity,
-    guidePose: null,
-    objects: { targetBook: "at_rest" }
-  };
-}
-
-function targetBookViewModel(
-  guideActivity: GuideActivity,
-  guidePose: GuidePose | null,
-  targetBook: TargetBookState
-): GuideAnimationViewModel {
-  return {
-    guideActivity,
-    guidePose,
-    objects: { targetBook }
-  };
 }

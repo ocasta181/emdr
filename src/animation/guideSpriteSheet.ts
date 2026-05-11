@@ -1,50 +1,77 @@
 import { Rectangle, Texture } from "pixi.js";
-import type { GuidePose } from "./guideAnimationModel";
+import type { BookState, GuideAction, GuideAnimationStep } from "./guideAnimationModel";
 
 export const guideSpriteFrameRate = 5;
 export const guideSpriteCellSize = 128;
 
+export type GuideActionClipKey = `${GuideAction}:${BookState}`;
+
+export type GuideActionClip = {
+  textures: Texture[];
+  reverse: boolean;
+};
+
 export type GuideSpriteSheet = {
-  clips: Record<GuidePose, Texture[]>;
+  idleClips: Record<BookState, Texture[]>;
+  actionClips: Partial<Record<GuideActionClipKey, GuideActionClip>>;
   bookAtRest: Texture;
 };
 
 const sheetColumns = 14;
 
-const guidePoseFrames: Record<GuidePose, { start: number; count: number }> = {
-  idle: { start: 1, count: 10 },
-  speaking: { start: 11, count: 8 },
-  thinking: { start: 19, count: 10 },
-  idle_to_speaking: { start: 29, count: 4 },
-  idle_to_thinking: { start: 33, count: 5 },
-  idle_to_idle_closed_book: { start: 38, count: 14 },
-  idle_closed_book: { start: 52, count: 10 },
-  idle_closed_book_to_speaking_closed_book: { start: 62, count: 4 },
-  speaking_closed_book: { start: 66, count: 8 },
-  idle_closed_book_to_thinking_closed_book: { start: 74, count: 5 },
-  thinking_closed_book: { start: 79, count: 10 },
-  idle_closed_book_to_idle_open_book: { start: 89, count: 10 },
-  idle_open_book: { start: 99, count: 10 },
-  idle_open_book_to_speaking_open_book: { start: 109, count: 4 },
-  speaking_open_book: { start: 113, count: 8 },
-  idle_open_book_to_thinking_open_book: { start: 121, count: 5 },
-  thinking_open_book: { start: 126, count: 10 },
-  flip_book_pages: { start: 121, count: 4 },
-  write_in_book: { start: 141, count: 13 }
+const idleClipFrames: Record<BookState, { start: number; count: number }> = {
+  on_ground: { start: 1, count: 10 },
+  in_hand_closed: { start: 52, count: 10 },
+  in_hand_open: { start: 99, count: 10 }
+};
+
+const actionClipFrames: Partial<Record<GuideActionClipKey, { start: number; count: number; reverse?: boolean }>> = {
+  "pick_up_book:on_ground": { start: 38, count: 14 },
+  "put_down_book:in_hand_closed": { start: 38, count: 14, reverse: true },
+  "open_book:in_hand_closed": { start: 89, count: 10 },
+  "close_book:in_hand_open": { start: 89, count: 10, reverse: true },
+  "flip_through_book:in_hand_open": { start: 121, count: 4 },
+  "write_in_book:in_hand_open": { start: 141, count: 13 },
+  "speak:on_ground": { start: 29, count: 4 },
+  "speak:in_hand_closed": { start: 62, count: 4 },
+  "speak:in_hand_open": { start: 109, count: 4 },
+  "think:on_ground": { start: 33, count: 5 },
+  "think:in_hand_closed": { start: 74, count: 5 },
+  "think:in_hand_open": { start: 121, count: 5 }
 };
 
 export function createGuideSpriteSheet(sheetTexture: Texture): GuideSpriteSheet {
-  const clips = Object.fromEntries(
-    Object.entries(guidePoseFrames).map(([clip, frameRange]) => [
-      clip,
+  const idleClips = Object.fromEntries(
+    Object.entries(idleClipFrames).map(([state, frameRange]) => [
+      state,
       createFrameRange(sheetTexture, frameRange.start, frameRange.count)
     ])
-  ) as Record<GuidePose, Texture[]>;
+  ) as Record<BookState, Texture[]>;
+
+  const actionClips = Object.fromEntries(
+    Object.entries(actionClipFrames).map(([key, frameRange]) => [
+      key,
+      {
+        textures: createFrameRange(sheetTexture, frameRange.start, frameRange.count),
+        reverse: frameRange.reverse ?? false
+      }
+    ])
+  ) as Partial<Record<GuideActionClipKey, GuideActionClip>>;
 
   return {
-    clips,
+    idleClips,
+    actionClips,
     bookAtRest: createFrameTexture(sheetTexture, 154)
   };
+}
+
+export function actionClipForStep(sheet: GuideSpriteSheet, step: GuideAnimationStep): GuideActionClip {
+  const key = `${step.action}:${step.from}` satisfies GuideActionClipKey;
+  const clip = sheet.actionClips[key];
+  if (!clip) {
+    throw new Error(`No guide animation clip for ${key}.`);
+  }
+  return clip;
 }
 
 function createFrameRange(sheetTexture: Texture, start: number, count: number) {

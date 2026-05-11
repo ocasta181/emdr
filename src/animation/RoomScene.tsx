@@ -1,19 +1,15 @@
 import { useEffect, useRef } from "react";
 import { AnimatedSprite, Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import {
-  guideAnimationForViewModel,
-  idlePoseForGuidePose,
-  independentBookStateForPose,
-  independentBookStateForTransition,
-  isOneShotGuidePose,
-  planGuidePoseTransitions,
-  type DesiredGuideAnimation,
-  type GuideAnimationViewModel,
-  type GuideIdlePose,
-  type GuidePose,
-  type GuideTransitionStep
+  guideAnimationIntentKey,
+  independentBookStateForBookState,
+  independentBookStateForStep,
+  planGuideAnimation,
+  type BookState,
+  type GuideAnimationIntent,
+  type GuideAnimationStep
 } from "./guideAnimationModel";
-import { createGuideSpriteSheet, guideSpriteCellSize, guideSpriteFrameRate } from "./guideSpriteSheet";
+import { actionClipForStep, createGuideSpriteSheet, guideSpriteCellSize, guideSpriteFrameRate } from "./guideSpriteSheet";
 import guideSpriteSheetUrl from "../../assets/animated-room/guide-sprite-sheet-154.png?url";
 import orbUrl from "../../assets/animated-room/orb.svg?url";
 
@@ -31,7 +27,7 @@ export function RoomScene({
   onGuideActionComplete
 }: {
   mode: RoomMode;
-  guideAnimation: GuideAnimationViewModel;
+  guideAnimation: GuideAnimationIntent;
   stimulationRunning: boolean;
   stimulationColor: string;
   stimulationSpeed: number;
@@ -78,7 +74,7 @@ export function RoomScene({
       const guideSheetTexture = await Assets.load<Texture>(guideSpriteSheetUrl);
       const orbTexture = await Assets.load(orbUrl);
       const guideSheet = createGuideSpriteSheet(guideSheetTexture);
-      const guide = new AnimatedSprite(guideSheet.clips.idle);
+      const guide = new AnimatedSprite(guideSheet.idleClips.on_ground);
       const targetBook = new Sprite(guideSheet.bookAtRest);
       const orb = new Sprite(orbTexture);
       const labels = new Container();
@@ -125,10 +121,9 @@ export function RoomScene({
       let lastWidth = 0;
       let lastHeight = 0;
       let activeClipKey = "";
-      let currentIdlePose: GuideIdlePose = "idle";
-      let activeTransition: GuideTransitionStep | null = null;
-      let activePose: GuidePose | null = null;
-      let completedPose: GuidePose | null = null;
+      let currentBookState: BookState = "on_ground";
+      let activeStep: GuideAnimationStep | null = null;
+      let completedIntentKey: string | null = null;
       let targetBookLayout = { x: 0, y: 0, scale: 1 };
 
       function drawLabel(text: string, x: number, y: number) {
@@ -204,82 +199,63 @@ export function RoomScene({
         settingsHotspot.roundRect(width * 0.82, height * 0.5, 90, 160, 10).fill({ color: 0xd8c692, alpha: 0.045 });
       }
 
-      function syncGuideAnimation(desired: DesiredGuideAnimation) {
-        if (activeTransition) return;
+      function syncGuideAnimation(intent: GuideAnimationIntent) {
+        if (activeStep) return;
 
-        const targetIdlePose = idlePoseForGuidePose(desired.pose);
-
-        if (currentIdlePose !== targetIdlePose) {
-          activePose = null;
-          completedPose = null;
-          const [nextTransition] = planGuidePoseTransitions(currentIdlePose, targetIdlePose);
-          if (nextTransition) {
-            activeTransition = nextTransition;
-            playGuidePose(nextTransition.pose, {
-              reverse: nextTransition.reverse,
-              loop: false,
-              onComplete: () => {
-                currentIdlePose = nextTransition.to;
-                activeTransition = null;
-                syncGuideAnimation(guideAnimationForViewModel(runtimeRef.current.guideAnimation));
-              }
-            });
-            return;
-          }
-
-          currentIdlePose = targetIdlePose;
-        }
-
-        if (isOneShotGuidePose(desired.pose)) {
-          if (completedPose === desired.pose) {
-            playGuidePose(currentIdlePose, { loop: true });
-            return;
-          }
-
-          if (activePose !== desired.pose) {
-            activePose = desired.pose;
-            playGuidePose(desired.pose, {
-              loop: false,
-              onComplete: () => {
-                activePose = null;
-                completedPose = desired.pose;
-                playGuidePose(currentIdlePose, { loop: true });
-                actionCompleteRef.current();
-              }
-            });
-          }
+        const intentKey = guideAnimationIntentKey(intent);
+        const [nextStep] = completedIntentKey === intentKey ? [] : planGuideAnimation(currentBookState, intent);
+        if (!nextStep) {
+          playGuideIdle(currentBookState);
           return;
         }
 
-        completedPose = null;
-        activePose = null;
-        playGuidePose(desired.pose, { loop: true });
+        completedIntentKey = null;
+        activeStep = nextStep;
+        playGuideStep(nextStep, () => {
+          currentBookState = nextStep.to;
+          activeStep = null;
+          if (intent.type === "action" && nextStep.action === intent.action) {
+            completedIntentKey = intentKey;
+            actionCompleteRef.current();
+          }
+          syncGuideAnimation(runtimeRef.current.guideAnimation);
+        });
       }
 
-      function playGuidePose(
-        pose: GuidePose,
-        options: { reverse?: boolean; loop: boolean; onComplete?: () => void }
-      ) {
-        const clipKey = `${pose}:${options.reverse ? "reverse" : "forward"}:${options.loop ? "loop" : "once"}`;
+      function playGuideStep(step: GuideAnimationStep, onComplete: () => void) {
+        const clip = actionClipForStep(guideSheet, step);
+        const clipKey = `${step.action}:${step.from}:${clip.reverse ? "reverse" : "forward"}:once`;
         if (clipKey === activeClipKey) return;
 
         activeClipKey = clipKey;
-        guide.textures = options.reverse ? guideSheet.clips[pose].slice().reverse() : guideSheet.clips[pose];
-        guide.loop = options.loop;
+        guide.textures = clip.reverse ? clip.textures.slice().reverse() : clip.textures;
+        guide.loop = false;
         guide.animationSpeed = guideSpriteFrameRate / 60;
-        guide.onComplete = options.onComplete ?? undefined;
+        guide.onComplete = onComplete;
+        guide.gotoAndPlay(0);
+      }
+
+      function playGuideIdle(state: BookState) {
+        const clipKey = `idle:${state}:loop`;
+        if (clipKey === activeClipKey) return;
+
+        activeClipKey = clipKey;
+        guide.textures = guideSheet.idleClips[state];
+        guide.loop = true;
+        guide.animationSpeed = guideSpriteFrameRate / 60;
+        guide.onComplete = undefined;
         guide.gotoAndPlay(0);
       }
 
       function syncTargetBookVisibility() {
-        const independentBookState = activeTransition
-          ? independentBookStateForTransition(activeTransition, activeTransitionProgress())
-          : independentBookStateForPose(currentIdlePose);
+        const independentBookState = activeStep
+          ? independentBookStateForStep(activeStep, activeStepProgress())
+          : independentBookStateForBookState(currentBookState);
         targetBook.visible = independentBookState === "visible";
         hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
       }
 
-      function activeTransitionProgress() {
+      function activeStepProgress() {
         const frameCount = guide.textures.length;
         if (frameCount <= 1) return 1;
         return guide.currentFrame / (frameCount - 1);
@@ -297,7 +273,7 @@ export function RoomScene({
           lastHeight = height;
         }
 
-        syncGuideAnimation(guideAnimationForViewModel(runtime.guideAnimation));
+        syncGuideAnimation(runtime.guideAnimation);
         syncTargetBookVisibility();
 
         const floorY = height * 0.78;

@@ -107,7 +107,7 @@ For maintainability, React should treat the PixiJS scene as a controlled child c
 ```ts
 type RoomSceneProps = {
   mode: "idle" | "chat" | "session" | "stimulation" | "review";
-  guideAnimation: GuideAnimationViewModel;
+  guideAnimation: GuideAnimationIntent;
   stimulation?: {
     running: boolean;
     speed: number;
@@ -140,38 +140,41 @@ Target access should be represented through a book interaction, not through unre
 
 The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
 
-The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. Guide state derives a semantic `GuideAnimationViewModel`; the guide animation module maps that view model through a guide pose graph and then into sprite-sheet clips. Room state, including stimulation, stays separate from guide animation state.
+The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. Guide state derives a semantic `GuideAnimationIntent`; the guide animation module maps that intent through a book-state graph and then into sprite-sheet action clips. Room state, including stimulation, stays separate from guide animation state.
 
-Required guide poses and actions:
+Book states:
 
-- `idle`;
-- `speaking`;
-- `thinking`;
-- `idle_closed_book`;
-- `speaking_closed_book`;
-- `thinking_closed_book`;
-- `idle_open_book`;
-- `speaking_open_book`;
-- `thinking_open_book`;
-- `flip_book_pages`;
-- `write_in_book`.
+- `on_ground`;
+- `in_hand_closed`;
+- `in_hand_open`.
+
+Guide actions:
+
+- `pick_up_book`;
+- `put_down_book`;
+- `open_book`;
+- `close_book`;
+- `flip_through_book`;
+- `write_in_book`;
+- `speak`;
+- `think`.
 
 Possession handoff rules:
 
-- At the beginning of `idle -> idle_closed_book`, the guide sprite does not include the book and the independent book sprite is visible.
-- During `idle -> idle_closed_book`, the independent book sprite is hidden once the guide takes possession; from that point, the book is part of the guide animation.
+- At the beginning of `pick_up_book`, the guide sprite does not include the book and the independent book sprite is visible.
+- During `pick_up_book`, the independent book sprite is hidden once the guide takes possession; from that point, the book is part of the guide animation.
 - During all held-book states, the independent book sprite remains hidden.
-- During the reversed `idle -> idle_closed_book` transition, the book remains part of the guide animation until the guide releases it.
+- During `put_down_book`, the book remains part of the guide animation until the guide releases it.
 - After release, the independent book sprite becomes visible at the resting location while the guide returns hands to center without the book.
 
 Target access mapping:
 
-- reading targets: `idle -> idle_closed_book -> idle_open_book`;
-- browsing target versions or target history: `flip_book_pages`;
-- creating or editing targets: `idle -> idle_closed_book -> idle_open_book -> write_in_book`;
-- leaving target work: reverse `idle_closed_book -> idle_open_book`, then reverse `idle -> idle_closed_book`.
+- reading targets: path to `in_hand_open`;
+- browsing target versions or target history: path to `flip_through_book`;
+- creating or editing targets: path to `write_in_book`;
+- leaving target work: path to `on_ground`.
 
-Domain states should not reference art assets directly. Workflow state maps to a scene view model, and the PixiJS scene maps that view model to sprites and animation clips.
+Domain states should not reference art assets directly. Workflow state maps to animation intent, and the PixiJS scene maps that intent through graph traversal to sprites and animation clips.
 
 ## Bilateral Stimulation
 
@@ -213,7 +216,7 @@ Start with a small asset set:
 
 - one background image;
 - one foreground overlay;
-- guide character sprite sheet with semantic pose and transition clips;
+- guide character sprite sheet with semantic guide-action clips;
 - stimulation object variants;
 - object highlight glows;
 - panel frame textures only if needed.

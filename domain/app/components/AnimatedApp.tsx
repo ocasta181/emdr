@@ -1,6 +1,6 @@
 import { useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
-import { deriveGuideAnimationViewModel } from "../../../src/animation/guideAnimationModel";
+import { deriveGuideAnimationIntent } from "../../../src/animation/guideAnimationModel";
 import {
   initialAnimatedGuideState,
   transitionAnimatedGuideState
@@ -62,13 +62,13 @@ export function AnimatedApp() {
   const panel = animatedPanelForState(roomState);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const guideAnimationViewModel = deriveGuideAnimationViewModel(guideState);
+  const guideAnimation = deriveGuideAnimationIntent(guideState);
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
       <RoomScene
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
-        guideAnimation={guideAnimationViewModel}
+        guideAnimation={guideAnimation}
         stimulationRunning={stimulationRunning}
         stimulationColor={stimulationColor}
         stimulationSpeed={stimulationSpeed}
