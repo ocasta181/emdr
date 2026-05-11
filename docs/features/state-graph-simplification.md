@@ -10,6 +10,19 @@ Simplify workflow and animation code by treating app behavior as explicit direct
 
 This note captures the intended cleanup direction before implementation.
 
+## Coverage
+
+This proposal accounts for the highest-value simplifications identified in the codebase assessment:
+
+- replace the split session flow/tool vocabulary with one state/action graph;
+- make session UI rendering depend on that graph instead of redefining state flow in JSX;
+- split animated room stimulation state from panel state so settings can open while stimulation continues;
+- replace room-object `if`/`switch` branches with object registries;
+- model target versions as a parent-linked version tree with derived lineage indexes;
+- move guide sprite action clip metadata onto the existing guide animation graph.
+
+Some wording differs from the original assessment because the follow-up design constraints are stricter: there is no separate agent-tool concept, and domain state graphs must not import or define UI components.
+
 ## Vocabulary
 
 Use only two domain concepts for workflow control:
@@ -57,6 +70,8 @@ Expected graph-derived operations:
 
 The session graph should not import React, PixiJS, or presentation components.
 
+Labels, descriptions, button copy, and component choices are UI concerns. They may be keyed by state or action in the UI layer, but they must not define valid states or valid actions.
+
 ## UI Dependency Direction
 
 State and UI must stay separate. The UI depends on state; state does not depend on UI.
@@ -81,7 +96,15 @@ const sessionActionLabels: Record<SessionFlowAction, string> = {
 
 These mappings describe rendering and copy only. They must not define which actions are valid; valid actions come from the graph.
 
-The rendered step/progress UI should also derive from state graph knowledge or from a UI-only ordering of graph states. It should not duplicate flow logic.
+The rendered step/progress UI should also derive from graph states. A UI-only order may decide how known states are displayed, but it must not create states, actions, or allowed movement. It should not duplicate flow logic.
+
+Event handlers should dispatch actions from the graph:
+
+```ts
+const actions = availableActions(flowState);
+```
+
+Buttons can filter or label those actions for presentation, but the graph remains the only authority for whether an action is possible.
 
 ## Animated Room State
 
@@ -163,11 +186,15 @@ Useful in-memory index:
 type TargetVersionIndex = {
   byId: Map<string, Target>;
   childrenByParentId: Map<string, Target[]>;
-  currentTargets: Target[];
+  lineageRootById: Map<string, string>;
+  versionsByLineageRootId: Map<string, Target[]>;
+  currentByLineageRootId: Map<string, Target>;
 };
 ```
 
 If version history, rollback, or diff views are added, the UI should use this index instead of repeatedly filtering the flat target array.
+
+This keeps the persisted model minimal while still giving the application the tree-shaped access pattern it needs. The root id is derived by walking parent links; it is not stored on each row.
 
 Implementation will require a SQLite migration and domain type updates:
 
