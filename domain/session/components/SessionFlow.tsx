@@ -30,7 +30,7 @@ export function SessionFlow({
   }
 
   function completeSession() {
-    nextSessionFlowState(flowState, "complete_session");
+    nextSessionFlowState(flowState, "close_session");
     onEnd(session);
   }
 
@@ -84,7 +84,7 @@ export function SessionFlow({
             session={session}
             onChange={(nextSession) => onPersist(nextSession)}
             onContinue={() => applyAction("continue_stimulation")}
-            onReview={() => applyAction("review_session")}
+            onReview={() => applyAction("request_review")}
           />
         )}
         {flowState === "review" && <SummaryStep session={session} onBack={() => applyAction("begin_closure")} onEnd={completeSession} />}

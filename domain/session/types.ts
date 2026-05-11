@@ -47,20 +47,9 @@ export type SessionFlowAction =
   | "continue_stimulation"
   | "request_grounding"
   | "begin_closure"
-  | "review_session"
-  | "complete_session"
-  | "return_to_idle";
-
-export type AgentToolName =
-  | "create_target_draft"
-  | "select_target"
-  | "update_session_assessment"
-  | "start_stimulation"
-  | "pause_stimulation"
-  | "log_stimulation_set"
+  | "request_review"
   | "close_session"
-  | "show_grounding_prompt"
-  | "request_user_review";
+  | "return_to_idle";
 
 export type SessionFlowTransition = {
   action: SessionFlowAction;
@@ -76,5 +65,4 @@ export type SessionFlowStateDetails = {
   state: SessionFlowState;
   label: string;
   description: string;
-  allowedAgentTools: AgentToolName[];
 };

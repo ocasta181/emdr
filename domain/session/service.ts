@@ -1,6 +1,6 @@
 import type { Database } from "../app/types.js";
 import { sessionFlowDefinitions } from "./flow.js";
-import type { AgentToolName, SessionAggregate, SessionFlowAction, SessionFlowState, SessionFlowStateDetails } from "./types.js";
+import type { SessionAggregate, SessionFlowAction, SessionFlowState, SessionFlowStateDetails } from "./types.js";
 import type { Target } from "../target/entity.js";
 import { createSessionForTarget } from "./factory.js";
 import { reviseTarget } from "../target/service.js";
@@ -10,50 +10,42 @@ export const sessionFlowStateDetails = [
   {
     state: "idle",
     label: "Idle",
-    description: "No active session is running.",
-    allowedAgentTools: ["create_target_draft", "select_target", "request_user_review"]
+    description: "No active session is running."
   },
   {
     state: "target_selection",
     label: "Target Selection",
-    description: "Choose an existing target or create a draft target for review.",
-    allowedAgentTools: ["create_target_draft", "select_target", "request_user_review"]
+    description: "Choose an existing target or create a draft target for review."
   },
   {
     state: "preparation",
     label: "Preparation",
-    description: "Capture and review the session assessment before stimulation.",
-    allowedAgentTools: ["update_session_assessment", "request_user_review", "show_grounding_prompt"]
+    description: "Capture and review the session assessment before stimulation."
   },
   {
     state: "stimulation",
     label: "Stimulation",
-    description: "Run visual bilateral stimulation and log set observations.",
-    allowedAgentTools: ["pause_stimulation", "log_stimulation_set", "show_grounding_prompt"]
+    description: "Run visual bilateral stimulation and log set observations."
   },
   {
     state: "interjection",
     label: "Pause",
-    description: "Pause, ground, continue stimulation, or begin closure.",
-    allowedAgentTools: ["show_grounding_prompt", "pause_stimulation", "close_session"]
+    description: "Pause, ground, continue stimulation, or begin closure."
   },
   {
     state: "closure",
     label: "Closure",
-    description: "Capture final disturbance and session notes.",
-    allowedAgentTools: ["close_session", "request_user_review", "show_grounding_prompt"]
+    description: "Capture final disturbance and session notes."
   },
   {
     state: "review",
     label: "Review",
-    description: "Review the structured session summary before saving the end state.",
-    allowedAgentTools: ["request_user_review"]
+    description: "Review the structured session summary before saving the end state."
   },
   {
     state: "post_session",
     label: "Post-session",
-    description: "The session has ended and the app can return to idle.",
-    allowedAgentTools: ["request_user_review"]
+    description: "The session has ended and the app can return to idle."
   }
 ] satisfies SessionFlowStateDetails[];
 
@@ -109,10 +101,6 @@ export function allowedSessionFlowActions(state: SessionFlowState): SessionFlowA
     throw new Error(`Unknown session flow state: ${state}`);
   }
   return definition.transitions.map((transition) => transition.action);
-}
-
-export function allowedAgentTools(state: SessionFlowState): AgentToolName[] {
-  return getSessionFlowStateDetails(state).allowedAgentTools;
 }
 
 export function nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {

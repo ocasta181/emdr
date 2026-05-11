@@ -18,7 +18,7 @@ The guide agent should:
 - help select or create a target through conversation;
 - ask structured session prompts;
 - summarize what the user said into editable notes;
-- start, pause, and stop bilateral stimulation through app tools;
+- start, pause, and stop bilateral stimulation through app actions;
 - check whether the user wants to continue, pause, ground, or close;
 - produce a session summary for user review;
 - maintain local memory only with explicit consent.
@@ -51,7 +51,7 @@ Recommended first implementation:
 Electron main process
   starts/stops local LLM sidecar
   sends prompts over localhost or stdio
-  validates structured tool calls
+  validates structured action requests
   stores approved records in encrypted SQLite
 
 llama.cpp sidecar
@@ -83,7 +83,7 @@ Reasons:
 - does not need frontier-model reasoning for this app's limited action space;
 - available as an instruction-tuned model on Hugging Face;
 - released under Apache 2.0 according to the model repository;
-- suitable for a tool-driven architecture where deterministic app code owns the clinical workflow.
+- suitable for an action-driven architecture where deterministic app code owns the clinical workflow.
 
 Fallback candidates:
 
@@ -231,27 +231,28 @@ User message
   -> prompt builder
   -> local LLM
   -> structured response parser
-  -> policy/tool validator
+  -> policy/action validator
   -> app state transition
   -> user-visible response
 ```
 
-The agent can request tools such as:
+The agent can request app actions. Action request types should use `SessionFlowAction` names rather than an agent-only tool vocabulary:
 
 ```ts
-type AgentTool =
-  | { type: "create_target_draft"; description: string; negativeCognition?: string; positiveCognition?: string }
-  | { type: "select_target"; targetId: string }
-  | { type: "update_session_assessment"; fields: Partial<Assessment> }
-  | { type: "start_stimulation"; speed?: number; color?: string }
-  | { type: "pause_stimulation" }
-  | { type: "log_stimulation_set"; observation: string; disturbance?: number }
-  | { type: "close_session"; finalDisturbance?: number; notes?: string }
-  | { type: "show_grounding_prompt" }
-  | { type: "request_user_review"; recordType: "target" | "assessment" | "session_summary" };
+type AgentActionRequest =
+  | { action: "create_target_draft"; description: string; negativeCognition?: string; positiveCognition?: string }
+  | { action: "select_target"; targetId: string }
+  | { action: "update_assessment"; fields: Partial<Assessment> }
+  | { action: "start_stimulation"; speed?: number; color?: string }
+  | { action: "pause_stimulation" }
+  | { action: "log_stimulation_set"; observation: string; disturbance?: number }
+  | { action: "request_grounding" }
+  | { action: "begin_closure"; finalDisturbance?: number; notes?: string }
+  | { action: "request_review"; recordType: "target" | "assessment" | "session_summary" }
+  | { action: "close_session" };
 ```
 
-Every tool call should be checked against:
+Every action request should be checked against:
 
 - current app mode;
 - active session state;
@@ -314,42 +315,46 @@ Post-session
   Offer export, history view, or return to room
 ```
 
-The LLM should choose from constrained wording patterns, summarize text, and request tools. The app should choose which states and actions are allowed.
+The LLM should choose from constrained wording patterns, summarize text, and request actions. The app should choose which states and actions are allowed.
 
-## Tool Permission Matrix
+## Action Permission Matrix
 
-The app should enforce tool permissions by state:
+The app should enforce action permissions by state:
 
 ```text
 Idle
-  Allowed: create_target_draft, select_target, request_user_review
+  Allowed: start_session, select_target
   Blocked: start_stimulation, log_stimulation_set, close_session
 
 Target selection
-  Allowed: create_target_draft, select_target, request_user_review
+  Allowed: create_target_draft, select_target, return_to_idle
   Blocked: start_stimulation, log_stimulation_set, close_session
 
 Preparation
-  Allowed: update_session_assessment, request_user_review, show_grounding_prompt
+  Allowed: update_assessment, approve_assessment, request_grounding, begin_closure
   Blocked until review: start_stimulation
 
 Stimulation
-  Allowed: pause_stimulation, log_stimulation_set, show_grounding_prompt
+  Allowed: start_stimulation, pause_stimulation, log_stimulation_set, request_grounding, begin_closure
   Allowed after explicit user confirmation: start_stimulation
   Blocked: create_target_draft, select_target
 
+Interjection
+  Allowed: continue_stimulation, request_grounding, begin_closure
+  Blocked: create_target_draft, select_target
+
 Closure
-  Allowed: close_session, request_user_review, show_grounding_prompt
+  Allowed: request_review, continue_stimulation, request_grounding
   Blocked: create_target_draft, select_target
 
 Review
-  Allowed: request_user_review
+  Allowed: close_session, begin_closure
   Blocked: durable saves until user approves the draft
 ```
 
-The model may ask for an action, but the app is the authority. Invalid tool requests should be rejected, logged locally for debugging, and followed by a safe clarification message.
+The model may ask for an action, but the app is the authority. Invalid action requests should be rejected, logged locally for debugging, and followed by a safe clarification message.
 
-Agent actions are function calls, not broad autonomous text behavior. The renderer may display the model's user-facing message, but any state mutation must come through validated tool requests.
+Agent-requested actions are function calls, not broad autonomous text behavior. The renderer may display the model's user-facing message, but any state mutation must come through validated action requests.
 
 The guide should feel like a minimal proctor with a small amount of character. Personality should come from a curated response library and scene animation states, not from unconstrained model improvisation.
 
@@ -379,7 +384,7 @@ Return responses in this structure:
     "setObservation": null,
     "sessionSummary": null
   },
-  "toolRequest": null
+  "actionRequest": null
 }
 ```
 
@@ -399,11 +404,11 @@ Each model call should include only the minimum local context needed:
 
 ```ts
 type AgentPromptContext = {
-  appState: "idle" | "target_selection" | "preparation" | "stimulation" | "closure" | "review";
+  appState: SessionFlowState;
   activeTargetSummary?: string;
   activeAssessmentDraft?: Partial<Assessment>;
   recentMessages: ChatMessage[];
-  allowedTools: AgentTool["type"][];
+  allowedActions: SessionFlowAction[];
   safetyFlags: {
     stimulationRunning: boolean;
     cameraEnabled: boolean;
@@ -468,7 +473,7 @@ The app may suggest a pause. It should not label trauma state, emotional state, 
 4. Add structured draft review/edit UI for targets, assessments, set observations, and summaries.
 5. Add a `llama.cpp` sidecar in development mode.
 6. Test Qwen3-4B-Instruct-2507, Llama 3.2 3B Instruct, and Gemma 3 4B IT on target hardware.
-7. Add tool-call validation and JSON schema validation.
+7. Add action request validation and JSON schema validation.
 8. Add encrypted local storage for chat/session records.
 9. Add first-run privacy and model disclosure.
 10. Add optional local memory after the core flow is reliable.

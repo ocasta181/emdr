@@ -46,7 +46,7 @@ export const sessionFlowDefinitions = [
   {
     state: "closure",
     transitions: [
-      { action: "review_session", nextState: "review" },
+      { action: "request_review", nextState: "review" },
       { action: "continue_stimulation", nextState: "stimulation" },
       { action: "request_grounding", nextState: "interjection" }
     ]
@@ -54,7 +54,7 @@ export const sessionFlowDefinitions = [
   {
     state: "review",
     transitions: [
-      { action: "complete_session", nextState: "post_session" },
+      { action: "close_session", nextState: "post_session" },
       { action: "begin_closure", nextState: "closure" }
     ]
   },
