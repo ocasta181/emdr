@@ -4,7 +4,7 @@ import type { Setting } from "./entity.js";
 import type { BilateralStimulationSettings, Settings } from "./types.js";
 
 export class SettingService {
-  constructor(private readonly repo: Pick<SQLBaseRepository<Setting>, "find" | "insert" | "update">) {}
+  constructor(private readonly repo: SQLBaseRepository<Setting>) {}
 
   getSettings(): Settings {
     const row = this.repo.find("bilateralStimulation");

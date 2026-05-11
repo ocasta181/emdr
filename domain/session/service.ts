@@ -17,7 +17,7 @@ function sessionStateNode(state: SessionFlowState): SessionStateNode {
 }
 
 export class SessionService {
-  constructor(private readonly repo: Pick<SQLBaseRepository<Session>, "find" | "insert" | "update">) {}
+  constructor(private readonly repo: SQLBaseRepository<Session>) {}
 
   startSession(target: Target): SessionAggregate {
     const aggregate = createSessionForTarget(target);

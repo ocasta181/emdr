@@ -4,7 +4,7 @@ import type { StimulationSetDraft } from "./types.js";
 import { createStimulationSet } from "./factory.js";
 
 export class StimulationSetService {
-  constructor(private readonly repo: Pick<SQLBaseRepository<StimulationSet>, "findBy" | "insert">) {}
+  constructor(private readonly repo: SQLBaseRepository<StimulationSet>) {}
 
   logStimulationSet(draft: StimulationSetDraft): StimulationSet {
     const existingSets = this.repo.findBy("sessionId", draft.sessionId);

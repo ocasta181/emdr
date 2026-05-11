@@ -6,7 +6,7 @@ import { nowIso } from "../../utils.js";
 import type { TargetDraft } from "./types.js";
 
 export class TargetService {
-  constructor(private readonly repo: Pick<SQLBaseRepository<Target>, "all" | "find" | "insert" | "update">) {}
+  constructor(private readonly repo: SQLBaseRepository<Target>) {}
 
   listCurrentTargets(): Target[] {
     return this.repo
