@@ -9,6 +9,11 @@ export type SQLBaseRepositoryOptions = {
   orderBy?: string;
 };
 
+export type ListOptions = {
+  limit?: number;
+  offset?: number;
+};
+
 export class SQLBaseRepository<T extends object> {
   private columns: string[] | undefined;
 
@@ -18,9 +23,19 @@ export class SQLBaseRepository<T extends object> {
     private readonly options: SQLBaseRepositoryOptions = {}
   ) {}
 
-  all(): T[] {
+  all(options?: ListOptions): T[] {
     const orderBy = this.options.orderBy ? ` ORDER BY ${this.options.orderBy}` : "";
-    return selectAll(this.db, `SELECT * FROM ${quoteIdentifier(this.table)}${orderBy}`).map((row) => this.fromRow(row));
+    let sql = `SELECT * FROM ${quoteIdentifier(this.table)}${orderBy}`;
+    const params: SqlValue[] = [];
+    if (options?.limit !== undefined) {
+      sql += " LIMIT ?";
+      params.push(options.limit);
+    }
+    if (options?.offset !== undefined) {
+      sql += " OFFSET ?";
+      params.push(options.offset);
+    }
+    return selectAll(this.db, sql, params).map((row) => this.fromRow(row));
   }
 
   find(primaryKey: string): T | undefined {
@@ -28,6 +43,16 @@ export class SQLBaseRepository<T extends object> {
       primaryKey
     ]);
     return row ? this.fromRow(row) : undefined;
+  }
+
+  findBy(column: keyof T & string, value: SqlValue): T[] {
+    const snakeColumn = camelToSnake(column);
+    const orderBy = this.options.orderBy ? ` ORDER BY ${this.options.orderBy}` : "";
+    return selectAll(
+      this.db,
+      `SELECT * FROM ${quoteIdentifier(this.table)} WHERE ${quoteIdentifier(snakeColumn)} = ?${orderBy}`,
+      [value]
+    ).map((row) => this.fromRow(row));
   }
 
   insert(entity: T) {
