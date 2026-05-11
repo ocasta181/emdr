@@ -1,10 +1,6 @@
 import { useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
-import { deriveGuideAnimationIntent } from "../../../src/animation/guideAnimationModel";
-import {
-  initialAnimatedGuideState,
-  transitionAnimatedGuideState
-} from "../animatedGuideMachine";
+import type { GuideAction, GuideAnimationIntent } from "../../../src/animation/guideAnimationModel";
 import {
   animatedPanelForState,
   animatedRoomStimulationRunning,
@@ -20,7 +16,7 @@ const proctorLines = [
 
 export function AnimatedApp() {
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
-  const [guideState, dispatchGuideEvent] = useReducer(transitionAnimatedGuideState, initialAnimatedGuideState);
+  const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [lineIndex, setLineIndex] = useState(0);
   const [stimulationColor, setStimulationColor] = useState("#9cc7df");
   const [stimulationSpeed, setStimulationSpeed] = useState(1);
@@ -30,16 +26,18 @@ export function AnimatedApp() {
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
       dispatchRoomEvent({ type: "select_guide" });
-      dispatchGuideEvent({ type: "speak" });
+      setGuideAnimation({ type: "action", action: "speak" });
       setLineIndex((current) => (current + 1) % proctorLines.length);
       return;
     }
     if (objectId === "targets") {
       dispatchRoomEvent({ type: "select_targets" });
-      dispatchGuideEvent({ type: "read_targets" });
+      setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
       return;
     }
-    dispatchGuideEvent({ type: objectId === "history" ? "think" : "idle" });
+    setGuideAnimation(
+      objectId === "history" ? { type: "action", action: "think" } : { type: "book_state", bookState: "on_ground" }
+    );
     dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
@@ -59,10 +57,15 @@ export function AnimatedApp() {
     setChatDraft("");
   }
 
+  function handleGuideActionComplete(action: GuideAction) {
+    if (action === "flip_through_book" || action === "write_in_book") {
+      setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
+    }
+  }
+
   const panel = animatedPanelForState(roomState);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const guideAnimation = deriveGuideAnimationIntent(guideState);
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -73,7 +76,7 @@ export function AnimatedApp() {
         stimulationColor={stimulationColor}
         stimulationSpeed={stimulationSpeed}
         onObjectSelected={selectObject}
-        onGuideActionComplete={() => dispatchGuideEvent({ type: "finish_target_action" })}
+        onGuideActionComplete={handleGuideActionComplete}
       />
 
       <header className="animatedTopbar">
@@ -85,7 +88,7 @@ export function AnimatedApp() {
           <button
             onClick={() => {
               dispatchRoomEvent({ type: "select_guide" });
-              dispatchGuideEvent({ type: "speak" });
+              setGuideAnimation({ type: "action", action: "speak" });
             }}
           >
             Guide
@@ -136,14 +139,14 @@ export function AnimatedApp() {
               <p className="authNotice">This panel will map to target selection and agent-drafted target review.</p>
               <div className="buttonRow">
                 <button
-                  className={guideState === "targets_browsing" ? "active" : undefined}
-                  onClick={() => dispatchGuideEvent({ type: "browse_targets" })}
+                  className={isGuideAnimationAction(guideAnimation, "flip_through_book") ? "active" : undefined}
+                  onClick={() => setGuideAnimation({ type: "action", action: "flip_through_book" })}
                 >
                   Flip pages
                 </button>
                 <button
-                  className={guideState === "targets_writing" ? "active" : undefined}
-                  onClick={() => dispatchGuideEvent({ type: "write_target" })}
+                  className={isGuideAnimationAction(guideAnimation, "write_in_book") ? "active" : undefined}
+                  onClick={() => setGuideAnimation({ type: "action", action: "write_in_book" })}
                 >
                   Write target
                 </button>
@@ -188,4 +191,8 @@ export function AnimatedApp() {
       )}
     </div>
   );
+}
+
+function isGuideAnimationAction(intent: GuideAnimationIntent, action: GuideAction) {
+  return intent.type === "action" && intent.action === action;
 }

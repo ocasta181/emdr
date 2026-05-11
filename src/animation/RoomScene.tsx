@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
-import type { GuideAnimationIntent } from "./guideAnimationModel";
+import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../assets/animated-room/orb.svg?url";
 
@@ -23,7 +23,7 @@ export function RoomScene({
   stimulationColor: string;
   stimulationSpeed: number;
   onObjectSelected: (objectId: RoomObjectId) => void;
-  onGuideActionComplete: () => void;
+  onGuideActionComplete: (action: GuideAction) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
@@ -65,7 +65,7 @@ export function RoomScene({
       const orbTexture = await Assets.load(orbUrl);
       const guideCharacter = await GuideCharacter.load({
         onTargetBookSelected: () => callbackRef.current("targets"),
-        onActionComplete: () => actionCompleteRef.current()
+        onActionComplete: (action) => actionCompleteRef.current(action)
       });
       const orb = new Sprite(orbTexture);
       const labels = new Container();

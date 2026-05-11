@@ -1,5 +1,3 @@
-import type { AnimatedGuideState } from "../../domain/app/animatedGuideMachine";
-
 export type BookState = "on_ground" | "in_hand_closed" | "in_hand_open";
 
 export type GuideAction =
@@ -65,23 +63,6 @@ export const guideAnimationGraph = [
 ] satisfies GuideAnimationNode[];
 
 const guideAnimationNodeByState = new Map(guideAnimationGraph.map((node) => [node.state, node]));
-
-export function deriveGuideAnimationIntent(state: AnimatedGuideState): GuideAnimationIntent {
-  switch (state) {
-    case "speaking":
-      return { type: "action", action: "speak" };
-    case "idle":
-      return { type: "book_state", bookState: "on_ground" };
-    case "targets_reading":
-      return { type: "book_state", bookState: "in_hand_open" };
-    case "targets_browsing":
-      return { type: "action", action: "flip_through_book" };
-    case "targets_writing":
-      return { type: "action", action: "write_in_book" };
-    case "thinking":
-      return { type: "action", action: "think" };
-  }
-}
 
 export function guideAnimationIntentKey(intent: GuideAnimationIntent): string {
   return intent.type === "action" ? `action:${intent.action}` : `book_state:${intent.bookState}`;

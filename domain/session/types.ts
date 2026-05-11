@@ -78,17 +78,3 @@ export type SessionFlowStateDetails = {
   description: string;
   allowedAgentTools: AgentToolName[];
 };
-
-export type SessionFlowAnimation =
-  | "guide"
-  | "idle"
-  | "targets_reading"
-  | "targets_browsing"
-  | "targets_writing"
-  | "history"
-  | "stimulation"
-  | "stimulation_settings";
-
-export type SessionFlowActionAnimationMap = {
-  [State in SessionFlowState]: Partial<Record<SessionFlowAction, SessionFlowAnimation>>;
-};

@@ -5,6 +5,7 @@ import {
   independentBookStateForStep,
   planGuideAnimation,
   type BookState,
+  type GuideAction,
   type GuideAnimationIntent,
   type GuideAnimationStep
 } from "./guideAnimationModel";
@@ -38,7 +39,7 @@ export class GuideCharacter {
   private completedIntentKey: string | null = null;
   private guideBaselineY = 0;
   private targetBookBounds: GuideCharacterBounds = { x: 0, y: 0, width: 0, height: 0, visible: false };
-  private onActionComplete;
+  private onActionComplete: (action: GuideAction) => void;
 
   private constructor({
     sheetTexture,
@@ -47,7 +48,7 @@ export class GuideCharacter {
   }: {
     sheetTexture: Texture;
     onTargetBookSelected: () => void;
-    onActionComplete: () => void;
+    onActionComplete: (action: GuideAction) => void;
   }) {
     this.guideSheet = createGuideSpriteSheet(sheetTexture);
     this.guide = new AnimatedSprite(this.guideSheet.idleClips.on_ground);
@@ -67,13 +68,9 @@ export class GuideCharacter {
     this.container.addChild(this.targetBook, this.guide);
   }
 
-  static async load(options: { onTargetBookSelected: () => void; onActionComplete: () => void }) {
+  static async load(options: { onTargetBookSelected: () => void; onActionComplete: (action: GuideAction) => void }) {
     const sheetTexture = await Assets.load<Texture>(guideSpriteSheetUrl);
     return new GuideCharacter({ sheetTexture, ...options });
-  }
-
-  setActionCompleteHandler(onActionComplete: () => void) {
-    this.onActionComplete = onActionComplete;
   }
 
   layout({ x, baselineY, size }: GuideCharacterLayout) {
@@ -125,7 +122,7 @@ export class GuideCharacter {
       this.activeStep = null;
       if (this.lastIntentKey === intentKey && intent.type === "action" && nextStep.action === intent.action) {
         this.completedIntentKey = intentKey;
-        this.onActionComplete();
+        this.onActionComplete(nextStep.action);
       }
     });
   }

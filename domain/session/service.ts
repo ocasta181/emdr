@@ -1,14 +1,6 @@
 import type { Database } from "../app/types.js";
 import { sessionFlowDefinitions } from "./flow.js";
-import type {
-  AgentToolName,
-  SessionAggregate,
-  SessionFlowAction,
-  SessionFlowActionAnimationMap,
-  SessionFlowAnimation,
-  SessionFlowState,
-  SessionFlowStateDetails
-} from "./types.js";
+import type { AgentToolName, SessionAggregate, SessionFlowAction, SessionFlowState, SessionFlowStateDetails } from "./types.js";
 import type { Target } from "../target/entity.js";
 import { createSessionForTarget } from "./factory.js";
 import { reviseTarget } from "../target/service.js";
@@ -71,62 +63,6 @@ export const sessionFlowStateLabels = Object.fromEntries(
 
 const sessionFlowDefinitionByState = new Map(sessionFlowDefinitions.map((definition) => [definition.state, definition]));
 const sessionFlowDetailsByState = new Map(sessionFlowStateDetails.map((definition) => [definition.state, definition]));
-
-export const sessionFlowStateAnimations = {
-  idle: "idle",
-  target_selection: "targets_reading",
-  preparation: "guide",
-  stimulation: "stimulation",
-  interjection: "guide",
-  closure: "guide",
-  review: "history",
-  post_session: "idle"
-} satisfies Record<SessionFlowState, SessionFlowAnimation>;
-
-export const sessionFlowActionAnimations: SessionFlowActionAnimationMap = {
-  idle: {
-    start_session: "targets_reading",
-    select_target: "guide"
-  },
-  target_selection: {
-    select_target: "guide",
-    create_target_draft: "targets_writing",
-    return_to_idle: "idle"
-  },
-  preparation: {
-    update_assessment: "guide",
-    approve_assessment: "stimulation",
-    request_grounding: "guide",
-    begin_closure: "guide"
-  },
-  stimulation: {
-    start_stimulation: "stimulation",
-    log_stimulation_set: "guide",
-    pause_stimulation: "guide",
-    request_grounding: "guide",
-    begin_closure: "guide"
-  },
-  interjection: {
-    continue_stimulation: "stimulation",
-    request_grounding: "guide",
-    begin_closure: "guide"
-  },
-  closure: {
-    review_session: "history",
-    continue_stimulation: "stimulation",
-    request_grounding: "guide"
-  },
-  review: {
-    complete_session: "idle",
-    begin_closure: "guide"
-  },
-  post_session: {
-    return_to_idle: "idle",
-    start_session: "targets_reading"
-  }
-};
-
-validateSessionFlowActionAnimations();
 
 export function startSessionForTarget(database: Database, target: Target) {
   const session = createSessionForTarget(target);
@@ -195,29 +131,4 @@ export function nextSessionFlowState(state: SessionFlowState, action: SessionFlo
 
 export function canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
   return allowedSessionFlowActions(state).includes(action);
-}
-
-export function animationForSessionFlowState(state: SessionFlowState): SessionFlowAnimation {
-  return sessionFlowStateAnimations[state];
-}
-
-export function animationForSessionFlowAction(
-  state: SessionFlowState,
-  action: SessionFlowAction
-): SessionFlowAnimation {
-  const animation = sessionFlowActionAnimations[state][action];
-  if (!animation) {
-    throw new Error(`No animation is mapped for action ${action} from ${state}.`);
-  }
-  return animation;
-}
-
-function validateSessionFlowActionAnimations() {
-  for (const definition of sessionFlowDefinitions) {
-    for (const transition of definition.transitions) {
-      if (!sessionFlowActionAnimations[definition.state][transition.action]) {
-        throw new Error(`No animation is mapped for action ${transition.action} from ${definition.state}.`);
-      }
-    }
-  }
 }
