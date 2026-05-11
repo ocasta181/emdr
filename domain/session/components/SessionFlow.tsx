@@ -6,7 +6,49 @@ import { createStimulationSet } from "../../stimulation-set/factory";
 import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
 import type { Assessment, SessionAggregate, SessionFlowAction, SessionFlowState } from "../types";
-import { getSessionFlowStateDetails, nextSessionFlowState, sessionFlowStateLabels } from "../service";
+import { nextSessionFlowState } from "../service";
+
+type SessionStateDisplay = {
+  label: string;
+  description: string;
+};
+
+const sessionStateDisplay = {
+  idle: {
+    label: "Idle",
+    description: "No active session is running."
+  },
+  target_selection: {
+    label: "Target Selection",
+    description: "Choose an existing target or create a draft target for review."
+  },
+  preparation: {
+    label: "Preparation",
+    description: "Capture and review the session assessment before stimulation."
+  },
+  stimulation: {
+    label: "Stimulation",
+    description: "Run visual bilateral stimulation and log set observations."
+  },
+  interjection: {
+    label: "Pause",
+    description: "Pause, ground, continue stimulation, or begin closure."
+  },
+  closure: {
+    label: "Closure",
+    description: "Capture final disturbance and session notes."
+  },
+  review: {
+    label: "Review",
+    description: "Review the structured session summary before saving the end state."
+  },
+  post_session: {
+    label: "Post-session",
+    description: "The session has ended and the app can return to idle."
+  }
+} satisfies Record<SessionFlowState, SessionStateDisplay>;
+
+const sessionStepStates = ["preparation", "stimulation", "interjection", "closure", "review"] satisfies SessionFlowState[];
 
 export function SessionFlow({
   database,
@@ -23,7 +65,7 @@ export function SessionFlow({
 }) {
   const [flowState, setFlowState] = useState<SessionFlowState>("preparation");
   const target = database.targets.find((item) => item.id === session.targetId);
-  const stateDetails = getSessionFlowStateDetails(flowState);
+  const stateDisplay = sessionStateDisplay[flowState];
 
   function applyAction(action: SessionFlowAction) {
     setFlowState((current) => nextSessionFlowState(current, action));
@@ -41,16 +83,14 @@ export function SessionFlow({
           <div>
             <h1>Session</h1>
             <p>{target?.description}</p>
-            <p>{stateDetails.description}</p>
+            <p>{stateDisplay.description}</p>
           </div>
           <div className="steps">
-            {(["preparation", "stimulation", "interjection", "closure", "review"] satisfies SessionFlowState[]).map(
-              (item) => (
-                <button key={item} className={flowState === item ? "active" : ""} disabled>
-                  {sessionFlowStateLabels[item]}
-                </button>
-              )
-            )}
+            {sessionStepStates.map((item) => (
+              <button key={item} className={flowState === item ? "active" : ""} disabled>
+                {sessionStateDisplay[item].label}
+              </button>
+            ))}
           </div>
         </div>
 
