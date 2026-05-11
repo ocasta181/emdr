@@ -15,8 +15,8 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "preview": "vite preview --host 127.0.0.1",
     "prepare": "husky",
-    "static:architecture": "node tools/check-architecture.mjs",
-    "static:architecture:staged": "node tools/check-architecture.mjs --staged"
+    "check:architecture": "node tools/check-architecture.mjs",
+    "check:architecture:staged": "node tools/check-architecture.mjs --staged"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",

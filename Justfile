@@ -9,6 +9,12 @@ dev:
 build:
     pnpm run build
 
+check-architecture:
+    pnpm check:architecture
+
+check-staged-architecture:
+    pnpm check:architecture:staged
+
 electron:
     pnpm run electron
 

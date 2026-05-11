@@ -1,1 +1,1 @@
-pnpm static:architecture:staged
+pnpm check:architecture:staged
