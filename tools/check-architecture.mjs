@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { Node, Project, SyntaxKind } from "ts-morph";
 
-const sourceRoots = ["domain", "src", "infrastructure", "electron", "utils.ts", "stateGraph.ts", "vite.config.ts"];
+const sourceRoots = ["domain", "src", "core", "infrastructure", "electron", "utils.ts", "stateGraph.ts", "vite.config.ts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".cts", ".mts"]);
 const dbMethodNames = new Set(["exec", "export", "prepare", "run"]);
 const collectionMethodNames = new Set(["concat", "filter", "map", "push", "reduce", "splice"]);
@@ -221,7 +221,7 @@ function importsUi(specifier, resolved) {
 }
 
 function importsPersistence(specifier, resolved) {
-  return specifier === "sql.js" || resolved.startsWith("infrastructure/sqlite/") || resolved === "src/db";
+  return specifier === "sql.js" || resolved.startsWith("core/internal/sqlite/") || resolved === "src/db";
 }
 
 function importsBusinessImplementation(resolved) {
@@ -233,7 +233,7 @@ function isServiceLayer(filePath) {
 }
 
 function isRepositoryLayer(filePath) {
-  return /^domain\/[^/]+\/repository\.[cm]?tsx?$/.test(filePath) || filePath.startsWith("infrastructure/sqlite/");
+  return /^domain\/[^/]+\/repository\.[cm]?tsx?$/.test(filePath) || filePath.startsWith("core/internal/") || filePath.startsWith("electron/");
 }
 
 function isTypeOnlyLayer(filePath) {
