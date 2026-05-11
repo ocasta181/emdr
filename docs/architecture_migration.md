@@ -124,7 +124,7 @@ Checklist:
 - [x] Add target routes for list, create, and revise.
 - [ ] Add session routes for start, assessment update, flow transition, and end.
 - [ ] Add stimulation-set routes for logging and listing by session.
-- [ ] Add setting routes for read and bilateral-stimulation update.
+- [x] Add setting routes for read and bilateral-stimulation update.
 - [ ] Validate route payloads at the domain IPC boundary.
 - [ ] Delete the transitional generic `db:load` and `db:save` routes after
   equivalent domain routes exist.
