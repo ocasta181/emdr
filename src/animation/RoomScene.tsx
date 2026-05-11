@@ -183,11 +183,9 @@ export function RoomScene({
           lastHeight = height;
         }
 
-        const breath = Math.sin(elapsed * 1.6) * 4;
         guideCharacter.sync(runtime.guideAnimation);
         guideCharacter.syncTargetBookVisibility();
         guideCharacter.setFrame({
-          breath,
           alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
         });
         hotspots.find((item) => item.id === "targets")!.draw.visible = guideCharacter.getTargetBookBounds().visible;

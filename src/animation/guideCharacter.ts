@@ -95,8 +95,8 @@ export class GuideCharacter {
     };
   }
 
-  setFrame({ breath, alpha }: { breath: number; alpha: number }) {
-    this.guide.y = this.guideBaselineY + breath;
+  setFrame({ alpha }: { alpha: number }) {
+    this.guide.y = this.guideBaselineY;
     this.guide.alpha = alpha;
   }
 
