@@ -140,7 +140,7 @@ Target access should be represented through a book interaction, not through unre
 
 The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
 
-The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. Guide state derives a semantic `GuideAnimationIntent`; the guide animation module maps that intent through a book-state graph and then into sprite-sheet action clips. Room state, including stimulation, stays separate from guide animation state.
+The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. Guide state derives a semantic `GuideAnimationIntent`; the model maps that intent through a book-state graph, and `src/animation/guideCharacter.ts` owns the PixiJS guide sprites, book possession handoff, and sprite-sheet action clips. Room state, including stimulation, stays separate from guide animation state.
 
 Book states:
 
@@ -174,7 +174,7 @@ Target access mapping:
 - creating or editing targets: path to `write_in_book`;
 - leaving target work: path to `on_ground`.
 
-Domain states should not reference art assets directly. Workflow state maps to animation intent, and the PixiJS scene maps that intent through graph traversal to sprites and animation clips.
+Domain states should not reference art assets directly. Workflow state maps to animation intent, and the guide character renderer maps that intent through graph traversal to sprites and animation clips.
 
 ## Bilateral Stimulation
 
@@ -223,25 +223,18 @@ Start with a small asset set:
 
 Prefer atlased PNG/WebP sprites or Rive animations for character motion. The current guide prototype uses a single 154-cell PNG sheet with the standalone book in the final cell.
 
-Suggested first directory shape:
+Current prototype directory shape:
 
 ```text
 src/animation/
   RoomScene.tsx
-  pixi/
-    createRoomStage.ts
-    guideCharacter.ts
-    stimulation.ts
-    roomObjects.ts
-    assets.ts
-  types.ts
+  guideAnimationModel.ts
+  guideCharacter.ts
+  guideSpriteSheet.ts
 
-assets/room/
-  hilltop/
-    background.webp
-    foreground.webp
-    guide.json
-    guide.png
+assets/animated-room/
+  guide-sprite-sheet-154.png
+  orb.svg
 ```
 
 ## Performance Requirements
