@@ -8,13 +8,14 @@ In progress
 
 Simplify workflow and animation code by treating app behavior as explicit directed graphs: nodes are states, edges are actions. Avoid parallel vocabularies, duplicated state tables, and UI decision trees that independently redefine the same flow.
 
-This note captures the intended cleanup direction before implementation.
+This note captures the intended cleanup direction and the implementation status of each simplification.
 
 ## Coverage
 
 This proposal accounts for the highest-value simplifications identified in the codebase assessment:
 
 - [x] replace the split session flow/tool vocabulary with one state/action graph;
+- [x] introduce one shared state graph shape for session and guide animation graphs;
 - [ ] make session UI rendering depend on that graph instead of redefining state flow in JSX;
 - [ ] split animated room stimulation state from panel state so settings can open while stimulation continues;
 - [ ] replace room-object `if`/`switch` branches with object registries;
@@ -46,7 +47,7 @@ Avoid introducing unclear clinical or internal terms into the action vocabulary.
 
 The session flow should be represented as a directed graph inspired by the guide animation graph. Each graph node is a session state. Each outgoing edge is an action with a target state.
 
-All state graphs should use the same generic directed graph shape:
+All state graphs use the same generic directed graph shape from `stateGraph.ts`:
 
 ```ts
 type StateGraphEdge<State extends string, Action extends string> = {
@@ -62,6 +63,12 @@ type StateGraphNode<
   state: State;
   edges: Edge[];
 };
+
+type StateGraph<
+  State extends string,
+  Action extends string,
+  Edge extends StateGraphEdge<State, Action> = StateGraphEdge<State, Action>
+> = StateGraphNode<State, Action, Edge>[];
 ```
 
 Domain-specific graphs should specialize those types rather than invent their own node vocabulary:
@@ -72,16 +79,16 @@ type SessionStateAction = StateGraphEdge<SessionFlowState, SessionFlowAction>;
 type SessionStateNode = StateGraphNode<SessionFlowState, SessionFlowAction, SessionStateAction>;
 ```
 
-The session graph should be the single source of truth for valid state movement. The current `sessionStateGraph` structure is already close to this, but the cleanup should remove parallel action/tool tables and make all validation derive from the graph.
+The session graph should be the single source of truth for valid state movement. `domain/session/flow.ts` is data-only and exports `sessionStateGraph`; `domain/session/service.ts` owns derived lookup and validation behavior.
 
 Expected graph-derived operations:
 
-- [x] `availableActions(state)`
-- [x] `canApplyAction(state, action)`
-- [x] `nextState(state, action)`
+- [x] `availableSessionFlowActions(state)`
+- [x] `canApplySessionFlowAction(state, action)`
+- [x] `nextSessionFlowState(state, action)`
 - [ ] future agent action validation
 
-The session graph should not import React, PixiJS, or presentation components.
+The session graph should not import React, PixiJS, presentation components, or service behavior.
 
 Labels, descriptions, button copy, and component choices are UI concerns. They may be keyed by state or action in the UI layer, but they must not define valid states or valid actions.
 
@@ -218,7 +225,7 @@ Implementation required a SQLite migration and domain type updates:
 
 ## Guide Animation Graph
 
-The guide animation model is already the best example in the codebase: a graph of book states and action edges with path planning.
+The guide animation model uses the same shared state graph shape as the session graph: book states are graph states, guide actions are graph edges, and path planning is guide-specific service behavior in the animation model.
 
 The next simplification is to attach clip metadata to graph edges so the graph and sprite sheet cannot drift.
 
@@ -248,6 +255,7 @@ Idle clips and independent book-at-rest frames can remain sheet-level metadata b
 
 - [x] Unify session actions and remove separate agent tool vocabulary.
 - [x] Make the session graph the only source of valid state movement.
+- [x] Share one graph node/edge type across session and guide graphs.
 - [ ] Refactor session UI to render from state and graph-derived available actions.
 - [ ] Split animated room panel state from stimulation state.
 - [ ] Convert room object selection and hotspots to registries.
