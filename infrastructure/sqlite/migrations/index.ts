@@ -1,7 +1,11 @@
 import type { SqliteDatabase } from "../connection.js";
 import { up as initialSchema } from "./0001_initial_schema.js";
+import { up as targetParentLinks } from "./0002_target_parent_links.js";
 
-const migrations = [{ version: 1, up: initialSchema }];
+const migrations = [
+  { version: 1, up: initialSchema },
+  { version: 2, up: targetParentLinks }
+];
 
 export function runMigrations(db: SqliteDatabase) {
   db.run(`
