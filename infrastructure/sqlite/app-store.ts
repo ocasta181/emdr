@@ -14,7 +14,6 @@ import {
   type VaultStatus
 } from "../security/vault.js";
 import { runMigrations } from "./migrations/index.js";
-import { newAppMetadataRepository } from "../../domain/app-metadata/repository.js";
 import { createEmptyDatabase } from "../../domain/app/factory.js";
 import type { Database } from "../../domain/app/types.js";
 import { createSessionAggregate, createSessionFromAggregate } from "../../domain/session/factory.js";
@@ -116,14 +115,7 @@ async function saveActiveDatabase(userDataPath: string, db: SqliteDatabase) {
 }
 
 function readAppDatabase(db: SqliteDatabase): Database {
-  const metadata = newAppMetadataRepository(db);
-  const createdAt = metadata.find("createdAt")?.value ?? new Date().toISOString();
-  const updatedAt = metadata.find("updatedAt")?.value ?? createdAt;
-
   return {
-    schemaVersion: 1,
-    createdAt,
-    updatedAt,
     targets: newTargetRepository(db).all(),
     sessions: readSessionAggregates(db),
     settings: readSettings(db)
@@ -139,11 +131,6 @@ function writeAppDatabase(db: SqliteDatabase, database: Database) {
     newStimulationSetRepository(db).replaceAll(database.sessions.flatMap((session) => session.stimulationSets));
     newSettingRepository(db).replaceAll([
       { key: "bilateralStimulation", valueJson: JSON.stringify(database.settings.bilateralStimulation) }
-    ]);
-    newAppMetadataRepository(db).replaceAll([
-      { key: "schemaVersion", value: String(database.schemaVersion) },
-      { key: "createdAt", value: database.createdAt },
-      { key: "updatedAt", value: database.updatedAt }
     ]);
 
     db.run("COMMIT");

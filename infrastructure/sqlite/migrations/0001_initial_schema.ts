@@ -4,11 +4,6 @@ export function up(db: SqliteDatabase) {
   db.run(`
     PRAGMA foreign_keys = ON;
 
-    CREATE TABLE IF NOT EXISTS app_metadata (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS target (
       id TEXT PRIMARY KEY,
       root_target_id TEXT NOT NULL,

@@ -1,6 +1,5 @@
 import type { Database } from "./types";
 import { createEmptyDatabase } from "../domain/app/factory";
-import { nowIso } from "../utils";
 
 const STORAGE_KEY = "emdr-local-dev-db";
 
@@ -45,14 +44,9 @@ export async function loadDatabase(): Promise<Database> {
 }
 
 export async function saveDatabase(database: Database) {
-  const next = {
-    ...database,
-    updatedAt: nowIso()
-  };
-
   if (window.emdr) {
-    await window.emdr.saveDatabase(next);
+    await window.emdr.saveDatabase(database);
   } else {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(database));
   }
 }
