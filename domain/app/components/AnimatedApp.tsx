@@ -1,12 +1,28 @@
-import { useReducer, useState, type FormEvent } from "react";
+import { useEffect, useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
 import type { GuideAction, GuideAnimationIntent } from "../../../src/animation/guideAnimationModel";
+import {
+  createVault,
+  exportVault,
+  getVaultStatus,
+  importVault,
+  loadDatabase,
+  saveDatabase,
+  unlockWithPassword,
+  unlockWithRecoveryCode,
+  type VaultStatus
+} from "../../../src/db";
+import { createEmptyDatabase } from "../factory";
+import type { Database } from "../types";
 import {
   animatedPanelForState,
   animatedRoomStimulationRunning,
   initialAnimatedRoomState,
   transitionAnimatedRoomState
 } from "../animatedRoomMachine";
+import { RecoveryCode, VaultSetup, VaultUnlock } from "./VaultAccess";
+
+type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
 const proctorLines = [
   "I can help you set up a target, run a set, or review prior notes.",
@@ -15,6 +31,9 @@ const proctorLines = [
 ];
 
 export function AnimatedApp() {
+  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [database, setDatabase] = useState<Database>(() => createEmptyDatabase());
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [lineIndex, setLineIndex] = useState(0);
@@ -22,6 +41,55 @@ export function AnimatedApp() {
   const [stimulationSpeed, setStimulationSpeed] = useState(1);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>(["I want to work with a target."]);
+
+  useEffect(() => {
+    getVaultStatus().then((status) => {
+      if (status === "unlocked") {
+        void loadUnlockedDatabase();
+      } else {
+        setAuthState(authStateForVault(status));
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (authState === "ready") {
+      void saveDatabase(database);
+    }
+  }, [database, authState]);
+
+  async function loadUnlockedDatabase() {
+    setDatabase(await loadDatabase());
+    setAuthState("ready");
+  }
+
+  async function setupVault(password: string) {
+    const result = await createVault(password);
+    setRecoveryCode(result.recoveryCode);
+    setAuthState("recovery");
+  }
+
+  async function unlockVault(password: string) {
+    await unlockWithPassword(password);
+    await loadUnlockedDatabase();
+  }
+
+  async function unlockVaultWithRecovery(code: string) {
+    await unlockWithRecoveryCode(code);
+    await loadUnlockedDatabase();
+  }
+
+  async function exportEncryptedData() {
+    const result = await exportVault();
+    return result.canceled ? undefined : result.path;
+  }
+
+  async function importEncryptedData() {
+    const result = await importVault();
+    if (result.canceled) return false;
+    setAuthState("locked");
+    return true;
+  }
 
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
@@ -61,6 +129,28 @@ export function AnimatedApp() {
     if (action === "flip_through_book" || action === "write_in_book") {
       setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
     }
+  }
+
+  if (authState === "checking") {
+    return <div className="boot">Loading local data...</div>;
+  }
+
+  if (authState === "setup") {
+    return <VaultSetup onCreate={setupVault} onImport={importEncryptedData} />;
+  }
+
+  if (authState === "recovery") {
+    return <RecoveryCode recoveryCode={recoveryCode} onContinue={loadUnlockedDatabase} />;
+  }
+
+  if (authState === "locked") {
+    return (
+      <VaultUnlock
+        onUnlock={unlockVault}
+        onRecoveryUnlock={unlockVaultWithRecovery}
+        onImport={importEncryptedData}
+      />
+    );
   }
 
   const panel = animatedPanelForState(roomState);
@@ -185,6 +275,11 @@ export function AnimatedApp() {
                   onChange={(event) => setStimulationColor(event.target.value)}
                 />
               </label>
+              <h2>Encrypted Data</h2>
+              <div className="buttonRow">
+                <button onClick={() => void exportEncryptedData()}>Export</button>
+                <button onClick={() => void importEncryptedData()}>Import</button>
+              </div>
             </>
           )}
         </aside>
@@ -195,4 +290,10 @@ export function AnimatedApp() {
 
 function isGuideAnimationAction(intent: GuideAnimationIntent, action: GuideAction) {
   return intent.type === "action" && intent.action === action;
+}
+
+function authStateForVault(status: VaultStatus): AuthState {
+  if (status === "setupRequired") return "setup";
+  if (status === "locked") return "locked";
+  return "ready";
 }
