@@ -8,7 +8,7 @@ export type GuideActionClipKey = `${GuideAction}:${BookState}`;
 
 export type GuideActionClip = {
   textures: Texture[];
-  reverse: boolean;
+  reverseOrder: boolean;
 };
 
 export type GuideSpriteSheet = {
@@ -21,15 +21,15 @@ const sheetColumns = 14;
 
 const idleClipFrames: Record<BookState, { start: number; count: number }> = {
   on_ground: { start: 1, count: 10 },
-  in_hand_closed: { start: 52, count: 10 },
+  in_hand_closed: { start: 59, count: 10 },
   in_hand_open: { start: 99, count: 10 }
 };
 
-const actionClipFrames: Partial<Record<GuideActionClipKey, { start: number; count: number; reverse?: boolean }>> = {
-  "pick_up_book:on_ground": { start: 38, count: 14 },
-  "put_down_book:in_hand_closed": { start: 38, count: 14, reverse: true },
+const actionClipFrames: Partial<Record<GuideActionClipKey, { start: number; count: number; reverseOrder?: boolean }>> = {
+  "pick_up_book:on_ground": { start: 50, count: 10 },
+  "put_down_book:in_hand_closed": { start: 50, count: 10, reverseOrder: true },
   "open_book:in_hand_closed": { start: 89, count: 10 },
-  "close_book:in_hand_open": { start: 89, count: 10, reverse: true },
+  "close_book:in_hand_open": { start: 89, count: 10, reverseOrder: true },
   "flip_through_book:in_hand_open": { start: 121, count: 4 },
   "write_in_book:in_hand_open": { start: 141, count: 13 },
   "speak:on_ground": { start: 29, count: 4 },
@@ -53,7 +53,7 @@ export function createGuideSpriteSheet(sheetTexture: Texture): GuideSpriteSheet 
       key,
       {
         textures: createFrameRange(sheetTexture, frameRange.start, frameRange.count),
-        reverse: frameRange.reverse ?? false
+        reverseOrder: frameRange.reverseOrder ?? false
       }
     ])
   ) as Partial<Record<GuideActionClipKey, GuideActionClip>>;

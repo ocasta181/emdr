@@ -141,11 +141,11 @@ export class GuideCharacter {
 
   private playStep(step: GuideAnimationStep, onComplete: () => void) {
     const clip = actionClipForStep(this.guideSheet, step);
-    const clipKey = `${step.action}:${step.from}:${clip.reverse ? "reverse" : "forward"}:once`;
+    const clipKey = `${step.action}:${step.from}:${clip.reverseOrder ? "reverse" : "forward"}:once`;
     if (clipKey === this.activeClipKey) return;
 
     this.activeClipKey = clipKey;
-    this.guide.textures = clip.reverse ? clip.textures.slice().reverse() : clip.textures;
+    this.guide.textures = clip.reverseOrder ? clip.textures.slice().reverse() : clip.textures;
     this.guide.loop = false;
     this.guide.animationSpeed = guideSpriteFrameRate / 60;
     this.guide.onComplete = onComplete;
