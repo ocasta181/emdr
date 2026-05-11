@@ -41,6 +41,17 @@ export class SQLBaseRepository<T extends object> {
     );
   }
 
+  update(primaryKey: string, patch: Partial<T>) {
+    const row = this.toRow(patch as T);
+    const entries = Object.entries(row).filter(([key]) => this.tableColumns().includes(key));
+    if (entries.length === 0) return;
+    const setClause = entries.map(([key]) => `${quoteIdentifier(key)} = ?`).join(", ");
+    this.db.run(
+      `UPDATE ${quoteIdentifier(this.table)} SET ${setClause} WHERE ${this.primaryKeyColumn()} = ?`,
+      [...entries.map(([, value]) => value ?? null), primaryKey]
+    );
+  }
+
   replaceAll(entities: T[]) {
     this.deleteAll();
     for (const entity of entities) {
