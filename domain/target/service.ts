@@ -12,7 +12,7 @@ export function currentTargets(database: Database) {
 export function reviseTarget(
   database: Database,
   previous: Target,
-  patch: Partial<Omit<Target, "id" | "rootTargetId" | "parentTargetId" | "createdAt">>
+  patch: Partial<Omit<Target, "id" | "parentId" | "createdAt">>
 ): Database {
   const now = nowIso();
   const nextTarget = createTargetRevision(previous, patch);

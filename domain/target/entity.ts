@@ -2,8 +2,7 @@ export type TargetStatus = "active" | "completed" | "deferred";
 
 export type Target = {
   id: string;
-  rootTargetId: string;
-  parentTargetId?: string;
+  parentId?: string;
   isCurrent: boolean;
   createdAt: string;
   updatedAt: string;

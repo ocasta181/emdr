@@ -158,14 +158,14 @@ Adding a new room object should primarily mean adding a definition, not editing 
 
 ## Target Version Model
 
-Targets are versioned records. The persisted model should not need both `rootTargetId` and `parentTargetId`.
+Targets are versioned records. The persisted model should not need both a stored root id and a parent id.
 
 Use parent links only:
 
 ```ts
 type Target = {
   id: string;
-  parentTargetId?: string;
+  parentId?: string;
   isCurrent: boolean;
   // target fields...
 };
@@ -174,7 +174,7 @@ type Target = {
 Rules:
 
 - the original version has no parent;
-- every later version has `parentTargetId` pointing to the immediate previous version;
+- every later version has `parentId` pointing to the immediate previous version;
 - `isCurrent` is independent and marks the latest version;
 - there should be exactly one current version for a logical target lineage.
 
@@ -199,7 +199,7 @@ This keeps the persisted model minimal while still giving the application the tr
 Implementation will require a SQLite migration and domain type updates:
 
 - drop `root_target_id`;
-- keep `parent_target_id`;
+- rename `parent_target_id` to `parent_id`;
 - enforce parent integrity with a self-reference where practical;
 - preserve one current target per lineage through service rules and, if feasible, database constraints.
 

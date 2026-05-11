@@ -9,7 +9,6 @@ export const SESSION_ID_PREFIX = "ses";
 export function createSessionForTarget(target: Target): SessionAggregate {
   return {
     id: createId(SESSION_ID_PREFIX),
-    targetRootId: target.rootTargetId,
     targetId: target.id,
     startedAt: nowIso(),
     assessment: {
@@ -24,7 +23,6 @@ export function createSessionForTarget(target: Target): SessionAggregate {
 export function createSessionFromAggregate(session: SessionAggregate): Session {
   return {
     id: session.id,
-    targetRootId: session.targetRootId,
     targetId: session.targetId,
     startedAt: session.startedAt,
     endedAt: session.endedAt,
@@ -43,7 +41,6 @@ export function createSessionFromAggregate(session: SessionAggregate): Session {
 export function createSessionAggregate(session: Session, stimulationSets: StimulationSet[]): SessionAggregate {
   return {
     id: session.id,
-    targetRootId: session.targetRootId,
     targetId: session.targetId,
     startedAt: session.startedAt,
     endedAt: session.endedAt,

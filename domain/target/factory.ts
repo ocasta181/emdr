@@ -10,15 +10,12 @@ type TargetDraft = Pick<Target, "description" | "negativeCognition" | "positiveC
   >;
 
 export const TARGET_ID_PREFIX = "tgt";
-export const TARGET_ROOT_ID_PREFIX = "trg";
 
 export function createTarget(draft: TargetDraft): Target {
   const now = nowIso();
-  const rootTargetId = createId(TARGET_ROOT_ID_PREFIX);
 
   return {
     id: createId(TARGET_ID_PREFIX),
-    rootTargetId,
     isCurrent: true,
     createdAt: now,
     updatedAt: now,
@@ -29,16 +26,25 @@ export function createTarget(draft: TargetDraft): Target {
 
 export function createTargetRevision(
   previous: Target,
-  patch: Partial<Omit<Target, "id" | "rootTargetId" | "parentTargetId" | "createdAt">>
+  patch: Partial<Omit<Target, "id" | "parentId" | "createdAt">>
 ): Target {
   const now = nowIso();
+  const targetFields = {
+    description: previous.description,
+    negativeCognition: previous.negativeCognition,
+    positiveCognition: previous.positiveCognition,
+    clusterTag: previous.clusterTag,
+    initialDisturbance: previous.initialDisturbance,
+    currentDisturbance: previous.currentDisturbance,
+    status: previous.status,
+    notes: previous.notes
+  };
 
   return {
-    ...previous,
+    ...targetFields,
     ...patch,
     id: createId(TARGET_ID_PREFIX),
-    rootTargetId: previous.rootTargetId,
-    parentTargetId: previous.id,
+    parentId: previous.id,
     isCurrent: true,
     createdAt: now,
     updatedAt: now

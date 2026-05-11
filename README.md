@@ -24,7 +24,7 @@ The current build is an MVP focused on proving the core flow end to end with enc
 ## Current MVP
 
 - Create and edit versioned targets.
-- Keep prior target versions using `parentTargetId`, `rootTargetId`, and `isCurrent`.
+- Keep prior target versions using `parentId` and `isCurrent`.
 - Create an encrypted local vault protected by a password.
 - Show an app-generated 256-bit recovery key during vault setup.
 - Prompt the user to store the recovery key somewhere safe.
@@ -108,13 +108,12 @@ The application domain is persisted in the local SQLite database inside the encr
 
 ### Target
 
-Targets are versioned records stored in the singular `target` table. A logical target is represented by a root target id and one or more target rows.
+Targets are versioned records stored in the singular `target` table. A logical target is represented by one root row and later rows linked to their immediate parent.
 
 ```ts
 type Target = {
   id: string;
-  rootTargetId: string;
-  parentTargetId?: string;
+  parentId?: string;
   isCurrent: boolean;
   createdAt: string;
   updatedAt: string;
@@ -136,7 +135,6 @@ Each session references the target version that was active when the session bega
 ```ts
 type Session = {
   id: string;
-  targetRootId: string;
   targetId: string;
   startedAt: string;
   endedAt?: string;

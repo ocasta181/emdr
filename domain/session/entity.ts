@@ -1,6 +1,5 @@
 export type Session = {
   id: string;
-  targetRootId: string;
   targetId: string;
   startedAt: string;
   endedAt?: string;

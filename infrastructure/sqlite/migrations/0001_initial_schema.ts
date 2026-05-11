@@ -6,8 +6,7 @@ export function up(db: SqliteDatabase) {
 
     CREATE TABLE IF NOT EXISTS target (
       id TEXT PRIMARY KEY,
-      root_target_id TEXT NOT NULL,
-      parent_target_id TEXT,
+      parent_id TEXT REFERENCES target(id) DEFERRABLE INITIALLY DEFERRED,
       is_current INTEGER NOT NULL CHECK (is_current IN (0, 1)),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -21,13 +20,12 @@ export function up(db: SqliteDatabase) {
       notes TEXT
     );
 
-    CREATE INDEX IF NOT EXISTS idx_target_root ON target(root_target_id);
+    CREATE INDEX IF NOT EXISTS idx_target_parent ON target(parent_id);
     CREATE INDEX IF NOT EXISTS idx_target_current ON target(is_current, status, current_disturbance);
 
     CREATE TABLE IF NOT EXISTS "session" (
       id TEXT PRIMARY KEY,
-      target_root_id TEXT NOT NULL,
-      target_id TEXT NOT NULL,
+      target_id TEXT NOT NULL REFERENCES target(id) DEFERRABLE INITIALLY DEFERRED,
       started_at TEXT NOT NULL,
       ended_at TEXT,
       assessment_image TEXT,
@@ -41,7 +39,7 @@ export function up(db: SqliteDatabase) {
       notes TEXT
     );
 
-    CREATE INDEX IF NOT EXISTS idx_session_target ON "session"(target_root_id, started_at);
+    CREATE INDEX IF NOT EXISTS idx_session_target ON "session"(target_id, started_at);
     CREATE INDEX IF NOT EXISTS idx_session_started ON "session"(started_at);
 
     CREATE TABLE IF NOT EXISTS stimulation_set (
