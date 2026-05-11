@@ -1,16 +1,7 @@
 import { useEffect, useRef } from "react";
-import { AnimatedSprite, Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
-import {
-  guideAnimationIntentKey,
-  independentBookStateForBookState,
-  independentBookStateForStep,
-  planGuideAnimation,
-  type BookState,
-  type GuideAnimationIntent,
-  type GuideAnimationStep
-} from "./guideAnimationModel";
-import { actionClipForStep, createGuideSpriteSheet, guideSpriteCellSize, guideSpriteFrameRate } from "./guideSpriteSheet";
-import guideSpriteSheetUrl from "../../assets/animated-room/guide-sprite-sheet-154.png?url";
+import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
+import type { GuideAnimationIntent } from "./guideAnimationModel";
+import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../assets/animated-room/orb.svg?url";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
@@ -71,11 +62,11 @@ export function RoomScene({
       const background = new Graphics();
       const hill = new Graphics();
       const moon = new Graphics();
-      const guideSheetTexture = await Assets.load<Texture>(guideSpriteSheetUrl);
       const orbTexture = await Assets.load(orbUrl);
-      const guideSheet = createGuideSpriteSheet(guideSheetTexture);
-      const guide = new AnimatedSprite(guideSheet.idleClips.on_ground);
-      const targetBook = new Sprite(guideSheet.bookAtRest);
+      const guideCharacter = await GuideCharacter.load({
+        onTargetBookSelected: () => callbackRef.current("targets"),
+        onActionComplete: () => actionCompleteRef.current()
+      });
       const orb = new Sprite(orbTexture);
       const labels = new Container();
       const dimmer = new Graphics();
@@ -87,17 +78,9 @@ export function RoomScene({
         index
       }));
 
-      guide.anchor.set(0.5, 1);
-      guide.animationSpeed = guideSpriteFrameRate / 60;
-      guide.loop = true;
-      guide.play();
-      targetBook.anchor.set(0.5, 1);
-      targetBook.eventMode = "static";
-      targetBook.cursor = "pointer";
-      targetBook.on("pointertap", () => callbackRef.current("targets"));
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hill, labels, targetBook, guide);
+      stage.addChild(background, moon, hill, labels, guideCharacter.container);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
@@ -120,11 +103,6 @@ export function RoomScene({
       let elapsed = 0;
       let lastWidth = 0;
       let lastHeight = 0;
-      let activeClipKey = "";
-      let currentBookState: BookState = "on_ground";
-      let activeStep: GuideAnimationStep | null = null;
-      let completedIntentKey: string | null = null;
-      let targetBookLayout = { x: 0, y: 0, scale: 1 };
 
       function drawLabel(text: string, x: number, y: number) {
         const label = new Text({
@@ -163,18 +141,11 @@ export function RoomScene({
         hill.roundRect(width * 0.82, height * 0.56, 80, 110, 8).fill("#383229");
         hill.circle(width * 0.82 + 40, height * 0.55, 30).fill("#52442f");
 
-        guide.position.set(width * 0.5, floorY + 10);
-        guide.width = Math.min(260, width * 0.23);
-        guide.height = guide.width;
-        const targetBookSize = guide.width * 0.46;
-        targetBookLayout = {
-          x: guide.x - guide.width * 0.32,
-          y: guide.y - guide.width * 0.02,
-          scale: targetBookSize / guideSpriteCellSize
-        };
-        targetBook.position.set(targetBookLayout.x, targetBookLayout.y);
-        targetBook.width = guideSpriteCellSize * targetBookLayout.scale;
-        targetBook.height = guideSpriteCellSize * targetBookLayout.scale;
+        guideCharacter.layout({
+          x: width * 0.5,
+          baselineY: floorY + 10,
+          size: Math.min(260, width * 0.23)
+        });
 
         labels.removeChildren();
         drawLabel("Settings", width * 0.82 + 40, height * 0.73);
@@ -185,9 +156,10 @@ export function RoomScene({
         guideHotspot.roundRect(width * 0.5 - 120, floorY - 230, 240, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
 
         const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
+        const targetBookBounds = guideCharacter.getTargetBookBounds();
         targetHotspot.clear();
         targetHotspot
-          .roundRect(targetBookLayout.x - 54, targetBookLayout.y - 54, 108, 72, 12)
+          .roundRect(targetBookBounds.x, targetBookBounds.y, targetBookBounds.width, targetBookBounds.height, 12)
           .fill({ color: 0xffffff, alpha: 0.001 });
 
         const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
@@ -197,68 +169,6 @@ export function RoomScene({
         const settingsHotspot = hotspots.find((item) => item.id === "settings")!.draw;
         settingsHotspot.clear();
         settingsHotspot.roundRect(width * 0.82, height * 0.5, 90, 160, 10).fill({ color: 0xd8c692, alpha: 0.045 });
-      }
-
-      function syncGuideAnimation(intent: GuideAnimationIntent) {
-        if (activeStep) return;
-
-        const intentKey = guideAnimationIntentKey(intent);
-        const [nextStep] = completedIntentKey === intentKey ? [] : planGuideAnimation(currentBookState, intent);
-        if (!nextStep) {
-          playGuideIdle(currentBookState);
-          return;
-        }
-
-        completedIntentKey = null;
-        activeStep = nextStep;
-        playGuideStep(nextStep, () => {
-          currentBookState = nextStep.to;
-          activeStep = null;
-          if (intent.type === "action" && nextStep.action === intent.action) {
-            completedIntentKey = intentKey;
-            actionCompleteRef.current();
-          }
-          syncGuideAnimation(runtimeRef.current.guideAnimation);
-        });
-      }
-
-      function playGuideStep(step: GuideAnimationStep, onComplete: () => void) {
-        const clip = actionClipForStep(guideSheet, step);
-        const clipKey = `${step.action}:${step.from}:${clip.reverse ? "reverse" : "forward"}:once`;
-        if (clipKey === activeClipKey) return;
-
-        activeClipKey = clipKey;
-        guide.textures = clip.reverse ? clip.textures.slice().reverse() : clip.textures;
-        guide.loop = false;
-        guide.animationSpeed = guideSpriteFrameRate / 60;
-        guide.onComplete = onComplete;
-        guide.gotoAndPlay(0);
-      }
-
-      function playGuideIdle(state: BookState) {
-        const clipKey = `idle:${state}:loop`;
-        if (clipKey === activeClipKey) return;
-
-        activeClipKey = clipKey;
-        guide.textures = guideSheet.idleClips[state];
-        guide.loop = true;
-        guide.animationSpeed = guideSpriteFrameRate / 60;
-        guide.onComplete = undefined;
-        guide.gotoAndPlay(0);
-      }
-
-      function syncTargetBookVisibility() {
-        const independentBookState = activeStep
-          ? independentBookStateForStep(activeStep, activeStepProgress())
-          : independentBookStateForBookState(currentBookState);
-        targetBook.visible = independentBookState === "visible";
-        hotspots.find((item) => item.id === "targets")!.draw.visible = targetBook.visible;
-      }
-
-      function activeStepProgress() {
-        const frameCount = guide.textures.length;
-        if (frameCount <= 1) return 1;
-        return guide.currentFrame / (frameCount - 1);
       }
 
       app.ticker.add((ticker) => {
@@ -273,13 +183,14 @@ export function RoomScene({
           lastHeight = height;
         }
 
-        syncGuideAnimation(runtime.guideAnimation);
-        syncTargetBookVisibility();
-
-        const floorY = height * 0.78;
         const breath = Math.sin(elapsed * 1.6) * 4;
-        guide.y = floorY + 10 + breath;
-        guide.alpha = runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1;
+        guideCharacter.sync(runtime.guideAnimation);
+        guideCharacter.syncTargetBookVisibility();
+        guideCharacter.setFrame({
+          breath,
+          alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
+        });
+        hotspots.find((item) => item.id === "targets")!.draw.visible = guideCharacter.getTargetBookBounds().visible;
 
         for (const firefly of fireflies) {
           const x = (Math.sin(elapsed * firefly.speed + firefly.xSeed) * 0.5 + 0.5) * width;
