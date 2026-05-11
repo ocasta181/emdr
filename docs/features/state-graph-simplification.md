@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+In progress
 
 ## Goal
 
@@ -14,12 +14,13 @@ This note captures the intended cleanup direction before implementation.
 
 This proposal accounts for the highest-value simplifications identified in the codebase assessment:
 
-- replace the split session flow/tool vocabulary with one state/action graph;
-- make session UI rendering depend on that graph instead of redefining state flow in JSX;
-- split animated room stimulation state from panel state so settings can open while stimulation continues;
-- replace room-object `if`/`switch` branches with object registries;
-- model target versions as a parent-linked version tree with derived lineage indexes;
-- move guide sprite action clip metadata onto the existing guide animation graph.
+- [x] replace the split session flow/tool vocabulary with one state/action graph;
+- [ ] make session UI rendering depend on that graph instead of redefining state flow in JSX;
+- [ ] split animated room stimulation state from panel state so settings can open while stimulation continues;
+- [ ] replace room-object `if`/`switch` branches with object registries;
+- [x] model target versions as parent-linked persisted records;
+- [ ] add derived lineage indexes for target version history, rollback, and diff views;
+- [ ] move guide sprite action clip metadata onto the existing guide animation graph.
 
 Some wording differs from the original assessment because the follow-up design constraints are stricter: there is no separate agent-tool concept, and domain state graphs must not import or define UI components.
 
@@ -50,7 +51,7 @@ The graph should be the single source of truth for valid state movement:
 ```ts
 type SessionStateNode = {
   state: SessionFlowState;
-  actions: SessionStateAction[];
+  edges: SessionStateAction[];
 };
 
 type SessionStateAction = {
@@ -63,10 +64,10 @@ The current `sessionFlowDefinitions` structure is already close to this, but the
 
 Expected graph-derived operations:
 
-- `availableActions(state)`
-- `canApplyAction(state, action)`
-- `nextState(state, action)`
-- future agent action validation
+- [x] `availableActions(state)`
+- [x] `canApplyAction(state, action)`
+- [x] `nextState(state, action)`
+- [ ] future agent action validation
 
 The session graph should not import React, PixiJS, or presentation components.
 
@@ -196,12 +197,12 @@ If version history, rollback, or diff views are added, the UI should use this in
 
 This keeps the persisted model minimal while still giving the application the tree-shaped access pattern it needs. The root id is derived by walking parent links; it is not stored on each row.
 
-Implementation will require a SQLite migration and domain type updates:
+Implementation required a SQLite migration and domain type updates:
 
-- drop `root_target_id`;
-- rename `parent_target_id` to `parent_id`;
-- enforce parent integrity with a self-reference where practical;
-- preserve one current target per lineage through service rules and, if feasible, database constraints.
+- [x] drop `root_target_id`;
+- [x] rename `parent_target_id` to `parent_id`;
+- [x] enforce parent integrity with a self-reference where practical;
+- [ ] preserve one current target per lineage through comprehensive service rules and, if feasible, database constraints.
 
 ## Guide Animation Graph
 
@@ -231,12 +232,12 @@ Idle clips and independent book-at-rest frames can remain sheet-level metadata b
 
 ## Implementation Order
 
-1. Unify session actions and remove separate agent tool vocabulary.
-2. Make the session graph the only source of valid state movement.
-3. Refactor session UI to render from state and graph-derived available actions.
-4. Split animated room panel state from stimulation state.
-5. Convert room object selection and hotspots to registries.
-6. Simplify target version persistence to parent links plus `isCurrent`.
-7. Move guide action clip metadata onto graph edges.
+- [x] Unify session actions and remove separate agent tool vocabulary.
+- [x] Make the session graph the only source of valid state movement.
+- [ ] Refactor session UI to render from state and graph-derived available actions.
+- [ ] Split animated room panel state from stimulation state.
+- [ ] Convert room object selection and hotspots to registries.
+- [x] Simplify target version persistence to parent links plus `isCurrent`.
+- [ ] Move guide action clip metadata onto graph edges.
 
 Each step should be committed independently because several affect persisted data and public domain vocabulary.
