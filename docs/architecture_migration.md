@@ -121,7 +121,7 @@ Checklist:
 - [x] Add a small module shape for main-process domains, for example
   `Name()` and `Register(registry)`.
 - [x] Move vault IPC registration into `src/main/internal/domain/vault/ipc.ts`.
-- [ ] Add target routes for list, create, and revise.
+- [x] Add target routes for list, create, and revise.
 - [ ] Add session routes for start, assessment update, flow transition, and end.
 - [ ] Add stimulation-set routes for logging and listing by session.
 - [ ] Add setting routes for read and bilateral-stimulation update.
