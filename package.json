@@ -13,7 +13,9 @@
     "electron:animated": "pnpm build && electron . --animated-ui",
     "build:electron": "tsc -p electron/tsconfig.json",
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "static:architecture": "node tools/check-architecture.mjs",
+    "static:architecture:staged": "node tools/check-architecture.mjs --staged"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",
