@@ -7,12 +7,16 @@ Agent process <----private protocol----> Electron main process <----Electron IPC
                                                |
                                                | repository calls
                                                v
-                                           SQL database
+                                           SQL store
 ```
 
-The Electron main process is the Core Engine process. It owns the authoritative application state, domain workflows, persistence access, vault state, and agent coordination.
+The Electron main process is the Core Engine process. It owns authoritative
+application state, domain workflows, store access, vault state, and agent
+coordination.
 
-The Electron renderer is the presentation layer. It renders UI, gathers user input, and sends user intent to the main process through preload-backed IPC.
+The Electron renderer is the presentation layer. It renders UI, gathers user
+input, and sends user intent to the main process through a preload-backed,
+domain-agnostic transport bridge.
 
 ## Runtime Components
 
@@ -24,33 +28,62 @@ The Electron main process is the application authority. It:
 - owns domain workflows and state transitions
 - owns vault unlock state
 - starts and supervises the local agent process
-- reads and writes the SQL database through repositories
-- exposes typed command/event IPC to the renderer
+- reads and writes the SQL store through repositories
+- owns the API route registry for main-process IPC endpoints
 - creates application windows and handles native desktop affordances
 
-The main process may contain Electron shell code, but domain-specific behavior belongs under `src/main/domain`.
+`electron/main.ts` is only the executable entrypoint. It should parse process
+flags or environment needed at startup, then call `Start()` from
+`src/main/api/app.ts`.
+
+### Main API Layer
+
+`src/main/api` is the main-process composition root. It sits between the
+Electron entrypoint and `src/main/internal`.
+
+It owns:
+
+- application startup and shutdown
+- Electron lifecycle wiring
+- window creation setup
+- network guard setup
+- central IPC route registry setup
+- domain module initialization
+- dependency injection for store, repositories, services, vault, and agent
+  adapters
+
+The API layer is the only place that should know about all domains at once.
 
 ### Electron Preload
 
-Preload is a narrow security bridge between the renderer and main process. It:
+Preload is a narrow security bridge between the renderer and main process. It
+runs in Electron's preload context, has access to `ipcRenderer`, and exposes a
+small safe API to the renderer with `contextBridge`.
 
-- exposes a small typed API to the renderer with `contextBridge`
-- forwards renderer commands to main IPC
+Preload is not the route registry and does not know which domains exist. It:
+
+- exposes a domain-agnostic transport bridge to the renderer
+- forwards renderer requests over generic main IPC transport
 - forwards main events to renderer subscribers
+- returns unsubscribe functions for subscriptions
 - contains no business rules
-- contains no persistence or agent logic
+- contains no route registration logic
+- contains no domain-specific endpoint list
+- contains no store, vault, or agent logic
 
 ### Electron Renderer
 
 The renderer is the presentation layer. It:
 
 - renders React UI and animation
-- holds ephemeral UI state such as form drafts, selected panels, local input text, and animation state
-- calls preload APIs to express user intent
-- subscribes to main-process events and view state
-- never opens the database
+- holds ephemeral UI state such as form drafts, selected panels, local input
+  text, and animation state
+- sends user intent through the preload bridge
+- subscribes to main-process events and view state through the preload bridge
+- never opens the store
 - never talks to the agent process
-- never owns the authoritative domain state
+- never owns authoritative domain state
+- never imports main-process internals
 
 ### Agent Process
 
@@ -60,14 +93,14 @@ The agent process is a local sidecar. It:
 - receives constrained context from the main process
 - returns structured proposed actions
 - never talks to the renderer
-- never talks to the database
+- never talks to the store
 - never mutates state directly
 
 The main process validates every proposed agent action before applying it.
 
-### SQL Database
+### SQL Store
 
-The SQL database is durable storage only. It:
+The SQL store is durable storage only. It:
 
 - stores targets, sessions, stimulation sets, settings, and vault-backed app data
 - is accessed only by the main process
@@ -77,19 +110,33 @@ The SQL database is durable storage only. It:
 ## Directory Structure
 
 ```text
+electron/
+  main.ts
+  preload.cts
+
 src/
   main/
-    app/
-    domain/
-      vault/
-      target/
-      session/
-      stimulation-set/
-      settings/
-      guide/
-    ipc/
-    persistence/
-    agent/
+    api/
+      app.ts
+      registry.ts
+      modules.ts
+
+    internal/
+      domain/
+        vault/
+        target/
+        session/
+        stimulation-set/
+        setting/
+        guide/
+
+      lib/
+        ipc/
+        store/
+        vault/
+        agent/
+        electron/
+        id/
 
   preload/
     app/
@@ -101,87 +148,167 @@ src/
       target/
       session/
       stimulation-set/
-      settings/
+      setting/
       guide/
 
   shared/
 
 agent/
-database/
 docs/
 assets/
 ```
 
 ## Directory Responsibilities
 
-### `src/main/app`
+### `electron/main.ts`
 
-Main-process application composition:
+Executable entrypoint only:
 
-- Electron lifecycle
-- window creation
-- native menus and dialogs
-- wiring domains to persistence, IPC, and agent adapters
+- parse startup flags and environment
+- call `Start()` from `src/main/api/app.ts`
+- contain no domain behavior
+- contain no repository, store, or vault workflow logic
+- contain no route registration logic beyond handing control to `src/main/api`
 
-### `src/main/domain`
+### `src/main/api/app.ts`
 
-Core Engine domains. This is where domain-specific application behavior lives.
+Main-process application lifecycle:
 
-Each domain owns its vertical slice:
+- start Electron app lifecycle
+- configure network blocking
+- create application windows through internal Electron adapters
+- initialize the central API registry
+- call `Initialize()` from `modules.ts`
+- ask initialized modules to register their routes
+- coordinate shutdown
+
+### `src/main/api/registry.ts`
+
+Central main-process route registry:
+
+- defines the registration API used by domain modules
+- owns generic renderer-to-main dispatch
+- maps raw Electron IPC transport to registered route handlers
+- maps handler errors to transport-safe errors
+- publishes main-to-renderer events through generic IPC transport
+
+Domain routes are registered here by modules, but domain-specific behavior does
+not live here.
+
+### `src/main/api/modules.ts`
+
+Main-process dependency wiring:
+
+- opens or receives the SQL store adapter
+- instantiates repositories with the store adapter
+- instantiates services with repositories and other service interfaces
+- instantiates domain modules with their services
+- returns the module list to `app.ts`
+
+This is the only file that should stand up every domain at once.
+
+### `src/main/internal/domain`
+
+Core Engine domains. Each domain owns its bounded context:
 
 ```text
-src/main/domain/<domain>/
-  model/
-  service/
-  repository/
-  persistence/
-  ipc/
-  schemas/
+src/main/internal/domain/<domain>/
+  module.ts
+  ipc.ts
+  service.ts
+  repository.ts
+  entity.ts
+  types.ts
+  factory.ts
+  schemas.ts
 ```
 
-Domain-specific IPC definitions and handlers live inside the domain. Domain-specific persistence definitions, mappings, and repository implementations live inside the domain. The domain service owns the business workflow.
+The exact files may vary by domain, but the responsibilities do not:
 
-### `src/main/ipc`
+- `module.ts` wires that domain's service, router/IPC registration, and public
+  module shape
+- `ipc.ts` registers that domain's endpoints with the central API registry
+- `service.ts` owns business workflows and state transitions
+- `repository.ts` is the only domain code that touches the store adapter
+- `entity.ts` and `types.ts` define domain types
+- `factory.ts` creates valid domain entities when a factory is useful
+- `schemas.ts` validates boundary payloads when runtime validation is needed
 
-Generic IPC infrastructure only:
+Domains may depend on internal library abstractions and injected service
+interfaces. They should not import renderer code, preload code, Electron shell
+objects, or other domains' internals.
 
-- typed registration helpers
-- command dispatch helpers
-- event publishing helpers
-- shared IPC error mapping
+Cross-domain calls go service-to-service through injected interfaces.
 
-No domain-specific channels belong here.
+### `src/main/internal/lib/ipc`
 
-### `src/main/persistence`
+Generic IPC infrastructure:
 
-Generic persistence infrastructure only:
+- raw Electron IPC adapter helpers
+- request and response envelope helpers
+- subscription helper primitives
+- transport-safe error helpers
 
-- database connection lifecycle
+Domain-specific routes do not live here. Route ownership belongs to
+`src/main/api/registry.ts` and domain route registration belongs to each
+domain's `ipc.ts`.
+
+### `src/main/internal/lib/store`
+
+Generic store infrastructure:
+
+- SQL adapter abstraction
+- SQLite connection lifecycle
 - transactions
 - migration runner
 - low-level SQL utilities
-- vault-backed database loading and saving primitives
+- vault-backed database loading and saving primitives when they are generic
 
-No domain-specific tables, queries, or mappings belong here.
+No domain-specific tables, queries, mappings, or business rules belong here.
 
-### `src/main/agent`
+### `src/main/internal/lib/vault`
 
-Generic agent process infrastructure only:
+Vault primitives:
+
+- encryption and decryption helpers
+- key wrapping helpers
+- vault file parsing and writing
+- vault format validation
+
+Domain workflow around unlock, import, export, and status belongs to the vault
+domain service.
+
+### `src/main/internal/lib/agent`
+
+Generic agent process infrastructure:
 
 - sidecar process startup and shutdown
 - stdio or localhost transport
 - health checks
 - model runtime configuration
 
-Domain-specific guide behavior belongs in `src/main/domain/guide`.
+Domain-specific guide behavior belongs in `src/main/internal/domain/guide`.
+
+### `src/main/internal/lib/electron`
+
+Electron shell adapters:
+
+- window creation helpers
+- dialog adapters
+- native menu adapters
+- network guard helpers
+
+These adapters are infrastructure. They should not contain domain workflows.
 
 ### `src/preload/app`
 
 Preload bridge setup:
 
-- exposes the approved renderer API
-- wraps `ipcRenderer.invoke`
+- exposes domain-agnostic request and subscription functions
+- wraps generic `ipcRenderer.invoke` transport
 - wraps event subscription and unsubscription
+- does not import domain endpoint definitions
+- does not register routes
 
 ### `src/renderer/app`
 
@@ -194,11 +321,41 @@ Renderer application shell:
 
 ### `src/renderer/features`
 
-Renderer feature UI. These folders may mirror main domain names, but they contain presentation code only.
+Renderer feature UI. These folders may mirror main domain names, but they
+contain presentation code only.
 
 ### `src/shared`
 
-Cross-process types and constants that are safe for both main and renderer. Shared code must not import Electron main APIs, renderer APIs, database clients, or agent runtime code.
+Cross-process types and constants that are safe for both main and renderer.
+Shared code must not import Electron main APIs, renderer APIs, store clients,
+vault internals, or agent runtime code.
+
+Shared code can define generic transport envelopes and serializable view-model
+types. It should not become a back door for importing main internals into the
+renderer.
+
+## Dependency Direction
+
+```text
+electron/main.ts
+  -> src/main/api/app.ts
+  -> src/main/api/modules.ts
+  -> src/main/internal/domain/*
+  -> src/main/internal/lib/*
+
+renderer
+  -> preload bridge
+  -> generic IPC transport
+  -> src/main/api/registry.ts
+  -> registered domain IPC handler
+  -> domain service
+  -> domain repository
+  -> store adapter
+```
+
+Preload does not import domain modules. Domains do not import preload. The route
+registry lives in main, and domain modules self-register with it during main
+startup.
 
 ## IPC Shape
 
@@ -206,18 +363,19 @@ Renderer-to-main IPC is command based:
 
 ```text
 renderer feature
-  -> preload app API
+  -> preload domain-agnostic transport
   -> generic main IPC transport
-  -> domain-specific IPC handler
+  -> src/main/api/registry.ts
+  -> registered domain IPC handler
   -> domain service
 ```
 
 Main-to-renderer IPC is event based:
 
 ```text
-domain service
-  -> domain event
-  -> generic main IPC event publisher
+domain service or app coordinator
+  -> registered main event publisher
+  -> generic IPC event transport
   -> preload subscription
   -> renderer feature
 ```
@@ -225,30 +383,31 @@ domain service
 IPC rules:
 
 - no generic `db:load` or `db:save` channels
-- no generic domain mutation channel
-- one typed command per user intent
-- domain-specific command definitions live in `src/main/domain/<domain>/ipc`
+- no generic domain mutation channel that bypasses route registration
+- the main route registry is owned by `src/main/api/registry.ts`
+- domains register their own IPC endpoints during module registration
+- preload exposes generic transport, not domain-specific endpoint wrappers
 - renderer responses use view models, not database rows
 - renderer subscriptions return unsubscribe functions
 
-## Persistence Shape
+## Store Shape
 
-Persistence flows through domain repositories:
+Store access flows through domain repositories:
 
 ```text
 domain service
   -> domain repository interface
-  -> domain persistence implementation
-  -> generic persistence connection
-  -> SQL database
+  -> domain repository implementation
+  -> generic store adapter
+  -> SQL store
 ```
 
-Persistence rules:
+Store rules:
 
-- generic DB machinery lives in `src/main/persistence`
-- domain-specific repositories live in `src/main/domain/<domain>/repository`
-- domain-specific SQL mappings live in `src/main/domain/<domain>/persistence`
-- the renderer never receives a database handle or full database snapshot
+- generic store machinery lives in `src/main/internal/lib/store`
+- domain-specific repositories live in `src/main/internal/domain/<domain>`
+- domain-specific SQL mappings live with the owning domain repository
+- the renderer never receives a store handle or full database snapshot
 
 ## Agent Shape
 
@@ -269,4 +428,4 @@ Agent rules:
 - the main process is authoritative
 - proposed agent actions are validated by domain services
 - invalid proposed actions are rejected by the main process
-- the agent never talks directly to renderer IPC or persistence
+- the agent never talks directly to renderer IPC or the store
