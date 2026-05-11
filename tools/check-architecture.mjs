@@ -13,20 +13,11 @@ const businessFileNamePatterns = [/\/factory(?:\.[cm]?tsx?)?$/, /\/flow(?:\.[cm]
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
+let activeFindings = [];
 
 const files = stagedOnly ? stagedFiles() : allSourceFiles();
 const analyzedFiles = files.filter((file) => sourceExtensions.has(path.extname(file.path)));
-const project = new Project({ skipAddingFilesFromTsConfig: true });
-const findings = [];
-
-for (const file of analyzedFiles) {
-  const sourceFile = project.createSourceFile(file.path, file.text, { overwrite: true });
-  analyzeTypeRuntimeBoundary(sourceFile);
-  analyzeImports(sourceFile);
-  analyzeDbTouches(sourceFile);
-  analyzeBusinessLogic(sourceFile);
-  analyzeUiBusinessLogic(sourceFile);
-}
+const findings = stagedOnly ? introducedFindings(analyzedFiles) : analyzeFiles(analyzedFiles);
 
 if (findings.length > 0) {
   console.error("Architecture static analysis failed:");
@@ -71,6 +62,7 @@ function analyzeTypeRuntimeBoundary(sourceFile) {
     report({
       node: typeDeclarations[0],
       rule: "architecture/types-runtime-boundary",
+      fingerprint: "mixed-type-runtime-file",
       message: "Files must define either types or runtime values/functions, not both. Move the types into a sibling types/entity file."
     });
   }
@@ -261,6 +253,58 @@ function isDomainFile(filePath) {
   return filePath.startsWith("domain/");
 }
 
+function introducedFindings(files) {
+  const baseFindingsByKey = countFindings(analyzeFiles(headFiles(files)));
+  const currentFindings = analyzeFiles(files);
+
+  return currentFindings.filter((finding) => {
+    const count = baseFindingsByKey.get(finding.key) ?? 0;
+    if (count > 0) {
+      baseFindingsByKey.set(finding.key, count - 1);
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function analyzeFiles(files) {
+  const project = new Project({ skipAddingFilesFromTsConfig: true });
+  const results = [];
+
+  withFindings(results, () => {
+    for (const file of files) {
+      const sourceFile = project.createSourceFile(file.path, file.text, { overwrite: true });
+      analyzeTypeRuntimeBoundary(sourceFile);
+      analyzeImports(sourceFile);
+      analyzeDbTouches(sourceFile);
+      analyzeBusinessLogic(sourceFile);
+      analyzeUiBusinessLogic(sourceFile);
+    }
+  });
+
+  return results;
+}
+
+function withFindings(findings, callback) {
+  const previousFindings = activeFindings;
+  activeFindings = findings;
+  try {
+    callback();
+  } finally {
+    activeFindings = previousFindings;
+  }
+}
+
+function countFindings(findings) {
+  const counts = new Map();
+  for (const finding of findings) {
+    counts.set(finding.key, (counts.get(finding.key) ?? 0) + 1);
+  }
+
+  return counts;
+}
+
 function resolveImport(filePath, specifier) {
   if (!specifier.startsWith(".")) return specifier;
   const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(filePath), specifier));
@@ -271,16 +315,23 @@ function stripKnownExtension(filePath) {
   return filePath.replace(/\.(d\.)?[cm]?tsx?$/, "");
 }
 
-function report({ node, rule, message }) {
+function report({ node, rule, fingerprint, message }) {
   const sourceFile = node.getSourceFile();
   const position = sourceFile.getLineAndColumnAtPos(node.getStart());
-  findings.push({
-    file: normalizePath(sourceFile.getFilePath()),
+  const file = normalizePath(sourceFile.getFilePath());
+  activeFindings.push({
+    file,
     line: position.line,
     column: position.column,
     rule,
+    key: [file, rule, message, fingerprint ?? findingNodeText(node)].join("\0"),
     message
   });
+}
+
+function findingNodeText(node) {
+  if (Node.isSourceFile(node)) return "source-file";
+  return node.getText().replace(/\s+/g, " ").trim();
 }
 
 function stagedFiles() {
@@ -295,6 +346,16 @@ function stagedFiles() {
       path: normalizePath(filePath),
       text: git(["show", `:${filePath}`])
     }));
+}
+
+function headFiles(files) {
+  return files.flatMap((file) => {
+    try {
+      return [{ path: file.path, text: git(["show", `HEAD:${file.path}`]) }];
+    } catch {
+      return [];
+    }
+  });
 }
 
 function allSourceFiles() {
@@ -329,5 +390,5 @@ function normalizePath(filePath) {
 }
 
 function git(gitArgs) {
-  return execFileSync("git", gitArgs, { encoding: "utf8" });
+  return execFileSync("git", gitArgs, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 }
