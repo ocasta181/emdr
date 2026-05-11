@@ -9,10 +9,6 @@ export function currentTargets(database: Database) {
     .sort((a, b) => (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1));
 }
 
-export function activeTargets(database: Database) {
-  return currentTargets(database).filter((target) => target.status === "active");
-}
-
 export function reviseTarget(
   database: Database,
   previous: Target,
