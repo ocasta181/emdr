@@ -1,6 +1,7 @@
 import { dialog } from "electron";
+import type { VaultFileDialogs } from "./vault-file-dialogs.types.js";
 
-export function createVaultFileDialogs() {
+export function createVaultFileDialogs(): VaultFileDialogs {
   return {
     async chooseExportPath(defaultPath: string) {
       const result = await dialog.showSaveDialog({
