@@ -107,7 +107,7 @@ For maintainability, React should treat the PixiJS scene as a controlled child c
 ```ts
 type RoomSceneProps = {
   mode: "idle" | "chat" | "session" | "stimulation" | "review";
-  sceneViewModel: SceneViewModel;
+  guideAnimation: GuideAnimationViewModel;
   stimulation?: {
     running: boolean;
     speed: number;
@@ -140,7 +140,7 @@ Target access should be represented through a book interaction, not through unre
 
 The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
 
-The guide-book animation contract is defined in `src/animation/guideSceneModel.ts`. Domain and panel state derive a semantic `SceneViewModel`; the PixiJS renderer maps that view model through a guide pose graph and then into sprite-sheet clips.
+The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. Guide state derives a semantic `GuideAnimationViewModel`; the guide animation module maps that view model through a guide pose graph and then into sprite-sheet clips. Room state, including stimulation, stays separate from guide animation state.
 
 Required guide poses and actions:
 

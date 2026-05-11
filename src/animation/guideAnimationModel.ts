@@ -1,20 +1,17 @@
 import type { AnimatedGuideState } from "../../domain/app/animatedGuideMachine";
 
-export type GuideActivity = "idle" | "speaking" | "thinking" | "stimulation_focus" | "paused";
+export type GuideActivity = "idle" | "speaking" | "thinking" | "paused";
 
 export type TargetBookState = "at_rest" | "held_closed" | "open_read" | "open_write";
 
-export type SceneFocus = "guide" | "target_book" | "stimulation" | "settings" | "history";
-
-export type SceneObjectState = {
+export type GuideObjectState = {
   targetBook: TargetBookState;
 };
 
-export type SceneViewModel = {
+export type GuideAnimationViewModel = {
   guideActivity: GuideActivity;
   guidePose: GuidePose | null;
-  objects: SceneObjectState;
-  focus: SceneFocus;
+  objects: GuideObjectState;
 };
 
 export type GuideIdlePose = "idle" | "idle_closed_book" | "idle_open_book";
@@ -58,12 +55,12 @@ const idlePoseTransitions: Array<{ from: GuideIdlePose; to: GuideIdlePose; pose:
   { from: "idle_closed_book", to: "idle_open_book", pose: "idle_closed_book_to_idle_open_book" }
 ];
 
-export function deriveSceneViewModel(state: AnimatedGuideState): SceneViewModel {
+export function deriveGuideAnimationViewModel(state: AnimatedGuideState): GuideAnimationViewModel {
   switch (state) {
     case "speaking":
-      return baseViewModel("speaking", "guide");
+      return baseViewModel("speaking");
     case "idle":
-      return baseViewModel("idle", "guide");
+      return baseViewModel("idle");
     case "targets_reading":
       return targetBookViewModel("idle", null, "open_read");
     case "targets_browsing":
@@ -71,13 +68,13 @@ export function deriveSceneViewModel(state: AnimatedGuideState): SceneViewModel 
     case "targets_writing":
       return targetBookViewModel("idle", "write_in_book", "open_write");
     case "thinking":
-      return baseViewModel("thinking", "history");
+      return baseViewModel("thinking");
   }
 }
 
-export function guideAnimationForScene(viewModel: SceneViewModel): DesiredGuideAnimation {
+export function guideAnimationForViewModel(viewModel: GuideAnimationViewModel): DesiredGuideAnimation {
   return {
-    pose: guidePoseForScene(viewModel)
+    pose: guidePoseForViewModel(viewModel)
   };
 }
 
@@ -137,7 +134,7 @@ export function isOneShotGuidePose(pose: GuidePose): boolean {
   return pose === "flip_book_pages" || pose === "write_in_book";
 }
 
-function guidePoseForScene(viewModel: SceneViewModel): GuidePose {
+function guidePoseForViewModel(viewModel: GuideAnimationViewModel): GuidePose {
   if (viewModel.guidePose) return viewModel.guidePose;
 
   const activity = normalizeGuideActivity(viewModel.guideActivity);
@@ -181,12 +178,11 @@ function guidePoseIncludesBook(pose: GuidePose) {
   return pose.endsWith("_book");
 }
 
-function baseViewModel(guideActivity: GuideActivity, focus: SceneFocus): SceneViewModel {
+function baseViewModel(guideActivity: GuideActivity): GuideAnimationViewModel {
   return {
     guideActivity,
     guidePose: null,
-    objects: { targetBook: "at_rest" },
-    focus
+    objects: { targetBook: "at_rest" }
   };
 }
 
@@ -194,11 +190,10 @@ function targetBookViewModel(
   guideActivity: GuideActivity,
   guidePose: GuidePose | null,
   targetBook: TargetBookState
-): SceneViewModel {
+): GuideAnimationViewModel {
   return {
     guideActivity,
     guidePose,
-    objects: { targetBook },
-    focus: "target_book"
+    objects: { targetBook }
   };
 }

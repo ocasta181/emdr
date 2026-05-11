@@ -1,18 +1,18 @@
 import { useEffect, useRef } from "react";
 import { AnimatedSprite, Application, Assets, Container, Graphics, Sprite, Text, type Texture } from "pixi.js";
 import {
-  guideAnimationForScene,
+  guideAnimationForViewModel,
   idlePoseForGuidePose,
   independentBookStateForPose,
   independentBookStateForTransition,
   isOneShotGuidePose,
   planGuidePoseTransitions,
   type DesiredGuideAnimation,
+  type GuideAnimationViewModel,
   type GuideIdlePose,
   type GuidePose,
-  type GuideTransitionStep,
-  type SceneViewModel
-} from "./guideSceneModel";
+  type GuideTransitionStep
+} from "./guideAnimationModel";
 import { createGuideSpriteSheet, guideSpriteCellSize, guideSpriteFrameRate } from "./guideSpriteSheet";
 import guideSpriteSheetUrl from "../../assets/animated-room/guide-sprite-sheet-154.png?url";
 import orbUrl from "../../assets/animated-room/orb.svg?url";
@@ -23,7 +23,7 @@ type RoomMode = "idle" | "chat" | "session" | "stimulation";
 
 export function RoomScene({
   mode,
-  sceneViewModel,
+  guideAnimation,
   stimulationRunning,
   stimulationColor,
   stimulationSpeed,
@@ -31,7 +31,7 @@ export function RoomScene({
   onGuideActionComplete
 }: {
   mode: RoomMode;
-  sceneViewModel: SceneViewModel;
+  guideAnimation: GuideAnimationViewModel;
   stimulationRunning: boolean;
   stimulationColor: string;
   stimulationSpeed: number;
@@ -41,10 +41,10 @@ export function RoomScene({
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
-  const runtimeRef = useRef({ mode, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed });
+  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
-  runtimeRef.current = { mode, sceneViewModel, stimulationRunning, stimulationColor, stimulationSpeed };
+  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -221,7 +221,7 @@ export function RoomScene({
               onComplete: () => {
                 currentIdlePose = nextTransition.to;
                 activeTransition = null;
-                syncGuideAnimation(guideAnimationForScene(runtimeRef.current.sceneViewModel));
+                syncGuideAnimation(guideAnimationForViewModel(runtimeRef.current.guideAnimation));
               }
             });
             return;
@@ -297,7 +297,7 @@ export function RoomScene({
           lastHeight = height;
         }
 
-        syncGuideAnimation(guideAnimationForScene(runtime.sceneViewModel));
+        syncGuideAnimation(guideAnimationForViewModel(runtime.guideAnimation));
         syncTargetBookVisibility();
 
         const floorY = height * 0.78;

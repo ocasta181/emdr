@@ -1,5 +1,5 @@
 import { Rectangle, Texture } from "pixi.js";
-import type { GuidePose } from "./guideSceneModel";
+import type { GuidePose } from "./guideAnimationModel";
 
 export const guideSpriteFrameRate = 5;
 export const guideSpriteCellSize = 128;
