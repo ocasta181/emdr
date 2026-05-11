@@ -1,12 +1,9 @@
 import type { Database } from "../app/types.js";
-import { sessionFlowDefinitions } from "./flow.js";
-import type { SessionAggregate, SessionFlowAction, SessionFlowState } from "./types.js";
+import type { SessionAggregate } from "./types.js";
 import type { Target } from "../target/entity.js";
 import { createSessionForTarget } from "./factory.js";
 import { reviseTarget } from "../target/service.js";
 import { replaceById, nowIso } from "../../utils.js";
-
-const sessionFlowDefinitionByState = new Map(sessionFlowDefinitions.map((definition) => [definition.state, definition]));
 
 export function startSessionForTarget(database: Database, target: Target) {
   const session = createSessionForTarget(target);
@@ -37,30 +34,4 @@ export function endSession(database: Database, session: SessionAggregate): Datab
   }
 
   return nextDatabase;
-}
-
-export function allowedSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
-  const definition = sessionFlowDefinitionByState.get(state);
-  if (!definition) {
-    throw new Error(`Unknown session flow state: ${state}`);
-  }
-  return definition.transitions.map((transition) => transition.action);
-}
-
-export function nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
-  const definition = sessionFlowDefinitionByState.get(state);
-  if (!definition) {
-    throw new Error(`Unknown session flow state: ${state}`);
-  }
-
-  const transition = definition.transitions.find((item) => item.action === action);
-  if (!transition) {
-    throw new Error(`Action ${action} is not allowed from ${state}.`);
-  }
-
-  return transition.nextState;
-}
-
-export function canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
-  return allowedSessionFlowActions(state).includes(action);
 }

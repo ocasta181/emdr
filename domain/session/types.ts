@@ -51,12 +51,12 @@ export type SessionFlowAction =
   | "close_session"
   | "return_to_idle";
 
-export type SessionFlowTransition = {
+export type SessionStateAction = {
   action: SessionFlowAction;
-  nextState: SessionFlowState;
+  to: SessionFlowState;
 };
 
-export type SessionFlowDefinition = {
+export type SessionStateNode = {
   state: SessionFlowState;
-  transitions: SessionFlowTransition[];
+  actions: SessionStateAction[];
 };

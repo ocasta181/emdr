@@ -1,68 +1,94 @@
-import type { SessionFlowDefinition } from "./types.js";
+import type { SessionFlowAction, SessionFlowState, SessionStateNode } from "./types.js";
 
-export const sessionFlowDefinitions = [
+export const sessionStateGraph = [
   {
     state: "idle",
-    transitions: [
-      { action: "start_session", nextState: "target_selection" },
-      { action: "select_target", nextState: "preparation" }
+    actions: [
+      { action: "start_session", to: "target_selection" },
+      { action: "select_target", to: "preparation" }
     ]
   },
   {
     state: "target_selection",
-    transitions: [
-      { action: "select_target", nextState: "preparation" },
-      { action: "create_target_draft", nextState: "target_selection" },
-      { action: "return_to_idle", nextState: "idle" }
+    actions: [
+      { action: "select_target", to: "preparation" },
+      { action: "create_target_draft", to: "target_selection" },
+      { action: "return_to_idle", to: "idle" }
     ]
   },
   {
     state: "preparation",
-    transitions: [
-      { action: "update_assessment", nextState: "preparation" },
-      { action: "approve_assessment", nextState: "stimulation" },
-      { action: "request_grounding", nextState: "interjection" },
-      { action: "begin_closure", nextState: "closure" }
+    actions: [
+      { action: "update_assessment", to: "preparation" },
+      { action: "approve_assessment", to: "stimulation" },
+      { action: "request_grounding", to: "interjection" },
+      { action: "begin_closure", to: "closure" }
     ]
   },
   {
     state: "stimulation",
-    transitions: [
-      { action: "start_stimulation", nextState: "stimulation" },
-      { action: "log_stimulation_set", nextState: "stimulation" },
-      { action: "pause_stimulation", nextState: "interjection" },
-      { action: "request_grounding", nextState: "interjection" },
-      { action: "begin_closure", nextState: "closure" }
+    actions: [
+      { action: "start_stimulation", to: "stimulation" },
+      { action: "log_stimulation_set", to: "stimulation" },
+      { action: "pause_stimulation", to: "interjection" },
+      { action: "request_grounding", to: "interjection" },
+      { action: "begin_closure", to: "closure" }
     ]
   },
   {
     state: "interjection",
-    transitions: [
-      { action: "continue_stimulation", nextState: "stimulation" },
-      { action: "request_grounding", nextState: "interjection" },
-      { action: "begin_closure", nextState: "closure" }
+    actions: [
+      { action: "continue_stimulation", to: "stimulation" },
+      { action: "request_grounding", to: "interjection" },
+      { action: "begin_closure", to: "closure" }
     ]
   },
   {
     state: "closure",
-    transitions: [
-      { action: "request_review", nextState: "review" },
-      { action: "continue_stimulation", nextState: "stimulation" },
-      { action: "request_grounding", nextState: "interjection" }
+    actions: [
+      { action: "request_review", to: "review" },
+      { action: "continue_stimulation", to: "stimulation" },
+      { action: "request_grounding", to: "interjection" }
     ]
   },
   {
     state: "review",
-    transitions: [
-      { action: "close_session", nextState: "post_session" },
-      { action: "begin_closure", nextState: "closure" }
+    actions: [
+      { action: "close_session", to: "post_session" },
+      { action: "begin_closure", to: "closure" }
     ]
   },
   {
     state: "post_session",
-    transitions: [
-      { action: "return_to_idle", nextState: "idle" },
-      { action: "start_session", nextState: "target_selection" }
+    actions: [
+      { action: "return_to_idle", to: "idle" },
+      { action: "start_session", to: "target_selection" }
     ]
   }
-] satisfies SessionFlowDefinition[];
+] satisfies SessionStateNode[];
+
+const sessionStateNodeByState = new Map(sessionStateGraph.map((node) => [node.state, node]));
+
+function sessionStateNode(state: SessionFlowState): SessionStateNode {
+  const node = sessionStateNodeByState.get(state);
+  if (!node) {
+    throw new Error(`Unknown session flow state: ${state}`);
+  }
+  return node;
+}
+
+export function availableSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
+  return sessionStateNode(state).actions.map((edge) => edge.action);
+}
+
+export function nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
+  const edge = sessionStateNode(state).actions.find((item) => item.action === action);
+  if (!edge) {
+    throw new Error(`Action ${action} is not allowed from ${state}.`);
+  }
+  return edge.to;
+}
+
+export function canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
+  return availableSessionFlowActions(state).includes(action);
+}
