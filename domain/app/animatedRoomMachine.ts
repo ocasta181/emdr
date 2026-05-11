@@ -1,9 +1,7 @@
 export type AnimatedRoomState =
   | "guide"
   | "idle"
-  | "targets_reading"
-  | "targets_browsing"
-  | "targets_writing"
+  | "targets"
   | "history"
   | "stimulation"
   | "stimulation_settings";
@@ -17,10 +15,7 @@ export type AnimatedRoomEvent =
   | { type: "select_settings" }
   | { type: "close_panel" }
   | { type: "start_stimulation" }
-  | { type: "pause_stimulation" }
-  | { type: "browse_targets" }
-  | { type: "write_target" }
-  | { type: "finish_target_action" };
+  | { type: "pause_stimulation" };
 
 export const initialAnimatedRoomState: AnimatedRoomState = "guide";
 
@@ -32,7 +27,7 @@ export function transitionAnimatedRoomState(
     case "select_guide":
       return "guide";
     case "select_targets":
-      return state === "stimulation" || state === "stimulation_settings" ? state : "targets_reading";
+      return state === "stimulation" || state === "stimulation_settings" ? state : "targets";
     case "select_history":
       return state === "stimulation" || state === "stimulation_settings" ? state : "history";
     case "select_settings":
@@ -43,12 +38,6 @@ export function transitionAnimatedRoomState(
       return "stimulation";
     case "pause_stimulation":
       return "guide";
-    case "browse_targets":
-      return state === "targets_reading" || state === "targets_writing" ? "targets_browsing" : state;
-    case "write_target":
-      return state === "targets_reading" || state === "targets_browsing" ? "targets_writing" : state;
-    case "finish_target_action":
-      return state === "targets_browsing" || state === "targets_writing" ? "targets_reading" : state;
   }
 }
 
@@ -56,9 +45,7 @@ export function animatedPanelForState(state: AnimatedRoomState): AnimatedPanel {
   switch (state) {
     case "guide":
       return "chat";
-    case "targets_reading":
-    case "targets_browsing":
-    case "targets_writing":
+    case "targets":
       return "targets";
     case "history":
       return "history";

@@ -2,6 +2,10 @@ import { useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
 import { deriveSceneViewModel } from "../../../src/animation/guideSceneModel";
 import {
+  initialAnimatedGuideState,
+  transitionAnimatedGuideState
+} from "../animatedGuideMachine";
+import {
   animatedPanelForState,
   animatedRoomStimulationRunning,
   initialAnimatedRoomState,
@@ -16,6 +20,7 @@ const proctorLines = [
 
 export function AnimatedApp() {
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
+  const [guideState, dispatchGuideEvent] = useReducer(transitionAnimatedGuideState, initialAnimatedGuideState);
   const [lineIndex, setLineIndex] = useState(0);
   const [stimulationColor, setStimulationColor] = useState("#9cc7df");
   const [stimulationSpeed, setStimulationSpeed] = useState(1);
@@ -25,13 +30,16 @@ export function AnimatedApp() {
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
       dispatchRoomEvent({ type: "select_guide" });
+      dispatchGuideEvent({ type: "speak" });
       setLineIndex((current) => (current + 1) % proctorLines.length);
       return;
     }
     if (objectId === "targets") {
       dispatchRoomEvent({ type: "select_targets" });
+      dispatchGuideEvent({ type: "read_targets" });
       return;
     }
+    dispatchGuideEvent({ type: objectId === "history" ? "think" : "idle" });
     dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
@@ -54,7 +62,7 @@ export function AnimatedApp() {
   const panel = animatedPanelForState(roomState);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const sceneViewModel = deriveSceneViewModel(roomState);
+  const sceneViewModel = deriveSceneViewModel(guideState);
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -65,7 +73,7 @@ export function AnimatedApp() {
         stimulationColor={stimulationColor}
         stimulationSpeed={stimulationSpeed}
         onObjectSelected={selectObject}
-        onGuideActionComplete={() => dispatchRoomEvent({ type: "finish_target_action" })}
+        onGuideActionComplete={() => dispatchGuideEvent({ type: "finish_target_action" })}
       />
 
       <header className="animatedTopbar">
@@ -77,6 +85,7 @@ export function AnimatedApp() {
           <button
             onClick={() => {
               dispatchRoomEvent({ type: "select_guide" });
+              dispatchGuideEvent({ type: "speak" });
             }}
           >
             Guide
@@ -127,14 +136,14 @@ export function AnimatedApp() {
               <p className="authNotice">This panel will map to target selection and agent-drafted target review.</p>
               <div className="buttonRow">
                 <button
-                  className={roomState === "targets_browsing" ? "active" : undefined}
-                  onClick={() => dispatchRoomEvent({ type: "browse_targets" })}
+                  className={guideState === "targets_browsing" ? "active" : undefined}
+                  onClick={() => dispatchGuideEvent({ type: "browse_targets" })}
                 >
                   Flip pages
                 </button>
                 <button
-                  className={roomState === "targets_writing" ? "active" : undefined}
-                  onClick={() => dispatchRoomEvent({ type: "write_target" })}
+                  className={guideState === "targets_writing" ? "active" : undefined}
+                  onClick={() => dispatchGuideEvent({ type: "write_target" })}
                 >
                   Write target
                 </button>

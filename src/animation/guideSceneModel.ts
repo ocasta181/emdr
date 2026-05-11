@@ -1,4 +1,4 @@
-import type { AnimatedRoomState } from "../../domain/app/animatedRoomMachine";
+import type { AnimatedGuideState } from "../../domain/app/animatedGuideMachine";
 
 export type GuideActivity = "idle" | "speaking" | "thinking" | "stimulation_focus" | "paused";
 
@@ -58,9 +58,9 @@ const idlePoseTransitions: Array<{ from: GuideIdlePose; to: GuideIdlePose; pose:
   { from: "idle_closed_book", to: "idle_open_book", pose: "idle_closed_book_to_idle_open_book" }
 ];
 
-export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
+export function deriveSceneViewModel(state: AnimatedGuideState): SceneViewModel {
   switch (state) {
-    case "guide":
+    case "speaking":
       return baseViewModel("speaking", "guide");
     case "idle":
       return baseViewModel("idle", "guide");
@@ -70,12 +70,8 @@ export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
       return targetBookViewModel("idle", "flip_book_pages", "open_read");
     case "targets_writing":
       return targetBookViewModel("idle", "write_in_book", "open_write");
-    case "history":
+    case "thinking":
       return baseViewModel("thinking", "history");
-    case "stimulation":
-      return baseViewModel("stimulation_focus", "stimulation");
-    case "stimulation_settings":
-      return baseViewModel("stimulation_focus", "settings");
   }
 }
 
