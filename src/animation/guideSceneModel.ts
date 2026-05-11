@@ -57,22 +57,8 @@ export type DesiredGuideAnimation = {
 export type IndependentBookState = "visible" | "hidden";
 
 const transitionEdges: Array<{ from: GuidePose; to: GuidePose; clip: GuideTransitionClip }> = [
-  { from: "idle", to: "speaking", clip: "idle_to_speaking" },
-  { from: "idle", to: "thinking", clip: "idle_to_thinking" },
   { from: "idle", to: "idle_closed_book", clip: "idle_to_idle_closed_book" },
-  {
-    from: "idle_closed_book",
-    to: "speaking_closed_book",
-    clip: "idle_closed_book_to_speaking_closed_book"
-  },
-  {
-    from: "idle_closed_book",
-    to: "thinking_closed_book",
-    clip: "idle_closed_book_to_thinking_closed_book"
-  },
-  { from: "idle_closed_book", to: "idle_open_book", clip: "idle_closed_book_to_idle_open_book" },
-  { from: "idle_open_book", to: "speaking_open_book", clip: "idle_open_book_to_speaking_open_book" },
-  { from: "idle_open_book", to: "thinking_open_book", clip: "idle_open_book_to_thinking_open_book" }
+  { from: "idle_closed_book", to: "idle_open_book", clip: "idle_closed_book_to_idle_open_book" }
 ];
 
 export function deriveSceneViewModel(state: AnimatedRoomState): SceneViewModel {
