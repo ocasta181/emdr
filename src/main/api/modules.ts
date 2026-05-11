@@ -9,6 +9,8 @@ import { createSettingModule } from "../internal/domain/setting/module.js";
 import { createSettingRouteService } from "./setting-route-service.js";
 import { createStimulationSetModule } from "../internal/domain/stimulation-set/module.js";
 import { createStimulationSetRouteService } from "./stimulation-set-route-service.js";
+import { createSessionModule } from "../internal/domain/session/module.js";
+import { createSessionRouteService } from "./session-route-service.js";
 
 export async function Initialize(options: InitializeOptions): Promise<MainModule[]> {
   const vaultDialogs = createVaultFileDialogs();
@@ -21,6 +23,7 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
       })
     ),
     createTargetModule(createTargetRouteService({ getUserDataPath: options.getUserDataPath })),
+    createSessionModule(createSessionRouteService({ getUserDataPath: options.getUserDataPath })),
     createSettingModule(createSettingRouteService({ getUserDataPath: options.getUserDataPath })),
     createStimulationSetModule(createStimulationSetRouteService({ getUserDataPath: options.getUserDataPath })),
     createLegacyMainModule({
