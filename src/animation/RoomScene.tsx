@@ -96,7 +96,10 @@ export function RoomScene({
       for (const hotspot of hotspots) {
         hotspot.draw.eventMode = "static";
         hotspot.draw.cursor = "pointer";
-        hotspot.draw.on("pointertap", () => callbackRef.current(hotspot.id));
+        hotspot.draw.on("pointertap", (event) => {
+          event.stopPropagation();
+          callbackRef.current(hotspot.id);
+        });
         stage.addChild(hotspot.draw);
       }
 
@@ -153,7 +156,7 @@ export function RoomScene({
 
         const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
         guideHotspot.clear();
-        guideHotspot.roundRect(width * 0.5 - 120, floorY - 230, 240, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
+        guideHotspot.roundRect(width * 0.5 - 40, floorY - 230, 160, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
 
         const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
         const targetBookBounds = guideCharacter.getTargetBookBounds();

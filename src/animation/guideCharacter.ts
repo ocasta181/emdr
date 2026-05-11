@@ -63,7 +63,10 @@ export class GuideCharacter {
     this.targetBook.anchor.set(0.5, 1);
     this.targetBook.eventMode = "static";
     this.targetBook.cursor = "pointer";
-    this.targetBook.on("pointertap", onTargetBookSelected);
+    this.targetBook.on("pointertap", (event) => {
+      event.stopPropagation();
+      onTargetBookSelected();
+    });
 
     this.container.addChild(this.targetBook, this.guide);
   }
