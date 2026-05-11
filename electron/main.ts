@@ -11,7 +11,7 @@ import {
   unlockAppVaultWithPassword,
   unlockAppVaultWithRecoveryCode
 } from "../core/internal/sqlite/app-store.js";
-import { defaultVaultExportName, vaultPath } from "../infrastructure/security/vault.js";
+import { VaultService } from "../domain/vault/service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,7 +19,7 @@ const isDev = process.env.VITE_DEV_SERVER_URL !== undefined;
 const useAnimatedUi = process.argv.includes("--animated-ui") || process.env.EMDR_LOCAL_UI === "animated";
 
 function databasePath() {
-  return vaultPath(userDataPath());
+  return new VaultService(userDataPath()).path();
 }
 
 function userDataPath() {
@@ -86,7 +86,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("vault:export", async () => {
     const result = await dialog.showSaveDialog({
       title: "Export Encrypted Data",
-      defaultPath: defaultVaultExportName(),
+      defaultPath: new VaultService(userDataPath()).defaultExportName(),
       filters: [{ name: "EMDR Local Encrypted Data", extensions: ["emdr-vault"] }]
     });
 
