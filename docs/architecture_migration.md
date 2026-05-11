@@ -144,7 +144,7 @@ Checklist:
 
 - [ ] Move generic SQLite connection, transaction, and migration runner code to
   `src/main/internal/lib/store`.
-- [ ] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
+- [x] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
 - [ ] Move target, session, stimulation-set, setting, vault, and guide domains to
   `src/main/internal/domain/<domain>`.
 - [ ] Keep repositories in their owning domain folders.

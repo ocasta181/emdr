@@ -216,7 +216,7 @@ function importsUi(specifier, resolved) {
     specifier === "react-dom" ||
     resolved.endsWith(".tsx") ||
     resolved.includes("/components/") ||
-    resolved.startsWith("src/")
+    (resolved.startsWith("src/") && !resolved.startsWith("src/main/"))
   );
 }
 
