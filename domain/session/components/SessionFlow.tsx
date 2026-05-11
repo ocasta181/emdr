@@ -6,7 +6,7 @@ import { createStimulationSet } from "../../stimulation-set/factory";
 import { optionalNumber } from "../../../utils";
 import type { StimulationSet } from "../../stimulation-set/entity";
 import type { Assessment, SessionAggregate, SessionFlowAction, SessionFlowState } from "../types";
-import { nextSessionFlowState } from "../flow";
+import { nextSessionFlowState } from "../service";
 
 type SessionStateDisplay = {
   label: string;
