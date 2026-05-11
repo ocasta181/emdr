@@ -17,5 +17,5 @@
     "jsx": "react-jsx"
   },
   "include": ["src", "domain", "utils.ts", "stateGraph.ts"],
-  "exclude": ["domain/vault"]
+  "exclude": ["domain/vault", "src/main"]
 }

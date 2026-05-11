@@ -83,7 +83,7 @@ function analyzeImports(sourceFile) {
       });
     }
 
-    if (!isRepositoryLayer(filePath) && importsPersistence(specifier, resolved)) {
+    if (!isStoreAllowedLayer(filePath) && importsPersistence(specifier, resolved)) {
       report({
         node: importDeclaration,
         rule: "architecture/db-in-repository-only",
@@ -111,7 +111,7 @@ function analyzeImports(sourceFile) {
 
 function analyzeDbTouches(sourceFile) {
   const filePath = normalizePath(sourceFile.getFilePath());
-  if (isRepositoryLayer(filePath)) return;
+  if (isStoreAllowedLayer(filePath)) return;
 
   sourceFile.forEachDescendant((node) => {
     if (Node.isIdentifier(node) && ["indexedDB", "localStorage"].includes(node.getText())) {
@@ -233,7 +233,20 @@ function isServiceLayer(filePath) {
 }
 
 function isRepositoryLayer(filePath) {
-  return /^domain\/[^/]+\/repository\.[cm]?tsx?$/.test(filePath) || filePath.startsWith("core/internal/") || filePath.startsWith("electron/");
+  return (
+    /^domain\/[^/]+\/repository\.[cm]?tsx?$/.test(filePath) ||
+    /^src\/main\/internal\/domain\/[^/]+\/repository\.[cm]?tsx?$/.test(filePath) ||
+    filePath.startsWith("core/internal/") ||
+    filePath.startsWith("electron/")
+  );
+}
+
+function isStoreAllowedLayer(filePath) {
+  return (
+    isRepositoryLayer(filePath) ||
+    filePath.startsWith("src/main/api/") ||
+    filePath.startsWith("src/main/internal/lib/")
+  );
 }
 
 function isTypeOnlyLayer(filePath) {
