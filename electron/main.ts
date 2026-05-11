@@ -10,7 +10,7 @@ import {
   saveAppDatabase,
   unlockAppVaultWithPassword,
   unlockAppVaultWithRecoveryCode
-} from "../infrastructure/sqlite/app-store.js";
+} from "../core/internal/sqlite/app-store.js";
 import { defaultVaultExportName, vaultPath } from "../infrastructure/security/vault.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
