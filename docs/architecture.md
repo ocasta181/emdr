@@ -1,146 +1,272 @@
 # Architecture
 
-EMDR Local is a hub-and-spoke desktop application. The Core Engine is the single source of truth for application state. All other components connect to it; none connect to each other.
+EMDR Local is a local-first Electron desktop app with four runtime components:
 
 ```text
-                    ┌─────────────────────┐
-                    │   Presentation      │
-                    │   (Electron renderer,│
-                    │    React UI)        │
-                    └────────┬────────────┘
-                             │ Electron IPC
-                             │ (bidirectional)
-                             │
-┌──────────────┐    ┌────────┴────────────┐    ┌──────────────────┐
-│  Agent       │────│   Core Engine       │────│  Persistence     │
-│  (llama.cpp  │    │   (Electron main    │    │  (encrypted      │
-│   sidecar)   │    │    process)         │    │   SQLite)        │
-└──────────────┘    └─────────────────────┘    └──────────────────┘
-     stdio/local HTTP       │
-                            │ single source of truth
+Agent process <----private protocol----> Electron main process <----Electron IPC----> Electron renderer
+                                               |
+                                               | repository calls
+                                               v
+                                           SQL database
 ```
 
-## Components
+The Electron main process is the Core Engine process. It owns the authoritative application state, domain workflows, persistence access, vault state, and agent coordination.
 
-### Core Engine
+The Electron renderer is the presentation layer. It renders UI, gathers user input, and sends user intent to the main process through preload-backed IPC.
 
-The Core Engine runs in the Electron main process. It is the coordination layer and single source of truth for application state. It:
+## Runtime Components
 
-- owns all application state
-- performs CRUD operations against the Persistence layer via repositories and services
-- sends prompts to and receives structured actions from the Agent layer
-- receives user actions from the Presentation layer via IPC
-- pushes state updates and agent actions to the Presentation layer via IPC
+### Electron Main Process
 
-No other component may access the database, talk to the agent, or hold authoritative state.
+The Electron main process is the application authority. It:
 
-### Presentation Layer
+- owns the Core Engine
+- owns domain workflows and state transitions
+- owns vault unlock state
+- starts and supervises the local agent process
+- reads and writes the SQL database through repositories
+- exposes typed command/event IPC to the renderer
+- creates application windows and handles native desktop affordances
 
-The Presentation layer is the Electron renderer process running React. It handles display logic only. It:
+The main process may contain Electron shell code, but domain-specific behavior belongs under `src/main/domain`.
 
-- renders UI based on state pushed from the Core Engine
-- sends user actions to the Core Engine via IPC
-- never holds a database reference or database aggregate in memory
-- never calls repositories or services directly
-- never communicates with the Agent layer
+### Electron Preload
 
-Communication is bidirectional over Electron IPC:
+Preload is a narrow security bridge between the renderer and main process. It:
 
-- **Renderer to Main** (`ipcRenderer.invoke`): request/response for user-initiated actions (create target, start session, etc.)
-- **Main to Renderer** (`webContents.send`): push events for state changes, agent actions, and real-time updates (no polling required)
+- exposes a small typed API to the renderer with `contextBridge`
+- forwards renderer commands to main IPC
+- forwards main events to renderer subscribers
+- contains no business rules
+- contains no persistence or agent logic
 
-### Agent Layer
+### Electron Renderer
 
-The Agent layer is a local llama.cpp sidecar process. It runs a quantized LLM that acts as the Guide, handling structured decision-making within the session flow. It:
+The renderer is the presentation layer. It:
 
-- runs as a separate OS process, started and stopped by the Core Engine
-- communicates with the Core Engine over stdio or a localhost-bound HTTP endpoint
-- receives a constrained prompt context and a list of allowed actions
-- returns structured action requests (not free-form mutations)
-- never touches the database, the UI, or the network
+- renders React UI and animation
+- holds ephemeral UI state such as form drafts, selected panels, local input text, and animation state
+- calls preload APIs to express user intent
+- subscribes to main-process events and view state
+- never opens the database
+- never talks to the agent process
+- never owns the authoritative domain state
 
-The Core Engine validates every action the Agent proposes against the current session state before applying it. The Agent cannot bypass the deterministic state machine. See [docs/features/agent.md](features/agent.md) for the full agent specification.
+### Agent Process
 
-### Persistence Layer
+The agent process is a local sidecar. It:
 
-The Persistence layer is an encrypted local SQLite database stored inside a vault file. It:
+- runs the local model runtime
+- receives constrained context from the main process
+- returns structured proposed actions
+- never talks to the renderer
+- never talks to the database
+- never mutates state directly
 
-- is the only durable store for targets, sessions, stimulation sets, and settings
-- is accessed exclusively through typed repositories
-- is encrypted at rest with AES-256-GCM
-- requires vault unlock (password or recovery key) before any reads or writes
-- runs migrations on schema changes
+The main process validates every proposed agent action before applying it.
 
-## Layering Rules
+### SQL Database
 
-```text
-SqliteDatabase ──DI──▶ Repository ──used by──▶ Service ──exposed via IPC──▶ UI
-```
+The SQL database is durable storage only. It:
 
-1. **Repositories** are the only code that touches the database. The database connection is dependency-injected.
-2. **Services** depend on repositories (DI). They implement business logic and return domain entities. They never import or reference the database connection.
-3. **IPC handlers** (in the Core Engine) wire services to Electron IPC channels. Each domain operation is exposed as a named channel.
-4. **The renderer** calls thin IPC proxy functions. It never imports services, repositories, or database types.
-
-## IPC Channel Convention
-
-Channels follow a `domain:action` naming pattern, consistent with the existing vault channels:
-
-```text
-vault:status, vault:create, vault:unlock-password, ...
-target:list, target:add, target:update, ...
-session:start, session:end, ...
-setting:get, setting:update, ...
-```
-
-A shared TypeScript channel map defines the request and response types for every channel, enforcing type safety across the main and renderer processes.
+- stores targets, sessions, stimulation sets, settings, and vault-backed app data
+- is accessed only by the main process
+- is reached through domain repositories
+- is not exposed through generic renderer IPC
 
 ## Directory Structure
 
 ```text
-domain/                  Business logic, organized by domain concept
-  app/                   App-level types, state machine, UI shell
-  session/               Session entity, service, state machine, flow
-  target/                Target entity, versioning, service
-  setting/               Settings entity, service
-  stimulation-set/       Stimulation set entity
-  vault/                 Vault UI components
+src/
+  main/
+    app/
+    domain/
+      vault/
+      target/
+      session/
+      stimulation-set/
+      settings/
+      guide/
+    ipc/
+    persistence/
+    agent/
 
-infrastructure/          Data and platform concerns
-  security/              Vault encryption, key derivation
-  sqlite/                SQLite connection, base repository, migrations
+  preload/
+    app/
 
-electron/                Electron main process and preload
-  main.ts                IPC handler registration, app lifecycle
-  preload.cts            Context bridge exposing IPC to renderer
+  renderer/
+    app/
+    features/
+      vault/
+      target/
+      session/
+      stimulation-set/
+      settings/
+      guide/
 
-src/                     Renderer-only code (React, animation, styles)
+  shared/
+
+agent/
+database/
+docs/
+assets/
 ```
 
-## Data Flow Examples
+## Directory Responsibilities
 
-### User creates a target
+### `src/main/app`
+
+Main-process application composition:
+
+- Electron lifecycle
+- window creation
+- native menus and dialogs
+- wiring domains to persistence, IPC, and agent adapters
+
+### `src/main/domain`
+
+Core Engine domains. This is where domain-specific application behavior lives.
+
+Each domain owns its vertical slice:
 
 ```text
-Renderer                Core Engine              Persistence
-   │                         │                        │
-   ├─invoke("target:add")──▶│                        │
-   │                         ├─TargetService.add()───▶│
-   │                         │                        ├─TargetRepo.insert()
-   │                         │                        │  └─ SQL INSERT
-   │                         │◀── Target ────────────┤
-   │◀── Target ─────────────┤                        │
+src/main/domain/<domain>/
+  model/
+  service/
+  repository/
+  persistence/
+  ipc/
+  schemas/
 ```
 
-### Agent proposes an action during a session
+Domain-specific IPC definitions and handlers live inside the domain. Domain-specific persistence definitions, mappings, and repository implementations live inside the domain. The domain service owns the business workflow.
+
+### `src/main/ipc`
+
+Generic IPC infrastructure only:
+
+- typed registration helpers
+- command dispatch helpers
+- event publishing helpers
+- shared IPC error mapping
+
+No domain-specific channels belong here.
+
+### `src/main/persistence`
+
+Generic persistence infrastructure only:
+
+- database connection lifecycle
+- transactions
+- migration runner
+- low-level SQL utilities
+- vault-backed database loading and saving primitives
+
+No domain-specific tables, queries, or mappings belong here.
+
+### `src/main/agent`
+
+Generic agent process infrastructure only:
+
+- sidecar process startup and shutdown
+- stdio or localhost transport
+- health checks
+- model runtime configuration
+
+Domain-specific guide behavior belongs in `src/main/domain/guide`.
+
+### `src/preload/app`
+
+Preload bridge setup:
+
+- exposes the approved renderer API
+- wraps `ipcRenderer.invoke`
+- wraps event subscription and unsubscription
+
+### `src/renderer/app`
+
+Renderer application shell:
+
+- React root
+- top-level layout
+- providers
+- presentation-level routing or screen composition
+
+### `src/renderer/features`
+
+Renderer feature UI. These folders may mirror main domain names, but they contain presentation code only.
+
+### `src/shared`
+
+Cross-process types and constants that are safe for both main and renderer. Shared code must not import Electron main APIs, renderer APIs, database clients, or agent runtime code.
+
+## IPC Shape
+
+Renderer-to-main IPC is command based:
 
 ```text
-Agent                   Core Engine              Renderer
-  │                         │                        │
-  │◀─ prompt context ──────┤                        │
-  ├─ action request ──────▶│                        │
-  │                         ├─ validate action       │
-  │                         ├─ apply state change    │
-  │                         ├─send("session:update")▶│
-  │                         │                        ├─ re-render
+renderer feature
+  -> preload app API
+  -> generic main IPC transport
+  -> domain-specific IPC handler
+  -> domain service
 ```
+
+Main-to-renderer IPC is event based:
+
+```text
+domain service
+  -> domain event
+  -> generic main IPC event publisher
+  -> preload subscription
+  -> renderer feature
+```
+
+IPC rules:
+
+- no generic `db:load` or `db:save` channels
+- no generic domain mutation channel
+- one typed command per user intent
+- domain-specific command definitions live in `src/main/domain/<domain>/ipc`
+- renderer responses use view models, not database rows
+- renderer subscriptions return unsubscribe functions
+
+## Persistence Shape
+
+Persistence flows through domain repositories:
+
+```text
+domain service
+  -> domain repository interface
+  -> domain persistence implementation
+  -> generic persistence connection
+  -> SQL database
+```
+
+Persistence rules:
+
+- generic DB machinery lives in `src/main/persistence`
+- domain-specific repositories live in `src/main/domain/<domain>/repository`
+- domain-specific SQL mappings live in `src/main/domain/<domain>/persistence`
+- the renderer never receives a database handle or full database snapshot
+
+## Agent Shape
+
+The guide domain owns agent-facing behavior:
+
+```text
+agent process
+  -> generic main agent transport
+  -> guide domain
+  -> session domain
+  -> validated state change
+  -> renderer event
+```
+
+Agent rules:
+
+- the agent process is advisory
+- the main process is authoritative
+- proposed agent actions are validated by domain services
+- invalid proposed actions are rejected by the main process
+- the agent never talks directly to renderer IPC or persistence
