@@ -87,6 +87,8 @@ The renderer is the presentation layer. It:
 - renders React UI and animation
 - holds ephemeral UI state such as form drafts, selected panels, local input
   text, and animation state
+- mirrors workflow view state returned by main, but does not own authoritative
+  session workflow state
 - sends user intent through the preload bridge
 - subscribes to main-process events and view state through the preload bridge
 - never opens the store
@@ -188,7 +190,7 @@ Main-process application lifecycle:
 - create application windows through internal Electron adapters
 - initialize the central API registry
 - call `Initialize()` from `modules.ts`
-- ask initialized modules to register their routes
+- rely on route module construction to self-register domain routes
 - coordinate shutdown
 
 ### `src/main/api/registry.ts`
@@ -208,13 +210,29 @@ not live here.
 
 Main-process dependency wiring:
 
-- opens or receives the SQL store adapter
+- instantiates the SQL store adapter once at startup, even while the vault is
+  locked
 - instantiates repositories with the store adapter
 - instantiates services with repositories and other service interfaces
-- instantiates domain modules with their services
+- instantiates route modules with their services
+- injects only narrow non-repository capabilities when a service needs whole
+  store lifecycle behavior, such as vault unlock
 - returns the module list to `app.ts`
 
 This is the only file that should stand up every domain at once.
+
+`modules.ts` is intentionally a linear composition script. It should instantiate
+objects by hand in dependency order:
+
+```text
+store adapter
+  -> domain repositories
+  -> domain services
+  -> domain routes
+```
+
+Do not abstract module construction into dependency discovery or generic
+factories. Dependencies are explicit and domain-specific.
 
 `src/main/api` contains only these composition files plus `types.ts`. It must
 not contain per-domain route services, domain behavior, repositories, or
@@ -250,7 +268,8 @@ The exact files may vary by domain, but the responsibilities do not:
 - `ipc.ts` defines and registers that domain's endpoints with the central API
   registry, validates route payloads, and calls one domain service method
 - `service.ts` owns business workflows and state transitions
-- `repository.ts` is the only domain code that touches the store adapter
+- `repository.ts` is the only domain code that touches the store adapter, and
+  domain repositories are table repositories only
 - `entity.ts` and `types.ts` define domain and route contract types
 - `factory.ts` creates valid domain entities when a factory is useful
 
@@ -259,6 +278,10 @@ interfaces. They should not import renderer code, preload code, Electron shell
 objects, or other domains' internals.
 
 Cross-domain calls go service-to-service through injected interfaces.
+
+Domain routes self-register with the central registry as part of route
+construction. Instantiating a route object is what attaches that domain's IPC
+handlers to `src/main/api/registry.ts`.
 
 ### `src/main/internal/lib/ipc`
 
@@ -299,6 +322,13 @@ Vault primitives:
 
 Domain workflow around unlock, import, export, and status belongs to the vault
 domain service.
+
+Vault unlock is whole-store lifecycle, not table persistence. It must not be
+modeled as a repository. The app store object exists at startup and may be
+locked; unlocking replaces the store adapter's internal SQLite connection. The
+vault service receives narrow store lifecycle capabilities such as
+`isUnlocked`, `createPlaintext`, `unlock`, and `lock`, not the full database
+object.
 
 ### `src/main/internal/lib/agent`
 
@@ -458,9 +488,43 @@ Store rules:
 - generic store machinery lives in `src/main/internal/lib/store`
 - domain-specific repositories live in `src/main/internal/domain/<domain>`
 - domain-specific SQL mappings live with the owning domain repository
+- repository factories take exactly one argument: `db: SqliteDatabase`
+- repositories may not take services, dialogs, vault helpers, config objects, or
+  other domain dependencies
+- services and routes may not call database methods directly
+- `src/main/api/modules.ts` may instantiate the store adapter and pass it to
+  repository factories, but must not run SQL
 - migrations are run as standalone tooling, not during app startup, vault
   setup, unlock, import, or export
 - the renderer never receives a store handle or full database snapshot
+
+## Session Workflow Shape
+
+The session state machine is a main-process domain contract. The graph defines
+valid movement through:
+
+```text
+idle
+  -> target_selection
+  -> preparation
+  -> stimulation
+  -> interjection
+  -> closure
+  -> review
+  -> post_session
+```
+
+The renderer must not invent or bypass session workflow transitions. User
+actions that affect the workflow go through domain routes that validate the
+action against the graph before mutating domain state.
+
+Renderer UI may hold display state for selected panels and animation, but
+authoritative session workflow state belongs to the session domain and is
+returned to the renderer as view data. Direct UI calls to start, end, or log
+session work are allowed only when they are part of a graph-validated domain
+command. The UI must not directly skip from target selection to stimulation or
+from stimulation to ended history without the session service accepting the
+intermediate workflow actions.
 
 ## Agent Shape
 

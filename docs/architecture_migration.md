@@ -2,7 +2,7 @@
 
 This plan migrates the current codebase toward the architecture specified in
 [architecture.md](architecture.md). It is based on the repository state reviewed
-on 2026-05-11.
+on 2026-05-11 and the UI end-to-end smoke reviewed on 2026-05-12.
 
 ## Current Baseline
 
@@ -30,8 +30,9 @@ must not import main internals.
 
 The current codebase is partway through that migration:
 
-- `electron/main.ts` owns Electron lifecycle, network blocking, native dialogs,
-  vault commands, generic database IPC, and store calls in one file.
+- `electron/main.ts` is a thin entrypoint that hands off to `src/main/api/app.ts`.
+- `src/main/api/app.ts` owns Electron lifecycle, network blocking, window
+  creation setup, and registry initialization.
 - `electron/preload.cts` exposes a generic request/subscription bridge.
 - `src/renderer/app/AnimatedApp.tsx` is the active React shell. It calls
   renderer API clients and keeps display-only view data for active targets,
@@ -55,17 +56,37 @@ The current codebase is partway through that migration:
   decisions while renderer animation remains in `src/renderer/animation`.
 - `src/main/api/modules.ts` centralizes repository and service construction for
   handlers that run against the active unlocked database.
+- `src/main/api/modules.ts` now manually instantiates the app store, table
+  repositories, services, and route modules in dependency order. The store
+  object exists at startup and starts locked.
 - API-layer `*-route-service.ts` adapters have been removed; domain `ipc.ts`
   files validate route payloads and call domain services directly.
+- Domain repositories are table repositories and are enforced as
+  `(db: SqliteDatabase)` factories.
+- Vault unlock/import/export is modeled as whole-store lifecycle. The vault
+  service receives narrow store lifecycle functions instead of the full database
+  object.
 - Generic agent sidecar process and JSON-line transport infrastructure exists
   under `src/main/internal/lib/agent`; guide action proposals are validated and
   applied through domain services, but no live agent sidecar is wired yet.
+- A registry-level smoke confirms vault setup/unlock, target creation, session
+  start/end, stimulation-set logging, guide action validation, export/import,
+  and relaunch unlock through registered routes.
+- A UI smoke confirms setup, password unlock, target creation, session start,
+  stimulation start/pause, stimulation-set logging, session end, relaunch, and
+  history display.
+- The visible UI still bypasses the session state graph. It does not expose or
+  track authoritative `SessionFlowState`, and it does not call
+  `session:transition-flow` or `guide:apply-action` from renderer code.
+- Preparation, assessment approval, closure, review, and post-session workflow
+  screens are not represented in the visible UI.
 
 Verification targets:
 
 - `pnpm run build`
 - `pnpm run check:architecture`
 - `pnpm migrate:sqlite -- --database <path>`
+- Registry-level route smoke using a fresh vault and migrated template
 - Electron smoke test with `EMDR_SQLITE_TEMPLATE_PATH` pointing at a migrated
   SQLite template
 
@@ -82,6 +103,9 @@ Verification targets:
 - Keep the app local-only. Electron should continue blocking remote content.
 - Keep `src/main/**` free of React, Pixi, display state, and browser-only APIs.
 - Keep renderer code free of imports from `src/main/internal/**`.
+- Keep session workflow state authoritative in the main session domain. The
+  renderer can mirror workflow state returned by main, but it must not invent or
+  bypass workflow transitions.
 - Commit after each coherent migration step with a 3-8 word message.
 - Prefer moving behavior behind the future boundary before moving files, so path
   churn does not hide behavior changes.
@@ -143,8 +167,8 @@ Goal: replace generic database snapshot IPC with domain-owned API routes.
 
 Checklist:
 
-- [x] Add a small module shape for main-process domains, for example
-  `Name()` and `Register(registry)`.
+- [x] Add a small module shape for main-process domains. Domain route objects
+  self-register with the API registry during construction.
 - [x] Move vault IPC registration into `src/main/internal/domain/vault/ipc.ts`.
 - [x] Add target routes for list, create, and revise.
 - [x] Add session routes for start, assessment update, flow transition, and end.
@@ -271,6 +295,7 @@ Checklist:
 - [x] Ensure the agent never imports renderer code, repositories, SQLite code, or
   Electron IPC.
 - [ ] Add tests for allowed and rejected guide actions per session state.
+- [ ] Wire a live agent sidecar into guide domain routes.
 
 Exit criteria:
 
@@ -279,7 +304,59 @@ Exit criteria:
 - [ ] Renderer displays guide messages and proposed edits from main-process view
   events.
 
-## Phase 8: Enforce The Final Boundary
+## Phase 8: Wire UI To Session State Machine
+
+Goal: make the visible app flow use the session graph end-to-end instead of
+calling lower-level mutation routes directly.
+
+Current gap found by UI E2E:
+
+- The main process registers `session:transition-flow` and `guide:apply-action`.
+- The renderer API client does not expose those routes.
+- `AnimatedApp.tsx` calls direct mutation routes for session start, set logging,
+  and session end.
+- The renderer has no `SessionFlowState` view model and no preparation,
+  assessment, closure, or review screens.
+
+Checklist:
+
+- [ ] Add authoritative session workflow state to the session domain model.
+  Decide whether it is persisted on the session row or represented by an
+  explicit active-session workflow record.
+- [ ] Make session domain commands validate and advance workflow state before
+  mutating sessions or stimulation sets.
+- [ ] Replace the stateless `session:transition-flow` helper with a route that
+  applies transitions to the active session workflow, or limit it to read-only
+  preview naming and add a separate mutating command route.
+- [ ] Expose renderer API client methods for graph-validated workflow commands.
+- [ ] Route UI session start through `idle -> target_selection -> preparation`
+  instead of directly creating an active session without workflow state.
+- [ ] Add preparation and assessment UI that updates assessment data and advances
+  through `update_assessment` and `approve_assessment`.
+- [ ] Route stimulation start, pause, continuation, and set logging through
+  graph-validated actions.
+- [ ] Route closure, review, and session end through graph-validated actions.
+- [ ] Update `GuideService.applyAction` and renderer guide actions so human UI
+  and future agent proposals use the same validation path.
+- [ ] Update view models so `guide:view`, session history, and active-session UI
+  display the current workflow state consistently.
+- [ ] Add UI coverage for the full graph:
+  `idle -> target_selection -> preparation -> stimulation -> interjection ->
+  closure -> review -> post_session`.
+- [ ] Add a regression check that the UI cannot log stimulation before the graph
+  reaches `stimulation`.
+- [ ] Add a regression check that the UI cannot end a session before `review`.
+
+Exit criteria:
+
+- [ ] The visible Electron UI can traverse the full session graph end-to-end.
+- [ ] Renderer code no longer starts sessions, logs stimulation sets, or ends
+  sessions through graph-bypassing mutation routes.
+- [ ] Refresh/relaunch during an active session restores the authoritative
+  workflow state from main.
+- [ ] Manual UI E2E and automated smoke coverage both verify the full graph.
+
+## Phase 9: Enforce The Final Boundary
 
 Goal: turn the architecture from documentation into a continuously enforced
 contract.
@@ -298,6 +375,10 @@ Checklist:
   unlock/save/import/export, and API route handlers.
 - [ ] Add an Electron smoke test for setup, unlock, target creation, session
   start, stimulation-set logging, session end, export, and import.
+- [ ] Add an Electron smoke test for the full session state-machine flow.
+- [ ] Extend `tools/check-architecture.mjs` or add a targeted static check so
+  renderer code cannot call graph-bypassing session mutation routes for workflow
+  actions.
 
 Exit criteria:
 
@@ -305,6 +386,7 @@ Exit criteria:
 - [x] `pnpm run check:architecture` passes.
 - [ ] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
+- [ ] UI state-machine coverage exists for the full graph.
 - [ ] The implemented directory tree matches `docs/architecture.md`.
 
 ## Suggested Commit Cadence
