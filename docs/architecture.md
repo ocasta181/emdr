@@ -111,6 +111,18 @@ The agent process is a local sidecar. It:
 
 The main process validates every proposed agent action before applying it.
 
+### Workflow Recovery
+
+Current workflow state is memory-only. On vault unlock, the session domain
+reconstructs a conservative in-memory workflow from durable session facts:
+
+- no unfinished session restores `idle`
+- the newest unfinished session with no stimulation sets restores `preparation`
+- the newest unfinished session with stimulation sets restores `interjection`
+
+This recovery rule lets the UI resume unfinished work after a refresh or
+relaunch without adding workflow columns to SQLite.
+
 ### SQL Store
 
 The SQL store is durable storage only. It:

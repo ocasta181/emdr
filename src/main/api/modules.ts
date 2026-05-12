@@ -43,7 +43,7 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
     createPlaintext: () => db.createPlaintextFromTemplate(),
     unlock: async (unlocked) => {
       await db.unlock(unlocked);
-      sessionWorkflow.reset();
+      sessionService.recoverSessionWorkflowFromDurableState();
     },
     lock: () => {
       db.lock();

@@ -354,9 +354,9 @@ Exit criteria:
 - [x] The visible Electron UI can traverse the full session graph end-to-end.
 - [x] Renderer code no longer starts sessions, logs stimulation sets, or ends
   sessions through graph-bypassing mutation routes.
-- [ ] Renderer refresh during an active session restores the authoritative
+- [x] Renderer refresh during an active session restores the authoritative
   workflow state from main memory.
-- [ ] Define recovery behavior for app relaunch with an unfinished durable
+- [x] Define recovery behavior for app relaunch with an unfinished durable
   session row, without persisting application workflow state in SQLite.
 - [x] Automated route smoke coverage verifies the full graph.
 

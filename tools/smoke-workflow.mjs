@@ -64,7 +64,7 @@ try {
     createPlaintext: () => db.createPlaintextFromTemplate(),
     unlock: async (unlocked) => {
       await db.unlock(unlocked);
-      sessionWorkflow.reset();
+      sessionService.recoverSessionWorkflowFromDurableState();
     },
     lock: () => {
       db.lock();
@@ -133,6 +133,11 @@ try {
   });
   assertAccepted(logResult, "log stimulation set");
 
+  db.lock();
+  sessionWorkflow.reset();
+  await request("vault:unlock-password", "passphrase-123");
+  await expectWorkflow(request("session:workflow"), "interjection", session.id);
+  await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "continue_stimulation" }), "stimulation", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "pause_stimulation" }), "interjection", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "begin_closure" }), "closure", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "request_review" }), "review", session.id);

@@ -60,6 +60,11 @@ export class SessionWorkflowMachine {
     return this.currentSessionWorkflow();
   }
 
+  recoverActiveSession(sessionId: string, state: "preparation" | "interjection"): SessionWorkflowSnapshot {
+    this.currentSnapshot = snapshot(state, sessionId);
+    return this.currentSessionWorkflow();
+  }
+
   requireCanStartSession() {
     if (!["idle", "target_selection", "post_session"].includes(this.currentSnapshot.state)) {
       throw new Error(`Cannot start a session from ${this.currentSnapshot.state}.`);
@@ -168,6 +173,20 @@ export class SessionService {
 
   listSessions(): SessionAggregate[] {
     return this.repo.all().map((session) => this.toAggregate(session));
+  }
+
+  recoverSessionWorkflowFromDurableState(): SessionWorkflowSnapshot {
+    const unfinishedSessions = this.listSessions()
+      .filter((session) => !session.endedAt)
+      .sort((left, right) => right.startedAt.localeCompare(left.startedAt));
+
+    const activeSession = unfinishedSessions[0];
+    if (!activeSession) return this.workflow.reset();
+
+    return this.workflow.recoverActiveSession(
+      activeSession.id,
+      activeSession.stimulationSets.length > 0 ? "interjection" : "preparation"
+    );
   }
 
   updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate {
