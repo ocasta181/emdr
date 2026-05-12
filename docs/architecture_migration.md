@@ -226,7 +226,7 @@ Exit criteria:
 
 - [x] Only repositories and generic store infrastructure import `sql.js`.
 - [x] No renderer or preload code imports main internals or store modules.
-- [ ] Domain-specific SQL and mappings live with the owning domain.
+- [x] Domain-specific SQL and mappings live with the owning domain.
 - [x] Legacy `core/internal` store and vault paths are removed or reduced to
   temporary shims.
 
@@ -396,6 +396,13 @@ Exit criteria:
   smoke-test levels.
 - [x] UI state-machine coverage exists for the full graph.
 - [ ] The implemented directory tree matches `docs/architecture.md`.
+
+Remaining mismatch:
+
+- `docs/architecture.md` lists renderer feature folders for target, session,
+  stimulation-set, setting, and guide. The current renderer keeps those panels
+  in `src/renderer/app/AnimatedApp.tsx`, with only vault extracted under
+  `src/renderer/features/vault`.
 
 ## Suggested Commit Cadence
 
