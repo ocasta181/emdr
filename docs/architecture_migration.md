@@ -257,7 +257,7 @@ Checklist:
 - [x] Route agent proposed actions through the same domain services used by human
   UI commands.
 - [x] Reject invalid agent actions in main before any mutation.
-- [ ] Ensure the agent never imports renderer code, repositories, SQLite code, or
+- [x] Ensure the agent never imports renderer code, repositories, SQLite code, or
   Electron IPC.
 - [ ] Add tests for allowed and rejected guide actions per session state.
 

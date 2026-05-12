@@ -109,6 +109,14 @@ function analyzeImports(sourceFile) {
         message: `Business implementation dependencies are only allowed in service files: ${specifier}`
       });
     }
+
+    if (isAgentLayer(filePath) && importsAgentForbiddenDependency(resolved)) {
+      report({
+        node: importDeclaration,
+        rule: "architecture/agent-boundary",
+        message: `Agent infrastructure cannot import renderer, Electron IPC, repositories, or store internals: ${specifier}`
+      });
+    }
   }
 }
 
@@ -235,6 +243,16 @@ function importsBusinessImplementation(resolved) {
   return businessFileNamePatterns.some((pattern) => pattern.test(resolved));
 }
 
+function importsAgentForbiddenDependency(resolved) {
+  return (
+    isRendererLayer(resolved) ||
+    resolved.startsWith("electron/") ||
+    resolved.startsWith("src/main/api/") ||
+    resolved.includes("/repository") ||
+    resolved.startsWith("src/main/internal/lib/store/")
+  );
+}
+
 function isServiceLayer(filePath) {
   return (
     /^domain\/[^/]+\/service\.[cm]?tsx?$/.test(filePath) ||
@@ -272,6 +290,10 @@ function isUiLayer(filePath) {
 
 function isRendererLayer(filePath) {
   return filePath.startsWith("src/renderer/") || filePath === "src/main.tsx";
+}
+
+function isAgentLayer(filePath) {
+  return filePath.startsWith("src/main/internal/lib/agent/");
 }
 
 function isDomainFile(filePath) {
