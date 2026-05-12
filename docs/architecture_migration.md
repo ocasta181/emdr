@@ -159,7 +159,7 @@ Checklist:
   - [ ] Session routes write through `SessionService` and session repositories.
   - [ ] Stimulation-set routes write through `StimulationSetService` and the
     stimulation-set repository.
-  - [ ] Setting routes write through `SettingService` and the setting repository.
+  - [x] Setting routes write through `SettingService` and the setting repository.
 - [x] Add transaction helpers for workflows that update multiple tables.
 
 Exit criteria:

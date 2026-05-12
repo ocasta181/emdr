@@ -1,30 +1,23 @@
-import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import { newSettingRepository } from "../internal/domain/setting/repository.js";
+import { SettingService } from "../internal/domain/setting/service.js";
 import type { BilateralStimulationSettings } from "../internal/domain/setting/types.js";
 import type { SettingRouteService } from "../internal/domain/setting/ipc.types.js";
+import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 
 export function createSettingRouteService(options: { getUserDataPath: () => string }): SettingRouteService {
   const userDataPath = options.getUserDataPath;
 
   return {
     async get() {
-      const database = await loadAppDatabase(userDataPath());
-      return database.settings;
+      return readFromAppDatabase(userDataPath(), (db) => new SettingService(newSettingRepository(db)).getSettings());
     },
 
     async updateBilateralStimulation(payload) {
-      const database = await loadAppDatabase(userDataPath());
-      const updated = {
-        ...database.settings.bilateralStimulation,
-        ...bilateralStimulationPatchFrom(payload)
-      };
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        settings: {
-          ...database.settings,
-          bilateralStimulation: updated
-        }
-      });
-      return updated;
+      return mutateAppDatabase(userDataPath(), (db) =>
+        new SettingService(newSettingRepository(db)).updateBilateralStimulationSettings(
+          bilateralStimulationPatchFrom(payload)
+        )
+      );
     }
   };
 }
