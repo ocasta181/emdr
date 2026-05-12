@@ -13,24 +13,33 @@ electron/main.ts
   -> src/main/api
   -> src/main/internal/domain/*
   -> src/main/internal/lib/*
+
+src/renderer/*
+  -> electron/preload.cts generic bridge
+  -> src/main/api registered routes
+
+src/shared/*
+  -> serializable type contracts only
 ```
 
 The main API layer owns startup, module wiring, and the route registry. Domains
 self-register their IPC endpoints with that registry. Preload is a
-domain-agnostic bridge and does not know which routes exist.
+domain-agnostic bridge and does not know which routes exist. Renderer display
+code is airgapped from `src/main/**`; it can call renderer API clients, but it
+must not import main internals.
 
 The current codebase is partway through that migration:
 
 - `electron/main.ts` owns Electron lifecycle, network blocking, native dialogs,
   vault commands, generic database IPC, and store calls in one file.
 - `electron/preload.cts` exposes a generic request/subscription bridge.
-- `domain/*` contains a mix of domain entities, services, repositories,
-  factories, and React components.
-- `domain/app/components/AnimatedApp.tsx` owns the authoritative in-memory
-  `Database`, creates targets, starts sessions, logs stimulation sets, updates
-  settings, and saves the whole snapshot.
-- `src/db.ts` is a renderer-side store adapter with an Electron IPC path and a
-  `localStorage` fallback.
+- `src/renderer/app/AnimatedApp.tsx` is the active React shell. It now calls
+  renderer API clients for mutations, but still keeps a transitional snapshot
+  for history and presentation state.
+- `src/renderer/api/client.ts` is the renderer-side IPC client surface. It has no
+  local persistence fallback.
+- `src/shared/types.ts` holds serializable view contracts shared across the
+  renderer/main process boundary.
 - `src/main/internal/lib/store/sqlite/app-store.ts` keeps vault unlock state and
   encrypted save behavior, while
   `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
@@ -42,13 +51,10 @@ The current codebase is partway through that migration:
   construction for route handlers that run against the active unlocked database.
 - The agent sidecar is documented but not implemented.
 
-Baseline command results:
+Current command results:
 
-- `pnpm run build` fails because several renderer components still import service
-  functions that were replaced by service classes.
-- `pnpm run check:architecture` fails with 46 violations, mostly from renderer
-  business logic, generic database IPC, renderer store access, factories outside
-  service files, and mixed type/runtime modules.
+- `pnpm run build` succeeds.
+- `pnpm run check:architecture` succeeds.
 - `git status --short --branch` is clean except for untracked `.claude/`.
 
 ## Migration Rules
@@ -59,6 +65,8 @@ Baseline command results:
 - Preserve SQLite migrations. Do not edit applied migrations to change behavior;
   add new versioned migrations.
 - Keep the app local-only. Electron should continue blocking remote content.
+- Keep `src/main/**` free of React, Pixi, display state, and browser-only APIs.
+- Keep renderer code free of imports from `src/main/internal/**`.
 - Commit after each coherent migration step with a 3-8 word message.
 - Prefer moving behavior behind the future boundary before moving files, so path
   churn does not hide behavior changes.
@@ -181,21 +189,21 @@ Checklist:
 - [x] Replace domain-specific preload methods with generic request and
   subscription functions.
 - [x] Ensure preload imports no domain endpoint definitions.
-- [ ] Create `src/renderer/app` for React root, layout, providers, and top-level
+- [x] Create `src/renderer/app` for React root, layout, providers, and top-level
   screen composition.
-- [ ] Move UI from `domain/*/components` to `src/renderer/features/<feature>`.
-- [ ] Move Pixi/animation code from `src/animation` into renderer guide or room
+- [x] Move active UI from `domain/*/components` to `src/renderer`.
+- [x] Move Pixi/animation code from `src/animation` into renderer guide or room
   feature folders.
-- [ ] Replace renderer imports from domain factories and services with
+- [x] Replace renderer imports from domain factories and services with
   transport-backed feature clients or presentation-only helpers.
-- [ ] Remove `src/db.ts` and the `localStorage` fallback.
+- [x] Remove `src/db.ts` and the `localStorage` fallback.
 - [ ] Keep renderer state limited to form drafts, selected panels, animation
   state, transient chat input, loading state, and error display.
 
 Exit criteria:
 
-- [ ] Preload has no domain-specific route list.
-- [ ] `src/renderer` does not import `src/main`, `core`, `electron`,
+- [x] Preload has no domain-specific route list.
+- [x] `src/renderer` does not import `src/main`, `core`, `electron`,
   repositories, factories, or main-process services.
 - [ ] React components do not construct domain records or mutate authoritative
   collections.
@@ -207,21 +215,21 @@ compatibility code.
 
 Checklist:
 
-- [ ] Replace renderer imports of removed service functions with migrated route
+- [x] Replace renderer imports of removed service functions with migrated route
   calls or renderer-local helpers.
-- [ ] Move direct `nowIso`, target creation, session creation, stimulation-set
+- [x] Move direct `nowIso`, target creation, session creation, stimulation-set
   creation, and settings mutation out of React components.
 - [ ] Remove direct renderer collection mutation of the authoritative `Database`.
 - [ ] Preserve behavior for target creation, target revision, session start/end,
   stimulation-set logging, settings changes, vault setup, unlock, import, and
   export.
 - [ ] Delete transitional route aliases and legacy import shims.
-- [ ] Run `pnpm run build`.
+- [x] Run `pnpm run build`.
 - [ ] Run `pnpm run check:architecture:staged` before each commit.
 
 Exit criteria:
 
-- [ ] `pnpm run build` succeeds.
+- [x] `pnpm run build` succeeds.
 - [ ] New or changed TypeScript files pass the staged architecture check.
 - [ ] Existing full architecture violations are reduced to only planned
   follow-up work.
@@ -258,11 +266,12 @@ contract.
 
 Checklist:
 
-- [ ] Update `tools/check-architecture.mjs` for the final `src/main/api`,
-  `src/main/internal`, `src/preload`, `src/renderer`, and `src/shared` layout.
+- [x] Update `tools/check-architecture.mjs` for the `src/main/api`,
+  `src/main/internal`, `electron/preload.cts`, `src/renderer`, and `src/shared`
+  layout.
 - [ ] Remove obsolete roots from the checker such as legacy `domain`,
   `infrastructure`, `core`, and renderer `src` paths after migration.
-- [ ] Make `pnpm run check:architecture` pass in full.
+- [x] Make `pnpm run check:architecture` pass in full.
 - [ ] Keep `pnpm run check:architecture:staged` in commit hooks.
 - [ ] Add unit tests for pure domain services and state graphs.
 - [ ] Add integration tests for repositories, transactions, migrations, vault
@@ -273,7 +282,7 @@ Checklist:
 Exit criteria:
 
 - [ ] `pnpm run build` passes.
-- [ ] `pnpm run check:architecture` passes.
+- [x] `pnpm run check:architecture` passes.
 - [ ] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
 - [ ] The implemented directory tree matches `docs/architecture.md`.

@@ -18,6 +18,15 @@ The Electron renderer is the presentation layer. It renders UI, gathers user
 input, and sends user intent to the main process through a preload-backed,
 domain-agnostic transport bridge.
 
+The main and renderer trees are intentionally airgapped:
+
+- `src/main/**` contains no React components, display code, Pixi code, renderer
+  state, or browser-only APIs.
+- `src/renderer/**` contains no repositories, store access, vault internals,
+  main-process services, or imports from `src/main/internal/**`.
+- `src/shared/**` contains serializable shape-only contracts. Shared code must
+  not become a place for domain behavior that belongs in the main Core Engine.
+
 ## Runtime Components
 
 ### Electron Main Process
@@ -139,11 +148,10 @@ src/
         electron/
         id/
 
-  preload/
-    app/
-
   renderer/
     app/
+    api/
+    animation/
     features/
       vault/
       target/
@@ -301,7 +309,7 @@ Electron shell adapters:
 
 These adapters are infrastructure. They should not contain domain workflows.
 
-### `src/preload/app`
+### `electron/preload.cts`
 
 Preload bridge setup:
 
@@ -319,6 +327,35 @@ Renderer application shell:
 - top-level layout
 - providers
 - presentation-level routing or screen composition
+- display state orchestration for the active screen
+
+Renderer app code may coordinate presentation state and call renderer API
+clients. It must not construct authoritative domain entities, open stores, or
+import main-process internals.
+
+### `src/renderer/api`
+
+Renderer API clients:
+
+- convert UI intent into generic preload transport requests
+- own route string usage on the renderer side
+- return typed serializable view data to React code
+- contain no domain rules, repositories, store access, or local persistence
+
+The renderer can know the route names it calls. It must not know how routes are
+registered, which services handle them, or how repositories are wired.
+
+### `src/renderer/animation`
+
+Presentation-only animation code:
+
+- Pixi scene setup
+- guide animation state graphs
+- sprite sheet handling
+- visual hit targets and rendering helpers
+
+Animation code must remain browser/display-side and must not import
+`src/main/**`.
 
 ### `src/renderer/features`
 

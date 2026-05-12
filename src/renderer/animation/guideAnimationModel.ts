@@ -1,4 +1,4 @@
-import type { StateGraphEdge, StateGraphNode } from "../../stateGraph.js";
+import type { StateGraphEdge, StateGraphNode } from "../../../stateGraph.js";
 
 export type BookState = "on_ground" | "in_hand_closed" | "in_hand_open";
 

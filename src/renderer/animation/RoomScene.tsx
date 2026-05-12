@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
-import orbUrl from "../../assets/animated-room/orb.svg?url";
+import orbUrl from "../../../assets/animated-room/orb.svg?url";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
 

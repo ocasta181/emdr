@@ -1,35 +1,32 @@
 import { useEffect, useReducer, useState, type FormEvent } from "react";
-import { RoomScene, type RoomObjectId } from "../../../src/animation/RoomScene";
-import type { GuideAction, GuideAnimationIntent } from "../../../src/animation/guideAnimationModel";
+import { RoomScene, type RoomObjectId } from "../animation/RoomScene";
+import type { GuideAction, GuideAnimationIntent } from "../animation/guideAnimationModel";
 import {
+  createTarget as createTargetRecord,
   createVault,
+  endSession as endSessionRecord,
   exportVault,
   getVaultStatus,
   importVault,
+  listTargets,
   loadDatabase,
-  saveDatabase,
+  logStimulationSet,
+  reviseTarget as reviseTargetRecord,
+  startSession as startSessionRecord,
   unlockWithPassword,
   unlockWithRecoveryCode,
+  updateBilateralStimulationSettings,
   type VaultStatus
-} from "../../../src/db";
-import { nowIso, optionalNumber } from "../../../utils";
-import { createSessionForTarget } from "../../session/factory";
-import type { SessionAggregate } from "../../session/types";
-import { updateBilateralStimulationSettings } from "../../setting/service";
-import type { BilateralStimulationSettings } from "../../setting/types";
-import { createStimulationSet } from "../../stimulation-set/factory";
-import type { Target, TargetStatus } from "../../target/entity";
-import { createTarget } from "../../target/factory";
-import { currentTargets, reviseTarget } from "../../target/service";
-import { createEmptyDatabase } from "../factory";
-import type { Database } from "../types";
+} from "../api/client";
+import type { BilateralStimulationSettings, Database, SessionAggregate, Target, TargetStatus } from "../../shared/types";
+import { optionalNumber } from "../../../utils";
 import {
   animatedPanelForState,
   animatedRoomStimulationRunning,
   initialAnimatedRoomState,
   transitionAnimatedRoomState
-} from "../animatedRoomMachine";
-import { RecoveryCode, VaultSetup, VaultUnlock } from "./VaultAccess";
+} from "./animatedRoomMachine";
+import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAccess";
 
 type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
@@ -40,10 +37,23 @@ const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
   orange: "#ff9b50"
 };
 
+const emptyDatabase: Database = {
+  targets: [],
+  sessions: [],
+  settings: {
+    bilateralStimulation: {
+      speed: 1,
+      dotSize: "medium",
+      dotColor: "green"
+    }
+  }
+};
+
 export function AnimatedApp() {
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [recoveryCode, setRecoveryCode] = useState("");
-  const [database, setDatabase] = useState<Database>(() => createEmptyDatabase());
+  const [database, setDatabase] = useState<Database>(emptyDatabase);
+  const [targets, setTargets] = useState<Target[]>([]);
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
@@ -61,15 +71,18 @@ export function AnimatedApp() {
     });
   }, []);
 
-  useEffect(() => {
-    if (authState === "ready") {
-      void saveDatabase(database);
-    }
-  }, [database, authState]);
-
   async function loadUnlockedDatabase() {
-    setDatabase(await loadDatabase());
+    const [nextDatabase, nextTargets] = await Promise.all([loadDatabase(), listTargets()]);
+    setDatabase(nextDatabase);
+    setTargets(nextTargets);
     setAuthState("ready");
+  }
+
+  async function refreshViewData() {
+    const [nextDatabase, nextTargets] = await Promise.all([loadDatabase(), listTargets()]);
+    setDatabase(nextDatabase);
+    setTargets(nextTargets);
+    return nextDatabase;
   }
 
   async function setupVault(password: string) {
@@ -102,26 +115,27 @@ export function AnimatedApp() {
     return true;
   }
 
-  function addTarget() {
-    const target = createTarget({
+  async function addTarget() {
+    const target = await createTargetRecord({
       description: "New target",
       negativeCognition: "",
       positiveCognition: "",
       status: "active"
     });
-    setDatabase((current) => ({ ...current, targets: current.targets.concat(target) }));
+    await refreshViewData();
     setEditingTarget(target);
   }
 
-  function saveTarget(target: Target) {
+  async function saveTarget(target: Target) {
     if (!editingTarget) return;
-    setDatabase((current) => reviseTarget(current, editingTarget, target));
+    await reviseTargetRecord(editingTarget.id, targetPatchFrom(target));
+    await refreshViewData();
     setEditingTarget(null);
   }
 
-  function startSession(target: Target) {
-    const session = createSessionForTarget(target);
-    setDatabase((current) => ({ ...current, sessions: current.sessions.concat(session) }));
+  async function startSession(target: Target) {
+    const session = await startSessionRecord(target.id);
+    await refreshViewData();
     setActiveSession(session);
     setEditingTarget(null);
     dispatchRoomEvent({ type: "select_guide" });
@@ -129,21 +143,19 @@ export function AnimatedApp() {
     setChatMessages([`Started session for "${target.description}".`]);
   }
 
-  function endActiveSession() {
+  async function endActiveSession() {
     if (!activeSession) return;
-    const ended = { ...activeSession, endedAt: nowIso() };
-    setDatabase((current) => ({
-      ...current,
-      sessions: current.sessions.map((session) => (session.id === ended.id ? ended : session))
-    }));
+    await endSessionRecord({ sessionId: activeSession.id });
+    await refreshViewData();
     setActiveSession(null);
     if (stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
     }
   }
 
-  function updateSettings(patch: Partial<BilateralStimulationSettings>) {
-    setDatabase((current) => updateBilateralStimulationSettings(current, patch));
+  async function updateSettings(patch: Partial<BilateralStimulationSettings>) {
+    await updateBilateralStimulationSettings(patch);
+    await refreshViewData();
   }
 
   function selectObject(objectId: RoomObjectId) {
@@ -163,29 +175,24 @@ export function AnimatedApp() {
     dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
-  function toggleStimulation() {
+  async function toggleStimulation() {
     if (stimulationRunning) {
-      logStimulationSetIfActive();
+      await logStimulationSetIfActive();
       dispatchRoomEvent({ type: "pause_stimulation" });
     } else {
       dispatchRoomEvent({ type: "start_stimulation" });
     }
   }
 
-  function logStimulationSetIfActive() {
+  async function logStimulationSetIfActive() {
     if (!activeSession) return;
-    const set = createStimulationSet({
+    const set = await logStimulationSet({
       sessionId: activeSession.id,
-      setNumber: activeSession.stimulationSets.length + 1,
       cycleCount: 24,
       observation: ""
     });
-    const nextSession = { ...activeSession, stimulationSets: activeSession.stimulationSets.concat(set) };
-    setActiveSession(nextSession);
-    setDatabase((current) => ({
-      ...current,
-      sessions: current.sessions.map((session) => (session.id === nextSession.id ? nextSession : session))
-    }));
+    const nextDatabase = await refreshViewData();
+    setActiveSession(nextDatabase.sessions.find((session) => session.id === set.sessionId) ?? activeSession);
   }
 
   function closePanel() {
@@ -232,9 +239,9 @@ export function AnimatedApp() {
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
   const settings = database.settings.bilateralStimulation;
-  const targets = currentTargets(database);
   const sessionsByTargetId = new Map(targets.map((target) => [target.id, target] as const));
   const sessionHistory = [...database.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const allTargets = database.targets;
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -323,7 +330,7 @@ export function AnimatedApp() {
           {panel === "history" && (
             <HistoryPanel
               sessions={sessionHistory}
-              targetById={new Map(database.targets.map((target) => [target.id, target]))}
+              targetById={new Map(allTargets.map((target) => [target.id, target]))}
             />
           )}
 
@@ -676,6 +683,19 @@ function SettingsPanel({
 
 function isGuideAnimationAction(intent: GuideAnimationIntent, action: GuideAction) {
   return intent.type === "action" && intent.action === action;
+}
+
+function targetPatchFrom(target: Target): Partial<Target> {
+  return {
+    description: target.description,
+    negativeCognition: target.negativeCognition,
+    positiveCognition: target.positiveCognition,
+    clusterTag: target.clusterTag,
+    initialDisturbance: target.initialDisturbance,
+    currentDisturbance: target.currentDisturbance,
+    status: target.status,
+    notes: target.notes
+  };
 }
 
 function authStateForVault(status: VaultStatus): AuthState {

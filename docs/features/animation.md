@@ -140,7 +140,7 @@ Target access should be represented through a book interaction, not through unre
 
 The held book must not be rendered as a separate runtime overlay. While possessed, every visible book state belongs inside the selected guide animation clip asset.
 
-The guide-book animation contract is defined in `src/animation/guideAnimationModel.ts`. App code passes a semantic `GuideAnimationIntent`; the model maps that intent through a book-state graph, and `src/animation/guideCharacter.ts` owns the PixiJS guide sprites, book possession handoff, and sprite-sheet action clips. Room state, including stimulation, stays separate from guide animation state.
+The guide-book animation contract is defined in `src/renderer/animation/guideAnimationModel.ts`. App code passes a semantic `GuideAnimationIntent`; the model maps that intent through a book-state graph, and `src/renderer/animation/guideCharacter.ts` owns the PixiJS guide sprites, book possession handoff, and sprite-sheet action clips. Room state, including stimulation, stays separate from guide animation state.
 
 Book states:
 
@@ -226,7 +226,7 @@ Prefer atlased PNG/WebP sprites or Rive animations for character motion. The cur
 Current prototype directory shape:
 
 ```text
-src/animation/
+src/renderer/animation/
   RoomScene.tsx
   guideAnimationModel.ts
   guideCharacter.ts

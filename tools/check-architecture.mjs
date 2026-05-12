@@ -38,6 +38,9 @@ if (stagedOnly) {
 }
 
 function analyzeTypeRuntimeBoundary(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (isRendererLayer(filePath)) return;
+
   const typeDeclarations = [];
   const runtimeDeclarations = [];
 
@@ -224,12 +227,12 @@ function importsPersistence(specifier, resolved) {
   return (
     specifier === "sql.js" ||
     resolved.startsWith("core/internal/sqlite/") ||
-    resolved.startsWith("src/main/internal/lib/store/sqlite/") ||
-    resolved === "src/db"
+    resolved.startsWith("src/main/internal/lib/store/sqlite/")
   );
 }
 
 function importsBusinessImplementation(resolved) {
+  if (isRendererLayer(resolved)) return false;
   return businessFileNamePatterns.some((pattern) => pattern.test(resolved));
 }
 
@@ -265,6 +268,10 @@ function isTypeOnlyLayer(filePath) {
 
 function isUiLayer(filePath) {
   return filePath.endsWith(".tsx") || filePath.includes("/components/") || filePath === "src/main.tsx";
+}
+
+function isRendererLayer(filePath) {
+  return filePath.startsWith("src/renderer/") || filePath === "src/main.tsx";
 }
 
 function isDomainFile(filePath) {

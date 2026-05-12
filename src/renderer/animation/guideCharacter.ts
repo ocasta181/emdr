@@ -10,7 +10,7 @@ import {
   type GuideAnimationStep
 } from "./guideAnimationModel";
 import { actionClipForStep, createGuideSpriteSheet, guideSpriteCellSize, guideSpriteFrameRate } from "./guideSpriteSheet";
-import guideSpriteSheetUrl from "../../assets/animated-room/guide-sprite-sheet-154.png?url";
+import guideSpriteSheetUrl from "../../../assets/animated-room/guide-sprite-sheet-154.png?url";
 
 export type GuideCharacterBounds = {
   x: number;
