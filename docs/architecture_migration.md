@@ -378,7 +378,7 @@ Checklist:
 - [x] Make `pnpm run check:architecture` pass in full.
 - [x] Keep `pnpm run check:architecture:staged` in commit hooks.
 - [x] Add unit tests for pure domain services and state graphs.
-- [ ] Add integration tests for repositories, transactions, migrations, vault
+- [x] Add integration tests for repositories, transactions, migrations, vault
   unlock/save/import/export, and API route handlers.
 - [x] Add an Electron smoke test for setup, unlock, target creation, session
   start, stimulation-set logging, session end, export, and import.
@@ -391,7 +391,7 @@ Exit criteria:
 
 - [x] `pnpm run build` passes.
 - [x] `pnpm run check:architecture` passes.
-- [ ] Test coverage exists at service, repository, migration, route-handler, and
+- [x] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
 - [x] UI state-machine coverage exists for the full graph.
 - [ ] The implemented directory tree matches `docs/architecture.md`.
