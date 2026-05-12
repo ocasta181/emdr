@@ -299,7 +299,7 @@ Checklist:
 - [x] Reject invalid agent actions in main before any mutation.
 - [x] Ensure the agent never imports renderer code, repositories, SQLite code, or
   Electron IPC.
-- [ ] Add tests for allowed and rejected guide actions per session state.
+- [x] Add tests for allowed and rejected guide actions per session state.
 - [ ] Wire a live agent sidecar into guide domain routes.
 
 Exit criteria:
@@ -377,7 +377,7 @@ Checklist:
   `infrastructure`, `core`, and renderer `src` paths after migration.
 - [x] Make `pnpm run check:architecture` pass in full.
 - [x] Keep `pnpm run check:architecture:staged` in commit hooks.
-- [ ] Add unit tests for pure domain services and state graphs.
+- [x] Add unit tests for pure domain services and state graphs.
 - [ ] Add integration tests for repositories, transactions, migrations, vault
   unlock/save/import/export, and API route handlers.
 - [x] Add an Electron smoke test for setup, unlock, target creation, session

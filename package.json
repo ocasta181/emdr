@@ -15,6 +15,7 @@
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
     "migrate:sqlite": "pnpm build:electron && node dist-electron/src/main/internal/lib/store/sqlite/migrations/cli.js",
     "smoke:workflow": "pnpm build && node tools/smoke-workflow.mjs",
+    "test:domain": "pnpm build:electron && node --test tools/domain.test.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "prepare": "husky",
     "check:architecture": "node tools/check-architecture.mjs",
