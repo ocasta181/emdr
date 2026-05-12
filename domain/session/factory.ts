@@ -1,5 +1,5 @@
 import { createId, nowIso } from "../../utils.js";
-import type { Target } from "../target/entity.js";
+import type { Target } from "../../src/main/internal/domain/target/entity.js";
 import type { Session } from "./entity.js";
 import type { SessionAggregate } from "./types.js";
 import type { StimulationSet } from "../stimulation-set/entity.js";

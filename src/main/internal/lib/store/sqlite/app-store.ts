@@ -15,7 +15,7 @@ import { newSettingRepository } from "../../../../../../domain/setting/repositor
 import type { Settings } from "../../../../../../domain/setting/types.js";
 import { newStimulationSetRepository } from "../../../../../../domain/stimulation-set/repository.js";
 import type { StimulationSet } from "../../../../../../domain/stimulation-set/entity.js";
-import { newTargetRepository } from "../../../../../../domain/target/repository.js";
+import { newTargetRepository } from "../../../domain/target/repository.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;

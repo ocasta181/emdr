@@ -1,6 +1,6 @@
 import type { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
 import { nowIso } from "../../utils.js";
-import type { Target } from "../target/entity.js";
+import type { Target } from "../../src/main/internal/domain/target/entity.js";
 import type { Session } from "./entity.js";
 import { createSessionForTarget, createSessionFromAggregate } from "./factory.js";
 import { sessionStateGraph } from "./flow.js";

@@ -1,7 +1,7 @@
 import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { createTarget, createTargetRevision } from "../../../domain/target/factory.js";
-import type { Target, TargetStatus } from "../../../domain/target/entity.js";
-import type { TargetDraft } from "../../../domain/target/types.js";
+import { createTarget, createTargetRevision } from "../internal/domain/target/factory.js";
+import type { Target, TargetStatus } from "../internal/domain/target/entity.js";
+import type { TargetDraft } from "../internal/domain/target/types.js";
 import { nowIso } from "../../../utils.js";
 import type { TargetRouteService } from "../internal/domain/target/ipc.types.js";
 

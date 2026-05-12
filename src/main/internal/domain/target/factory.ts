@@ -1,13 +1,6 @@
-import { createId, nowIso } from "../../utils.js";
+import { createId, nowIso } from "../../../../../utils.js";
 import type { Target } from "./entity.js";
-
-type TargetDraft = Pick<Target, "description" | "negativeCognition" | "positiveCognition"> &
-  Partial<
-    Pick<
-      Target,
-      "clusterTag" | "initialDisturbance" | "currentDisturbance" | "status" | "notes"
-    >
-  >;
+import type { TargetDraft } from "./types.js";
 
 export const TARGET_ID_PREFIX = "tgt";
 
