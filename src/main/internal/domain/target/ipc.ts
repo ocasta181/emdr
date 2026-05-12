@@ -1,5 +1,5 @@
 import type { ApiRegistry } from "../../../api/registry.types.js";
-import type { TargetRouteService } from "./types.js";
+import type { TargetRouteService } from "./ipc.types.js";
 
 export function registerTargetIpc(registry: ApiRegistry, service: TargetRouteService) {
   registry.handle("target:list", async () => service.list());

@@ -7,7 +7,7 @@ import {
   unlockAppVaultWithRecoveryCode
 } from "../internal/lib/store/sqlite/app-store.js";
 import { VaultService } from "../../../domain/vault/service.js";
-import type { VaultRouteService } from "../internal/domain/vault/types.js";
+import type { VaultRouteService } from "../internal/domain/vault/ipc.types.js";
 import type { VaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.types.js";
 
 export function createVaultRouteService(options: {

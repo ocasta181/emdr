@@ -1,5 +1,5 @@
 import type { ApiRegistry } from "../../../api/registry.types.js";
-import type { SessionRouteService } from "./types.js";
+import type { SessionRouteService } from "./ipc.types.js";
 
 export function registerSessionIpc(registry: ApiRegistry, service: SessionRouteService) {
   registry.handle("session:start", async (payload) => service.start(payload));

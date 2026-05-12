@@ -1,5 +1,5 @@
 import type { ApiRegistry } from "../../../api/registry.types.js";
-import type { VaultRouteService } from "./types.js";
+import type { VaultRouteService } from "./ipc.types.js";
 
 export function registerVaultIpc(registry: ApiRegistry, service: VaultRouteService) {
   registry.handle("vault:status", async () => service.status());

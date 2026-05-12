@@ -3,7 +3,7 @@ import { createSessionForTarget } from "../../../domain/session/factory.js";
 import { sessionStateGraph } from "../../../domain/session/flow.js";
 import type { Assessment, SessionFlowAction, SessionFlowState } from "../../../domain/session/types.js";
 import { nowIso } from "../../../utils.js";
-import type { SessionRouteService } from "../internal/domain/session/types.js";
+import type { SessionRouteService } from "../internal/domain/session/ipc.types.js";
 
 export function createSessionRouteService(options: { getUserDataPath: () => string }): SessionRouteService {
   const userDataPath = options.getUserDataPath;

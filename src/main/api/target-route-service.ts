@@ -3,7 +3,7 @@ import { createTarget, createTargetRevision } from "../../../domain/target/facto
 import type { Target, TargetStatus } from "../../../domain/target/entity.js";
 import type { TargetDraft } from "../../../domain/target/types.js";
 import { nowIso } from "../../../utils.js";
-import type { TargetRouteService } from "../internal/domain/target/types.js";
+import type { TargetRouteService } from "../internal/domain/target/ipc.types.js";
 
 export function createTargetRouteService(options: { getUserDataPath: () => string }): TargetRouteService {
   const userDataPath = options.getUserDataPath;

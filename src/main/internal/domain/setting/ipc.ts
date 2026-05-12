@@ -1,5 +1,5 @@
 import type { ApiRegistry } from "../../../api/registry.types.js";
-import type { SettingRouteService } from "./types.js";
+import type { SettingRouteService } from "./ipc.types.js";
 
 export function registerSettingIpc(registry: ApiRegistry, service: SettingRouteService) {
   registry.handle("settings:get", async () => service.get());
