@@ -1,26 +1,30 @@
 import type { Target, TargetStatus } from "../internal/domain/target/entity.js";
-import { newTargetRepository } from "../internal/domain/target/repository.js";
-import { TargetService } from "../internal/domain/target/service.js";
 import type { TargetDraft } from "../internal/domain/target/types.js";
 import type { TargetRouteService } from "../internal/domain/target/ipc.types.js";
 import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import type { CreateDomainServices } from "./domain-services.types.js";
 
-export function createTargetRouteService(options: { getUserDataPath: () => string }): TargetRouteService {
+export function createTargetRouteService(options: {
+  getUserDataPath: () => string;
+  createServices: CreateDomainServices;
+}): TargetRouteService {
   const userDataPath = options.getUserDataPath;
 
   return {
     async list() {
-      return readFromAppDatabase(userDataPath(), (db) => new TargetService(newTargetRepository(db)).listCurrentTargets());
+      return readFromAppDatabase(userDataPath(), (db) => options.createServices(db).targets.listCurrentTargets());
     },
 
     async create(payload) {
-      return mutateAppDatabase(userDataPath(), (db) => new TargetService(newTargetRepository(db)).addTarget(targetDraftFrom(payload)));
+      return mutateAppDatabase(userDataPath(), (db) =>
+        options.createServices(db).targets.addTarget(targetDraftFrom(payload))
+      );
     },
 
     async revise(payload) {
       const request = targetRevisionRequestFrom(payload);
       return mutateAppDatabase(userDataPath(), (db) =>
-        new TargetService(newTargetRepository(db)).reviseTarget(request.previousId, request.patch)
+        options.createServices(db).targets.reviseTarget(request.previousId, request.patch)
       );
     }
   };

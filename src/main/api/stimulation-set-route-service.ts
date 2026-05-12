@@ -1,34 +1,28 @@
-import { newSessionRepository } from "../internal/domain/session/repository.js";
-import { SessionService } from "../internal/domain/session/service.js";
 import type { StimulationSetRouteService } from "../internal/domain/stimulation-set/ipc.types.js";
-import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
-import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
 import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import type { SqliteDatabase } from "../internal/lib/store/sqlite/connection.js";
+import type { CreateDomainServices } from "./domain-services.types.js";
 
 export function createStimulationSetRouteService(options: {
   getUserDataPath: () => string;
+  createServices: CreateDomainServices;
 }): StimulationSetRouteService {
   const userDataPath = options.getUserDataPath;
 
   return {
     async listBySession(payload) {
       const sessionId = sessionIdFrom(payload);
-      return readFromAppDatabase(userDataPath(), (db) => createStimulationSetService(db).listBySession(sessionId));
+      return readFromAppDatabase(userDataPath(), (db) =>
+        options.createServices(db).stimulationSets.listBySession(sessionId)
+      );
     },
 
     async log(payload) {
       const draft = stimulationSetDraftFrom(payload);
-      return mutateAppDatabase(userDataPath(), (db) => createStimulationSetService(db).logStimulationSet(draft));
+      return mutateAppDatabase(userDataPath(), (db) =>
+        options.createServices(db).stimulationSets.logStimulationSet(draft)
+      );
     }
   };
-}
-
-function createStimulationSetService(db: SqliteDatabase) {
-  return new StimulationSetService(
-    newStimulationSetRepository(db),
-    new SessionService(newSessionRepository(db))
-  );
 }
 
 function sessionIdFrom(payload: unknown) {

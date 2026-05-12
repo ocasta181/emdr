@@ -1,30 +1,28 @@
 import { sessionStateGraph } from "../internal/domain/session/flow.js";
-import { newSessionRepository } from "../internal/domain/session/repository.js";
-import { SessionService } from "../internal/domain/session/service.js";
 import type { Assessment, SessionFlowAction, SessionFlowState } from "../internal/domain/session/types.js";
 import type { SessionRouteService } from "../internal/domain/session/ipc.types.js";
-import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
-import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
-import { newTargetRepository } from "../internal/domain/target/repository.js";
-import { TargetService } from "../internal/domain/target/service.js";
 import { mutateAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import type { SqliteDatabase } from "../internal/lib/store/sqlite/connection.js";
+import type { CreateDomainServices } from "./domain-services.types.js";
 
-export function createSessionRouteService(options: { getUserDataPath: () => string }): SessionRouteService {
+export function createSessionRouteService(options: {
+  getUserDataPath: () => string;
+  createServices: CreateDomainServices;
+}): SessionRouteService {
   const userDataPath = options.getUserDataPath;
 
   return {
     async start(payload) {
       const targetId = targetIdFrom(payload);
-      return mutateAppDatabase(userDataPath(), (db) =>
-        createSessionService(db).startSession(new TargetService(newTargetRepository(db)).requireTarget(targetId))
-      );
+      return mutateAppDatabase(userDataPath(), (db) => {
+        const services = options.createServices(db);
+        return services.sessions.startSession(services.targets.requireTarget(targetId));
+      });
     },
 
     async updateAssessment(payload) {
       const request = assessmentUpdateFrom(payload);
       return mutateAppDatabase(userDataPath(), (db) =>
-        createSessionService(db).updateAssessment(request.sessionId, request.assessment)
+        options.createServices(db).sessions.updateAssessment(request.sessionId, request.assessment)
       );
     },
 
@@ -41,20 +39,13 @@ export function createSessionRouteService(options: { getUserDataPath: () => stri
     async end(payload) {
       const request = endSessionRequestFrom(payload);
       return mutateAppDatabase(userDataPath(), (db) =>
-        createSessionService(db).endSession(request.sessionId, {
+        options.createServices(db).sessions.endSession(request.sessionId, {
           finalDisturbance: request.finalDisturbance,
           notes: request.notes
         })
       );
     }
   };
-}
-
-function createSessionService(db: SqliteDatabase) {
-  return new SessionService(
-    newSessionRepository(db),
-    new StimulationSetService(newStimulationSetRepository(db))
-  );
 }
 
 function targetIdFrom(payload: unknown) {

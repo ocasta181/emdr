@@ -38,6 +38,8 @@ The current codebase is partway through that migration:
 - Domain services and repositories exist under `src/main/internal/domain`, but
   the renderer still relies on transitional full-snapshot load/save routes for
   several workflows.
+- `src/main/api/domain-services.ts` centralizes repository and service
+  construction for route handlers that run against the active unlocked database.
 - The agent sidecar is documented but not implemented.
 
 Baseline command results:
@@ -153,7 +155,7 @@ Checklist:
 - [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
 - [x] Split `src/main/internal/lib/store/sqlite/app-store.ts` into vault-backed
   store lifecycle and repository-backed app database mapping.
-- [ ] Replace full-snapshot `replaceAll` persistence with granular repository
+- [x] Replace full-snapshot `replaceAll` persistence with granular repository
   writes for command handlers.
   - [x] Target routes write through `TargetService` and the target repository.
   - [x] Session routes write through `SessionService` and session repositories.
