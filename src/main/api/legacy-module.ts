@@ -12,11 +12,11 @@ export function createLegacyMainModule(options: LegacyMainModuleOptions): MainMo
     },
 
     Register(registry) {
-      registry.handle("db:load", async () => {
+      registry.handle("legacy:load-database", async () => {
         return loadAppDatabase(userDataPath());
       });
 
-      registry.handle("db:save", async (database) => {
+      registry.handle("legacy:save-database", async (database) => {
         await saveAppDatabase(userDataPath(), database as never);
         return { ok: true, path: new VaultService(userDataPath()).path() };
       });

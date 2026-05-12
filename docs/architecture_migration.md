@@ -126,7 +126,7 @@ Checklist:
 - [x] Add stimulation-set routes for logging and listing by session.
 - [x] Add setting routes for read and bilateral-stimulation update.
 - [ ] Validate route payloads at the domain IPC boundary.
-- [ ] Delete the transitional generic `db:load` and `db:save` routes after
+- [x] Delete the transitional generic `db:load` and `db:save` routes after
   equivalent domain routes exist.
 
 Exit criteria:
@@ -171,9 +171,9 @@ Goal: make preload a domain-agnostic bridge and React presentation-only.
 
 Checklist:
 
-- [ ] Replace domain-specific preload methods with generic request and
+- [x] Replace domain-specific preload methods with generic request and
   subscription functions.
-- [ ] Ensure preload imports no domain endpoint definitions.
+- [x] Ensure preload imports no domain endpoint definitions.
 - [ ] Create `src/renderer/app` for React root, layout, providers, and top-level
   screen composition.
 - [ ] Move UI from `domain/*/components` to `src/renderer/features/<feature>`.
