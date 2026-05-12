@@ -23,8 +23,7 @@ The current codebase is partway through that migration:
 
 - `electron/main.ts` owns Electron lifecycle, network blocking, native dialogs,
   vault commands, generic database IPC, and store calls in one file.
-- `electron/preload.cts` exposes domain-specific methods and `db:load` /
-  `db:save`, which sends a full application database snapshot across IPC.
+- `electron/preload.cts` exposes a generic request/subscription bridge.
 - `domain/*` contains a mix of domain entities, services, repositories,
   factories, and React components.
 - `domain/app/components/AnimatedApp.tsx` owns the authoritative in-memory
@@ -32,12 +31,12 @@ The current codebase is partway through that migration:
   settings, and saves the whole snapshot.
 - `src/db.ts` is a renderer-side store adapter with an Electron IPC path and a
   `localStorage` fallback.
-- `core/internal/sqlite/app-store.ts` composes vault unlock state, SQLite
-  lifecycle, migrations, full database snapshot mapping, repository
+- `src/main/internal/lib/store/sqlite/app-store.ts` composes vault unlock state,
+  SQLite lifecycle, migrations, full database snapshot mapping, repository
   construction, and encrypted save behavior.
-- Domain services and repositories exist, but the renderer still bypasses them
-  for many workflows, and main-process IPC does not yet route through the API
-  registry.
+- Domain services and repositories exist under `src/main/internal/domain`, but
+  the renderer still relies on transitional full-snapshot load/save routes for
+  several workflows.
 - The agent sidecar is documented but not implemented.
 
 Baseline command results:
@@ -131,10 +130,10 @@ Checklist:
 
 Exit criteria:
 
-- [ ] Domain modules self-register their endpoints with the API registry.
-- [ ] `src/main/api/registry.ts` owns route registration mechanics but no domain
+- [x] Domain modules self-register their endpoints with the API registry.
+- [x] `src/main/api/registry.ts` owns route registration mechanics but no domain
   behavior.
-- [ ] No `db:*` channels remain.
+- [x] No `db:*` channels remain.
 
 ## Phase 4: Rehome Store, Vault, And Domain Code
 
@@ -160,7 +159,7 @@ Checklist:
 Exit criteria:
 
 - [ ] Only repositories and generic store infrastructure import `sql.js`.
-- [ ] No renderer or preload code imports store modules.
+- [ ] No renderer or preload code imports main internals or store modules.
 - [ ] Domain-specific SQL and mappings live with the owning domain.
 - [x] Legacy `core/internal` store and vault paths are removed or reduced to
   temporary shims.
