@@ -1,7 +1,7 @@
 import { sessionStateGraph } from "../internal/domain/session/flow.js";
 import type { Assessment, SessionFlowAction, SessionFlowState } from "../internal/domain/session/types.js";
 import type { SessionRouteService } from "../internal/domain/session/ipc.types.js";
-import { mutateAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 import type { CreateDomainServices } from "./domain-services.types.js";
 
 export function createSessionRouteService(options: {
@@ -11,6 +11,10 @@ export function createSessionRouteService(options: {
   const userDataPath = options.getUserDataPath;
 
   return {
+    async list() {
+      return readFromAppDatabase(userDataPath(), (db) => options.createServices(db).sessions.listSessions());
+    },
+
     async start(payload) {
       const targetId = targetIdFrom(payload);
       return mutateAppDatabase(userDataPath(), (db) => {

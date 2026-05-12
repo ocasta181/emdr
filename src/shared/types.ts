@@ -105,12 +105,6 @@ export type Settings = {
   bilateralStimulation: BilateralStimulationSettings;
 };
 
-export type Database = {
-  targets: Target[];
-  sessions: SessionAggregate[];
-  settings: Settings;
-};
-
 export type StimulationSetDraft = {
   sessionId: string;
   cycleCount: number;

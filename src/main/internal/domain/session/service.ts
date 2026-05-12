@@ -44,6 +44,10 @@ export class SessionService {
     return aggregate;
   }
 
+  listSessions(): SessionAggregate[] {
+    return this.repo.all().map((session) => this.toAggregate(session));
+  }
+
   updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate {
     const session = this.requireSession(sessionId);
     const patch = {

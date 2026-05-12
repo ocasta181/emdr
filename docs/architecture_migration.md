@@ -33,13 +33,14 @@ The current codebase is partway through that migration:
 - `electron/main.ts` owns Electron lifecycle, network blocking, native dialogs,
   vault commands, generic database IPC, and store calls in one file.
 - `electron/preload.cts` exposes a generic request/subscription bridge.
-- `src/renderer/app/AnimatedApp.tsx` is the active React shell. It now calls
-  renderer API clients for mutations, but still keeps a transitional snapshot
-  for history and presentation state.
+- `src/renderer/app/AnimatedApp.tsx` is the active React shell. It calls
+  renderer API clients and keeps display-only view data for active targets,
+  history, settings, and panel state.
 - `src/renderer/api/client.ts` is the renderer-side IPC client surface. It has no
   local persistence fallback.
 - `src/shared/types.ts` holds serializable view contracts shared across the
   renderer/main process boundary.
+- Transitional `legacy:*` full-snapshot IPC routes have been removed.
 - `src/main/internal/lib/store/sqlite/app-store.ts` keeps vault unlock state and
   encrypted save behavior, while
   `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
@@ -135,6 +136,8 @@ Checklist:
 - [x] Add session routes for start, assessment update, flow transition, and end.
 - [x] Add stimulation-set routes for logging and listing by session.
 - [x] Add setting routes for read and bilateral-stimulation update.
+- [x] Add query routes for current targets, all targets, sessions, and settings
+  view data.
 - [ ] Validate route payloads at the domain IPC boundary.
 - [x] Delete the transitional generic `db:load` and `db:save` routes after
   equivalent domain routes exist.
@@ -197,7 +200,7 @@ Checklist:
 - [x] Replace renderer imports from domain factories and services with
   transport-backed feature clients or presentation-only helpers.
 - [x] Remove `src/db.ts` and the `localStorage` fallback.
-- [ ] Keep renderer state limited to form drafts, selected panels, animation
+- [x] Keep renderer state limited to form drafts, selected panels, animation
   state, transient chat input, loading state, and error display.
 
 Exit criteria:
@@ -205,7 +208,7 @@ Exit criteria:
 - [x] Preload has no domain-specific route list.
 - [x] `src/renderer` does not import `src/main`, `core`, `electron`,
   repositories, factories, or main-process services.
-- [ ] React components do not construct domain records or mutate authoritative
+- [x] React components do not construct domain records or mutate authoritative
   collections.
 
 ## Phase 6: Restore Buildable State
@@ -219,19 +222,19 @@ Checklist:
   calls or renderer-local helpers.
 - [x] Move direct `nowIso`, target creation, session creation, stimulation-set
   creation, and settings mutation out of React components.
-- [ ] Remove direct renderer collection mutation of the authoritative `Database`.
-- [ ] Preserve behavior for target creation, target revision, session start/end,
+- [x] Remove direct renderer collection mutation of the authoritative `Database`.
+- [x] Preserve behavior for target creation, target revision, session start/end,
   stimulation-set logging, settings changes, vault setup, unlock, import, and
   export.
-- [ ] Delete transitional route aliases and legacy import shims.
+- [x] Delete transitional route aliases and legacy import shims.
 - [x] Run `pnpm run build`.
 - [ ] Run `pnpm run check:architecture:staged` before each commit.
 
 Exit criteria:
 
 - [x] `pnpm run build` succeeds.
-- [ ] New or changed TypeScript files pass the staged architecture check.
-- [ ] Existing full architecture violations are reduced to only planned
+- [x] New or changed TypeScript files pass the staged architecture check.
+- [x] Existing full architecture violations are reduced to only planned
   follow-up work.
 
 ## Phase 7: Add Agent Infrastructure

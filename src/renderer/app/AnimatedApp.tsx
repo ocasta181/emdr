@@ -6,10 +6,12 @@ import {
   createVault,
   endSession as endSessionRecord,
   exportVault,
+  getSettings,
   getVaultStatus,
   importVault,
+  listAllTargets,
+  listSessions,
   listTargets,
-  loadDatabase,
   logStimulationSet,
   reviseTarget as reviseTargetRecord,
   startSession as startSessionRecord,
@@ -18,7 +20,7 @@ import {
   updateBilateralStimulationSettings,
   type VaultStatus
 } from "../api/client";
-import type { BilateralStimulationSettings, Database, SessionAggregate, Target, TargetStatus } from "../../shared/types";
+import type { BilateralStimulationSettings, SessionAggregate, Settings, Target, TargetStatus } from "../../shared/types";
 import { optionalNumber } from "../../../utils";
 import {
   animatedPanelForState,
@@ -30,6 +32,13 @@ import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAc
 
 type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
+type AppViewData = {
+  targets: Target[];
+  allTargets: Target[];
+  sessions: SessionAggregate[];
+  settings: Settings;
+};
+
 const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
   green: "#6dd07a",
   blue: "#6ec1e4",
@@ -37,8 +46,9 @@ const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
   orange: "#ff9b50"
 };
 
-const emptyDatabase: Database = {
+const emptyViewData: AppViewData = {
   targets: [],
+  allTargets: [],
   sessions: [],
   settings: {
     bilateralStimulation: {
@@ -52,8 +62,7 @@ const emptyDatabase: Database = {
 export function AnimatedApp() {
   const [authState, setAuthState] = useState<AuthState>("checking");
   const [recoveryCode, setRecoveryCode] = useState("");
-  const [database, setDatabase] = useState<Database>(emptyDatabase);
-  const [targets, setTargets] = useState<Target[]>([]);
+  const [viewData, setViewData] = useState<AppViewData>(emptyViewData);
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
@@ -72,17 +81,14 @@ export function AnimatedApp() {
   }, []);
 
   async function loadUnlockedDatabase() {
-    const [nextDatabase, nextTargets] = await Promise.all([loadDatabase(), listTargets()]);
-    setDatabase(nextDatabase);
-    setTargets(nextTargets);
+    setViewData(await loadViewData());
     setAuthState("ready");
   }
 
   async function refreshViewData() {
-    const [nextDatabase, nextTargets] = await Promise.all([loadDatabase(), listTargets()]);
-    setDatabase(nextDatabase);
-    setTargets(nextTargets);
-    return nextDatabase;
+    const nextViewData = await loadViewData();
+    setViewData(nextViewData);
+    return nextViewData;
   }
 
   async function setupVault(password: string) {
@@ -191,8 +197,8 @@ export function AnimatedApp() {
       cycleCount: 24,
       observation: ""
     });
-    const nextDatabase = await refreshViewData();
-    setActiveSession(nextDatabase.sessions.find((session) => session.id === set.sessionId) ?? activeSession);
+    const nextViewData = await refreshViewData();
+    setActiveSession(nextViewData.sessions.find((session) => session.id === set.sessionId) ?? activeSession);
   }
 
   function closePanel() {
@@ -238,10 +244,11 @@ export function AnimatedApp() {
   const panel = animatedPanelForState(roomState);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const settings = database.settings.bilateralStimulation;
-  const sessionsByTargetId = new Map(targets.map((target) => [target.id, target] as const));
-  const sessionHistory = [...database.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const allTargets = database.targets;
+  const settings = viewData.settings.bilateralStimulation;
+  const targets = viewData.targets;
+  const sessionsByTargetId = new Map(viewData.targets.map((target) => [target.id, target] as const));
+  const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const allTargets = viewData.allTargets;
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -346,6 +353,16 @@ export function AnimatedApp() {
       )}
     </div>
   );
+}
+
+async function loadViewData(): Promise<AppViewData> {
+  const [targets, allTargets, sessions, settings] = await Promise.all([
+    listTargets(),
+    listAllTargets(),
+    listSessions(),
+    getSettings()
+  ]);
+  return { targets, allTargets, sessions, settings };
 }
 
 function IdleGuideChat({ targetCount, onOpenTargets }: { targetCount: number; onOpenTargets: () => void }) {

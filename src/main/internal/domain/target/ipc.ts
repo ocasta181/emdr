@@ -3,6 +3,7 @@ import type { TargetRouteService } from "./ipc.types.js";
 
 export function registerTargetIpc(registry: ApiRegistry, service: TargetRouteService) {
   registry.handle("target:list", async () => service.list());
+  registry.handle("target:list-all", async () => service.listAll());
   registry.handle("target:create", async (payload) => service.create(payload));
   registry.handle("target:revise", async (payload) => service.revise(payload));
 }

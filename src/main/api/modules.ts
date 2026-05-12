@@ -1,5 +1,4 @@
 import type { MainModule, InitializeOptions } from "./modules.types.js";
-import { createLegacyMainModule } from "./legacy-module.js";
 import { createDomainServices } from "./domain-services.js";
 import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
 import { createVaultModule } from "../internal/domain/vault/module.js";
@@ -30,9 +29,6 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
     createTargetModule(createTargetRouteService(routeServiceOptions)),
     createSessionModule(createSessionRouteService(routeServiceOptions)),
     createSettingModule(createSettingRouteService(routeServiceOptions)),
-    createStimulationSetModule(createStimulationSetRouteService(routeServiceOptions)),
-    createLegacyMainModule({
-      getUserDataPath: options.getUserDataPath
-    })
+    createStimulationSetModule(createStimulationSetRouteService(routeServiceOptions))
   ];
 }

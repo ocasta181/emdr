@@ -1,6 +1,5 @@
 import { VaultService, type VaultStatus } from "../../../domain/vault/service.js";
-import type { Database } from "../../../domain/app/types.js";
-import { createInitializedAppDatabase, openMigratedAppDatabase, readAppDatabase, writeAppDatabase } from "./app-database.js";
+import { createInitializedAppDatabase, openMigratedAppDatabase } from "./app-database.js";
 import { exportSqliteDatabase, type SqliteDatabase } from "./connection.js";
 import { runSqliteTransaction } from "./transaction.js";
 
@@ -28,14 +27,6 @@ export async function unlockAppVaultWithPassword(userDataPath: string, password:
 export async function unlockAppVaultWithRecoveryCode(userDataPath: string, recoveryCode: string) {
   const unlocked = await new VaultService(userDataPath).unlockWithRecoveryCode(recoveryCode);
   setActiveDatabase(userDataPath, await openMigratedAppDatabase(unlocked.plaintext), unlocked.dataKey);
-}
-
-export async function loadAppDatabase(userDataPath: string): Promise<Database> {
-  return readFromAppDatabase(userDataPath, readAppDatabase);
-}
-
-export async function saveAppDatabase(userDataPath: string, database: Database) {
-  await mutateAppDatabase(userDataPath, (db) => writeAppDatabase(db, database));
 }
 
 export async function readFromAppDatabase<T>(userDataPath: string, reader: (db: SqliteDatabase) => T): Promise<T> {

@@ -15,6 +15,10 @@ export function createTargetRouteService(options: {
       return readFromAppDatabase(userDataPath(), (db) => options.createServices(db).targets.listCurrentTargets());
     },
 
+    async listAll() {
+      return readFromAppDatabase(userDataPath(), (db) => options.createServices(db).targets.listAllTargets());
+    },
+
     async create(payload) {
       return mutateAppDatabase(userDataPath(), (db) =>
         options.createServices(db).targets.addTarget(targetDraftFrom(payload))

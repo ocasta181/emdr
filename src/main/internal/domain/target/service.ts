@@ -23,6 +23,10 @@ export class TargetService {
       .sort((a, b) => (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1));
   }
 
+  listAllTargets(): Target[] {
+    return this.repo.all();
+  }
+
   addTarget(draft: TargetDraft): Target {
     const target = createTarget(draft);
     this.repo.insert(target);

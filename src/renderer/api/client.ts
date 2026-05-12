@@ -1,8 +1,8 @@
 import type {
   BilateralStimulationSettings,
-  Database,
   SessionAggregate,
   SessionEndPatch,
+  Settings,
   StimulationSet,
   StimulationSetDraft,
   Target,
@@ -35,17 +35,20 @@ export async function importVault() {
   return emdr().request<{ canceled: boolean }>("vault:import");
 }
 
-export async function loadDatabase(): Promise<Database> {
-  const loaded = await emdr().request<unknown | null>("legacy:load-database");
-  return loaded ? (loaded as Database) : emptyDatabase();
-}
-
-export async function saveDatabase(database: Database) {
-  await emdr().request("legacy:save-database", database);
-}
-
 export async function listTargets(): Promise<Target[]> {
   return emdr().request<Target[]>("target:list");
+}
+
+export async function listAllTargets(): Promise<Target[]> {
+  return emdr().request<Target[]>("target:list-all");
+}
+
+export async function listSessions(): Promise<SessionAggregate[]> {
+  return emdr().request<SessionAggregate[]>("session:list");
+}
+
+export async function getSettings(): Promise<Settings> {
+  return emdr().request<Settings>("settings:get");
 }
 
 export async function createTarget(draft: TargetDraft): Promise<Target> {
@@ -76,20 +79,6 @@ export async function updateBilateralStimulationSettings(
   patch: Partial<BilateralStimulationSettings>
 ): Promise<BilateralStimulationSettings> {
   return emdr().request<BilateralStimulationSettings>("settings:update-bilateral-stimulation", patch);
-}
-
-function emptyDatabase(): Database {
-  return {
-    targets: [],
-    sessions: [],
-    settings: {
-      bilateralStimulation: {
-        speed: 1,
-        dotSize: "medium",
-        dotColor: "green"
-      }
-    }
-  };
 }
 
 function emdr() {
