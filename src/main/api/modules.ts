@@ -141,6 +141,10 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
     createGuideModule({
       getView(request) {
         return readServices(userDataPath, (services) => services.guide.getView(request));
+      },
+
+      applyAction(proposal) {
+        return mutateServices(userDataPath, (services) => services.guide.applyAction(proposal));
       }
     })
   ];
@@ -168,6 +172,6 @@ function createDomainServices(db: SqliteDatabase) {
     sessions,
     settings: new SettingService(newSettingRepository(db)),
     stimulationSets,
-    guide: new GuideService(targets, sessions)
+    guide: new GuideService(targets, sessions, stimulationSets)
   };
 }

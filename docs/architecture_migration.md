@@ -55,8 +55,8 @@ The current codebase is partway through that migration:
 - API-layer `*-route-service.ts` adapters have been removed; domain `ipc.ts`
   files validate route payloads and call domain services directly.
 - Generic agent sidecar process and JSON-line transport infrastructure exists
-  under `src/main/internal/lib/agent`; guide-specific agent behavior is not yet
-  wired.
+  under `src/main/internal/lib/agent`; guide action proposals are validated and
+  applied through domain services, but no live agent sidecar is wired yet.
 
 Current command results:
 
@@ -252,11 +252,11 @@ Checklist:
 
 - [x] Add `src/main/internal/lib/agent` for sidecar startup, shutdown, health
   checks, transport, and model runtime configuration.
-- [ ] Add `src/main/internal/domain/guide` for guide prompts, structured action
+- [x] Add `src/main/internal/domain/guide` for guide prompts, structured action
   schemas, action validation, and guide-specific state.
-- [ ] Route agent proposed actions through the same domain services used by human
+- [x] Route agent proposed actions through the same domain services used by human
   UI commands.
-- [ ] Reject invalid agent actions in main before any mutation.
+- [x] Reject invalid agent actions in main before any mutation.
 - [ ] Ensure the agent never imports renderer code, repositories, SQLite code, or
   Electron IPC.
 - [ ] Add tests for allowed and rejected guide actions per session state.
