@@ -1,6 +1,6 @@
-import type { StimulationSet } from "../stimulation-set/entity.js";
+import type { StimulationSet } from "../../../../../domain/stimulation-set/entity.js";
 import type { Session } from "./entity.js";
-import type { StateGraphEdge, StateGraphNode } from "../../stateGraph.js";
+import type { StateGraphEdge, StateGraphNode } from "../../../../../stateGraph.js";
 
 export type Assessment = {
   image?: string;
