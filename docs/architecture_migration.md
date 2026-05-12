@@ -380,7 +380,7 @@ Checklist:
 - [ ] Add an Electron smoke test for setup, unlock, target creation, session
   start, stimulation-set logging, session end, export, and import.
 - [ ] Add an Electron smoke test for the full session state-machine flow.
-- [ ] Extend `tools/check-architecture.mjs` or add a targeted static check so
+- [x] Extend `tools/check-architecture.mjs` or add a targeted static check so
   renderer code cannot call graph-bypassing session mutation routes for workflow
   actions.
 

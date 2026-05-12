@@ -4,12 +4,9 @@ import type {
   GuideActionResult,
   GuideView,
   SessionAggregate,
-  SessionEndPatch,
   SessionFlowAction,
   SessionWorkflowSnapshot,
   Settings,
-  StimulationSet,
-  StimulationSetDraft,
   Target,
   TargetDraft
 } from "../../shared/types";
@@ -85,14 +82,6 @@ export async function advanceSessionFlow(
   sessionId?: string
 ): Promise<SessionWorkflowSnapshot> {
   return emdr().request<SessionWorkflowSnapshot>("session:advance-flow", { sessionId, action });
-}
-
-export async function endSession(patch: SessionEndPatch): Promise<SessionAggregate> {
-  return emdr().request<SessionAggregate>("session:end", patch);
-}
-
-export async function logStimulationSet(draft: StimulationSetDraft): Promise<StimulationSet> {
-  return emdr().request<StimulationSet>("stimulation-set:log", draft);
 }
 
 export async function applyGuideAction(proposal: GuideActionProposal): Promise<GuideActionResult> {

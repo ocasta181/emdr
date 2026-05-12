@@ -15,6 +15,7 @@ const baselineMigrationPath = "src/main/internal/lib/store/sqlite/migrations/000
 const routeConstructorForbiddenDependencyPattern =
   /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|AppStoreDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
 const serviceConstructorForbiddenDependencyPattern = /\b(db|database|AppDatabase|AppStoreDatabase|SqliteDatabase)\b/i;
+const rendererForbiddenWorkflowRoutes = new Set(["session:end", "stimulation-set:log"]);
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -250,6 +251,23 @@ function analyzeUiBusinessLogic(sourceFile) {
         message: "UI code cannot construct domain database objects directly. Call a service method instead."
       });
     }
+  });
+}
+
+function analyzeRendererWorkflowRoutes(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (!isRendererLayer(filePath)) return;
+
+  sourceFile.forEachDescendant((node) => {
+    if (!Node.isStringLiteral(node)) return;
+    const route = node.getLiteralText();
+    if (!rendererForbiddenWorkflowRoutes.has(route)) return;
+
+    report({
+      node,
+      rule: "architecture/renderer-workflow-routes",
+      message: `Renderer code must not call graph-bypassing workflow route "${route}". Use graph-validated workflow or guide routes.`
+    });
   });
 }
 
@@ -691,6 +709,7 @@ function analyzeFiles(files) {
       analyzeDbTouches(sourceFile);
       analyzeBusinessLogic(sourceFile);
       analyzeUiBusinessLogic(sourceFile);
+      analyzeRendererWorkflowRoutes(sourceFile);
       analyzeSchemaBoundary(sourceFile);
       analyzeAppDomain(sourceFile);
       analyzeDomainRepositoryFormula(sourceFile);
