@@ -13,8 +13,8 @@ import type { SessionAggregate } from "../../../domain/session/types.js";
 import { createDefaultSettings } from "../../../../../../domain/setting/factory.js";
 import { newSettingRepository } from "../../../../../../domain/setting/repository.js";
 import type { Settings } from "../../../../../../domain/setting/types.js";
-import { newStimulationSetRepository } from "../../../../../../domain/stimulation-set/repository.js";
-import type { StimulationSet } from "../../../../../../domain/stimulation-set/entity.js";
+import { newStimulationSetRepository } from "../../../domain/stimulation-set/repository.js";
+import type { StimulationSet } from "../../../domain/stimulation-set/entity.js";
 import { newTargetRepository } from "../../../domain/target/repository.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;

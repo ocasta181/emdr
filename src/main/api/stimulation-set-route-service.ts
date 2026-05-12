@@ -1,5 +1,5 @@
 import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { createStimulationSet } from "../../../domain/stimulation-set/factory.js";
+import { createStimulationSet } from "../internal/domain/stimulation-set/factory.js";
 import type { StimulationSetRouteService } from "../internal/domain/stimulation-set/ipc.types.js";
 
 export function createStimulationSetRouteService(options: {

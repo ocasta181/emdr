@@ -1,4 +1,4 @@
-import type { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
+import type { SQLBaseRepository } from "../../lib/store/repository/base.js";
 import type { StimulationSet } from "./entity.js";
 import type { StimulationSetDraft } from "./types.js";
 import { createStimulationSet } from "./factory.js";

@@ -4,3 +4,7 @@ export type StimulationSetDraft = {
   observation: string;
   disturbance?: number;
 };
+
+export type StimulationSetRecordDraft = StimulationSetDraft & {
+  setNumber: number;
+};
