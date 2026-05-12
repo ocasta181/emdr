@@ -31,9 +31,10 @@ The current codebase is partway through that migration:
   settings, and saves the whole snapshot.
 - `src/db.ts` is a renderer-side store adapter with an Electron IPC path and a
   `localStorage` fallback.
-- `src/main/internal/lib/store/sqlite/app-store.ts` composes vault unlock state,
-  SQLite lifecycle, migrations, full database snapshot mapping, repository
-  construction, and encrypted save behavior.
+- `src/main/internal/lib/store/sqlite/app-store.ts` keeps vault unlock state and
+  encrypted save behavior, while
+  `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
+  repository-backed full database snapshot mapping.
 - Domain services and repositories exist under `src/main/internal/domain`, but
   the renderer still relies on transitional full-snapshot load/save routes for
   several workflows.
@@ -150,8 +151,8 @@ Checklist:
   `src/main/internal/domain/<domain>`.
 - [x] Keep repositories in their owning domain folders.
 - [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
-- [ ] Split `core/internal/sqlite/app-store.ts` into store lifecycle, vault-backed
-  loading/saving, repository wiring, and app orchestration.
+- [x] Split `src/main/internal/lib/store/sqlite/app-store.ts` into vault-backed
+  store lifecycle and repository-backed app database mapping.
 - [ ] Replace full-snapshot `replaceAll` persistence with granular repository
   writes for command handlers.
 - [ ] Add transaction helpers for workflows that update multiple tables.
