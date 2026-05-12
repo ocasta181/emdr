@@ -2,7 +2,7 @@ import { GuideRoutes } from "../internal/domain/guide/module.js";
 import { GuideService } from "../internal/domain/guide/service.js";
 import { SessionRoutes } from "../internal/domain/session/module.js";
 import { newSessionRepository } from "../internal/domain/session/repository.js";
-import { SessionService } from "../internal/domain/session/service.js";
+import { SessionService, SessionWorkflowMachine } from "../internal/domain/session/service.js";
 import { SettingRoutes } from "../internal/domain/setting/module.js";
 import { newSettingRepository } from "../internal/domain/setting/repository.js";
 import { SettingService } from "../internal/domain/setting/service.js";
@@ -31,17 +31,24 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const settingRepository = newSettingRepository(db);
   const stimulationSetRepository = newStimulationSetRepository(db);
 
+  const sessionWorkflow = new SessionWorkflowMachine();
   const targetService = new TargetService(targetRepository);
-  const sessionLookupService = new SessionService(sessionRepository);
-  const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-  const sessionService = new SessionService(sessionRepository, stimulationSetService);
+  const sessionLookupService = new SessionService(sessionRepository, sessionWorkflow);
+  const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService, sessionWorkflow);
+  const sessionService = new SessionService(sessionRepository, sessionWorkflow, stimulationSetService);
   const settingService = new SettingService(settingRepository);
   const guideService = new GuideService(targetService, sessionService, stimulationSetService);
   const vaultService = new VaultService(vaultFileService, {
     isUnlocked: () => db.isUnlocked(),
     createPlaintext: () => db.createPlaintextFromTemplate(),
-    unlock: (unlocked) => db.unlock(unlocked),
-    lock: () => db.lock()
+    unlock: async (unlocked) => {
+      await db.unlock(unlocked);
+      sessionWorkflow.reset();
+    },
+    lock: () => {
+      db.lock();
+      sessionWorkflow.reset();
+    }
   });
 
   const vaultRoutes = new VaultRoutes(routes, vaultService, createVaultFileDialogs());

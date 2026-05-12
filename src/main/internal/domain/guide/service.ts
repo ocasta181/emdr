@@ -25,6 +25,11 @@ export class GuideService {
       return idleGuideView(currentTargets.length);
     }
 
+    const workflow = this.sessions.currentSessionWorkflow();
+    if (workflow.activeSessionId !== request.activeSessionId) {
+      return idleGuideView(currentTargets.length);
+    }
+
     const session = this.sessions.listSessions().find((item) => item.id === request.activeSessionId);
     if (!session || session.endedAt) {
       return idleGuideView(currentTargets.length);
@@ -41,48 +46,64 @@ export class GuideService {
         sessionId: session.id,
         targetId: session.targetId,
         targetDescription,
+        workflowState: workflow.state,
         stimulationSetCount: session.stimulationSets.length
       }
     };
   }
 
   applyAction(proposal: GuideActionProposal): GuideActionResult {
+    const workflow = this.sessions.currentSessionWorkflow();
+    if (workflow.activeSessionId !== proposal.sessionId || workflow.state !== proposal.workflowState) {
+      return {
+        accepted: false,
+        workflow,
+        reason: `Action ${proposal.type} expected ${proposal.workflowState}, but session is in ${workflow.state}.`
+      };
+    }
+
     if (proposal.type === "log_stimulation_set") {
-      return this.applyValidatedAction(proposal.flowState, "log_stimulation_set", () =>
-        this.stimulationSets.logStimulationSet({
+      return this.applyValidatedAction(workflow.state, "log_stimulation_set", () => {
+        const result = this.stimulationSets.logStimulationSet({
           sessionId: proposal.sessionId,
           cycleCount: proposal.cycleCount,
           observation: proposal.observation,
           disturbance: proposal.disturbance
-        })
-      );
+        });
+        return {
+          result,
+          workflow: this.sessions.currentSessionWorkflow()
+        };
+      });
     }
 
-    return this.applyValidatedAction(proposal.flowState, "close_session", () =>
-      this.sessions.endSession(proposal.sessionId, {
+    return this.applyValidatedAction(workflow.state, "close_session", () => {
+      const result = this.sessions.endSession(proposal.sessionId, {
         finalDisturbance: proposal.finalDisturbance,
         notes: proposal.notes
-      })
-    );
+      });
+      return { result, workflow: this.sessions.currentSessionWorkflow() };
+    });
   }
 
   private applyValidatedAction(
-    flowState: GuideActionProposal["flowState"],
+    workflowState: GuideActionProposal["workflowState"],
     flowAction: GuideSessionFlowAction,
-    apply: () => unknown
+    apply: () => { result: unknown; workflow: { state: GuideActionProposal["workflowState"]; activeSessionId?: string } }
   ): GuideActionResult {
-    if (!this.sessions.canApplySessionFlowAction(flowState, flowAction)) {
+    if (!this.sessions.canApplySessionFlowAction(workflowState, flowAction)) {
       return {
         accepted: false,
-        flowState,
-        reason: `Action ${flowAction} is not allowed from ${flowState}.`
+        workflow: this.sessions.currentSessionWorkflow(),
+        reason: `Action ${flowAction} is not allowed from ${workflowState}.`
       };
     }
 
+    const applied = apply();
     return {
       accepted: true,
-      flowState: this.sessions.nextSessionFlowState(flowState, flowAction),
-      result: apply()
+      workflow: applied.workflow,
+      result: applied.result
     };
   }
 }

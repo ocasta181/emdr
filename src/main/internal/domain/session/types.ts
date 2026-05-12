@@ -45,11 +45,23 @@ export type SessionFlowTransitionRequest = {
   action: SessionFlowAction;
 };
 
+export type SessionFlowAdvanceRequest = {
+  sessionId?: string;
+  action: SessionFlowAction;
+};
+
+export type SessionWorkflowSnapshot = {
+  state: SessionFlowState;
+  activeSessionId?: string;
+};
+
 export type SessionIpcService = {
   listSessions(): SessionAggregate[] | Promise<SessionAggregate[]>;
   startSession(targetId: string): SessionAggregate | Promise<SessionAggregate>;
   updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate | Promise<SessionAggregate>;
   nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState | Promise<SessionFlowState>;
+  currentSessionWorkflow(): SessionWorkflowSnapshot | Promise<SessionWorkflowSnapshot>;
+  advanceSessionFlow(action: SessionFlowAction, sessionId?: string): SessionWorkflowSnapshot | Promise<SessionWorkflowSnapshot>;
   endSession(request: SessionEndRequest): SessionAggregate | Promise<SessionAggregate>;
 };
 

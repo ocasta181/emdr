@@ -75,9 +75,10 @@ The current codebase is partway through that migration:
 - A UI smoke confirms setup, password unlock, target creation, session start,
   stimulation start/pause, stimulation-set logging, session end, relaunch, and
   history display.
-- The visible UI still bypasses the session state graph. It does not expose or
-  track authoritative `SessionFlowState`, and it does not call
-  `session:transition-flow` or `guide:apply-action` from renderer code.
+- The session workflow state machine now lives in main-process memory. It is
+  reset on vault unlock/lock and is not persisted to SQLite.
+- The visible animated UI now starts sessions, starts/pauses stimulation, logs
+  sets, and ends sessions through graph-validated workflow commands.
 - Preparation, assessment approval, closure, review, and post-session workflow
   screens are not represented in the visible UI.
 
@@ -95,8 +96,9 @@ Verification targets:
 - Migrate structure first, then restore the build.
 - Preserve encrypted vault compatibility unless a deliberate vault migration is
   added and tested.
-- This codebase is not live yet, so keep exactly one baseline SQLite migration
-  and fold schema changes into `0001_initial_schema.ts`.
+- Do not modify the SQLite schema without express permission.
+- This codebase is not live yet, so any approved schema change must be folded
+  into the single baseline SQLite migration, `0001_initial_schema.ts`.
 - After the first live release, schema changes must be new versioned migrations.
 - Never run migrations from app startup, vault setup, unlock, import, export, or
   repository code.
@@ -320,26 +322,25 @@ Current gap found by UI E2E:
 
 Checklist:
 
-- [ ] Add authoritative session workflow state to the session domain model.
-  Decide whether it is persisted on the session row or represented by an
-  explicit active-session workflow record.
-- [ ] Make session domain commands validate and advance workflow state before
+- [x] Add authoritative session workflow state to the session domain as
+  main-process memory managed by the state machine. Do not persist this state in
+  SQLite.
+- [x] Make session domain commands validate and advance workflow state before
   mutating sessions or stimulation sets.
-- [ ] Replace the stateless `session:transition-flow` helper with a route that
-  applies transitions to the active session workflow, or limit it to read-only
-  preview naming and add a separate mutating command route.
-- [ ] Expose renderer API client methods for graph-validated workflow commands.
-- [ ] Route UI session start through `idle -> target_selection -> preparation`
+- [x] Keep `session:transition-flow` as read-only preview naming and add a
+  separate mutating workflow command route.
+- [x] Expose renderer API client methods for graph-validated workflow commands.
+- [x] Route UI session start through `idle -> target_selection -> preparation`
   instead of directly creating an active session without workflow state.
 - [ ] Add preparation and assessment UI that updates assessment data and advances
   through `update_assessment` and `approve_assessment`.
-- [ ] Route stimulation start, pause, continuation, and set logging through
+- [x] Route stimulation start, pause, continuation, and set logging through
   graph-validated actions.
-- [ ] Route closure, review, and session end through graph-validated actions.
-- [ ] Update `GuideService.applyAction` and renderer guide actions so human UI
+- [x] Route closure, review, and session end through graph-validated actions.
+- [x] Update `GuideService.applyAction` and renderer guide actions so human UI
   and future agent proposals use the same validation path.
 - [ ] Update view models so `guide:view`, session history, and active-session UI
-  display the current workflow state consistently.
+  expose the current workflow state where useful without persisting it.
 - [ ] Add UI coverage for the full graph:
   `idle -> target_selection -> preparation -> stimulation -> interjection ->
   closure -> review -> post_session`.
@@ -350,10 +351,12 @@ Checklist:
 Exit criteria:
 
 - [ ] The visible Electron UI can traverse the full session graph end-to-end.
-- [ ] Renderer code no longer starts sessions, logs stimulation sets, or ends
+- [x] Renderer code no longer starts sessions, logs stimulation sets, or ends
   sessions through graph-bypassing mutation routes.
-- [ ] Refresh/relaunch during an active session restores the authoritative
-  workflow state from main.
+- [ ] Renderer refresh during an active session restores the authoritative
+  workflow state from main memory.
+- [ ] Define recovery behavior for app relaunch with an unfinished durable
+  session row, without persisting application workflow state in SQLite.
 - [ ] Manual UI E2E and automated smoke coverage both verify the full graph.
 
 ## Phase 9: Enforce The Final Boundary

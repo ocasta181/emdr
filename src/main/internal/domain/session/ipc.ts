@@ -8,6 +8,7 @@ import {
 } from "../../lib/ipc/payload.js";
 import type {
   Assessment,
+  SessionFlowAdvanceRequest,
   SessionEndRequest,
   SessionFlowAction,
   SessionFlowState,
@@ -56,6 +57,11 @@ export function registerSessionIpc(registry: ApiRegistry, sessions: SessionServi
     const request = flowTransitionFrom(payload);
     return { state: sessions.nextSessionFlowState(request.state, request.action) };
   });
+  registry.handle("session:workflow", async () => sessions.currentSessionWorkflow());
+  registry.handle("session:advance-flow", async (payload) => {
+    const request = flowAdvanceFrom(payload);
+    return sessions.advanceSessionFlow(request.action, request.sessionId);
+  });
   registry.handle("session:end", async (payload) => {
     const request = endSessionRequestFrom(payload);
     return sessions.endSession(request.sessionId, {
@@ -85,6 +91,14 @@ function assessmentFrom(payload: unknown): Assessment {
     emotions: optionalString(value, "emotions"),
     disturbance: optionalNumberInRange(value, "disturbance", disturbanceRange),
     bodyLocation: optionalString(value, "bodyLocation")
+  };
+}
+
+function flowAdvanceFrom(payload: unknown): SessionFlowAdvanceRequest {
+  const value = recordFrom(payload);
+  return {
+    sessionId: optionalString(value, "sessionId"),
+    action: requiredStringEnum(value, "action", sessionFlowActions, "a session flow action")
   };
 }
 

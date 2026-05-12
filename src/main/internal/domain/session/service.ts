@@ -11,10 +11,22 @@ import type {
   SessionFlowAction,
   SessionFlowState,
   SessionStateNode,
-  SessionStimulationSetReader
+  SessionStimulationSetReader,
+  SessionWorkflowSnapshot
 } from "./types.js";
 
 const sessionStateNodeByState = new Map(sessionStateGraph.map((node) => [node.state, node]));
+const transitionOnlyActions = new Set<SessionFlowAction>([
+  "start_session",
+  "approve_assessment",
+  "start_stimulation",
+  "pause_stimulation",
+  "continue_stimulation",
+  "request_grounding",
+  "begin_closure",
+  "request_review",
+  "return_to_idle"
+]);
 
 function sessionStateNode(state: SessionFlowState): SessionStateNode {
   const node = sessionStateNodeByState.get(state);
@@ -32,9 +44,109 @@ export function nextSessionFlowState(state: SessionFlowState, action: SessionFlo
   return edge.to;
 }
 
+function snapshot(state: SessionFlowState, activeSessionId?: string): SessionWorkflowSnapshot {
+  return activeSessionId ? { state, activeSessionId } : { state };
+}
+
+export class SessionWorkflowMachine {
+  private currentSnapshot: SessionWorkflowSnapshot = { state: "idle" };
+
+  currentSessionWorkflow(): SessionWorkflowSnapshot {
+    return { ...this.currentSnapshot };
+  }
+
+  reset() {
+    this.currentSnapshot = { state: "idle" };
+    return this.currentSessionWorkflow();
+  }
+
+  requireCanStartSession() {
+    if (!["idle", "target_selection", "post_session"].includes(this.currentSnapshot.state)) {
+      throw new Error(`Cannot start a session from ${this.currentSnapshot.state}.`);
+    }
+  }
+
+  startSession(sessionId: string): SessionWorkflowSnapshot {
+    this.requireCanStartSession();
+
+    if (this.currentSnapshot.state === "post_session") {
+      this.apply("start_session");
+    }
+
+    if (this.currentSnapshot.state !== "idle" && this.currentSnapshot.state !== "target_selection") {
+      throw new Error(`Cannot select a target from ${this.currentSnapshot.state}.`);
+    }
+
+    const nextState = nextSessionFlowState(this.currentSnapshot.state, "select_target");
+    this.currentSnapshot = snapshot(nextState, sessionId);
+    return this.currentSessionWorkflow();
+  }
+
+  advanceSessionFlow(action: SessionFlowAction, sessionId?: string): SessionWorkflowSnapshot {
+    if (!transitionOnlyActions.has(action)) {
+      throw new Error(`Action ${action} must be applied by its domain command.`);
+    }
+
+    if (action === "start_session") {
+      return this.apply(action);
+    }
+
+    if (!sessionId && action === "return_to_idle" && this.currentSnapshot.state === "target_selection") {
+      return this.apply(action);
+    }
+
+    if (!sessionId) {
+      throw new Error(`Action ${action} requires an active session.`);
+    }
+
+    return this.applyActiveSessionAction(sessionId, action);
+  }
+
+  requireActiveSessionAction(sessionId: string, action: SessionFlowAction): SessionWorkflowSnapshot {
+    const current = this.currentSessionWorkflow();
+
+    if (current.activeSessionId !== sessionId) {
+      throw new Error(`Session ${sessionId} is not the active workflow session.`);
+    }
+
+    if (!this.canApplySessionFlowAction(current.state, action)) {
+      throw new Error(`Action ${action} is not allowed from ${current.state}.`);
+    }
+
+    return current;
+  }
+
+  applyActiveSessionAction(sessionId: string, action: SessionFlowAction): SessionWorkflowSnapshot {
+    const current = this.requireActiveSessionAction(sessionId, action);
+    return this.apply(action, current.activeSessionId);
+  }
+
+  availableSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
+    return sessionStateNode(state).edges.map((edge) => edge.action);
+  }
+
+  canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
+    return this.availableSessionFlowActions(state).includes(action);
+  }
+
+  nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
+    return nextSessionFlowState(state, action);
+  }
+
+  private apply(action: SessionFlowAction, activeSessionId = this.currentSnapshot.activeSessionId) {
+    const nextState = nextSessionFlowState(this.currentSnapshot.state, action);
+    this.currentSnapshot = snapshot(
+      nextState,
+      nextState === "idle" || nextState === "target_selection" ? undefined : activeSessionId
+    );
+    return this.currentSessionWorkflow();
+  }
+}
+
 export class SessionService {
   constructor(
     private readonly repo: SQLBaseRepository<Session>,
+    private readonly workflow: SessionWorkflowMachine,
     private readonly stimulationSets?: SessionStimulationSetReader
   ) {}
 
@@ -47,8 +159,10 @@ export class SessionService {
   }
 
   startSession(target: Target): SessionAggregate {
+    this.workflow.requireCanStartSession();
     const aggregate = createSessionForTarget(target);
     this.repo.insert(createSessionFromAggregate(aggregate));
+    this.workflow.startSession(aggregate.id);
     return aggregate;
   }
 
@@ -58,6 +172,7 @@ export class SessionService {
 
   updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate {
     const session = this.requireSession(sessionId);
+    this.workflow.requireActiveSessionAction(sessionId, "update_assessment");
     const patch = {
       assessmentImage: assessment.image,
       assessmentNegativeCognition: assessment.negativeCognition,
@@ -68,11 +183,13 @@ export class SessionService {
       assessmentBodyLocation: assessment.bodyLocation
     } satisfies Partial<Session>;
     this.repo.update(sessionId, patch);
+    this.workflow.applyActiveSessionAction(sessionId, "update_assessment");
     return this.toAggregate({ ...session, ...patch });
   }
 
   endSession(sessionId: string, patch: SessionEndPatch = {}): SessionAggregate {
     const session = this.requireSession(sessionId);
+    this.workflow.requireActiveSessionAction(sessionId, "close_session");
     const endedSession = {
       ...session,
       endedAt: nowIso(),
@@ -84,19 +201,28 @@ export class SessionService {
       finalDisturbance: endedSession.finalDisturbance,
       notes: endedSession.notes
     } as Partial<Session>);
+    this.workflow.applyActiveSessionAction(sessionId, "close_session");
     return this.toAggregate(endedSession);
   }
 
   availableSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
-    return sessionStateNode(state).edges.map((edge) => edge.action);
+    return this.workflow.availableSessionFlowActions(state);
   }
 
   nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
-    return nextSessionFlowState(state, action);
+    return this.workflow.nextSessionFlowState(state, action);
   }
 
   canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
-    return this.availableSessionFlowActions(state).includes(action);
+    return this.workflow.canApplySessionFlowAction(state, action);
+  }
+
+  currentSessionWorkflow(): SessionWorkflowSnapshot {
+    return this.workflow.currentSessionWorkflow();
+  }
+
+  advanceSessionFlow(action: SessionFlowAction, sessionId?: string): SessionWorkflowSnapshot {
+    return this.workflow.advanceSessionFlow(action, sessionId);
   }
 
   private toAggregate(session: Session): SessionAggregate {

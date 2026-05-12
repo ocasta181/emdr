@@ -35,6 +35,8 @@ The Electron main process is the application authority. It:
 
 - owns the Core Engine
 - owns domain workflows and state transitions
+- owns current application workflow state in memory through state-machine
+  services
 - owns vault unlock state
 - starts and supervises the local agent process
 - reads and writes the SQL store through repositories
@@ -114,6 +116,8 @@ The main process validates every proposed agent action before applying it.
 The SQL store is durable storage only. It:
 
 - stores targets, sessions, stimulation sets, settings, and vault-backed app data
+- does not store current application workflow state such as the active session
+  state-machine node
 - is accessed only by the main process
 - is reached through domain repositories
 - is not exposed through generic renderer IPC
@@ -214,6 +218,7 @@ Main-process dependency wiring:
   locked
 - instantiates repositories with the store adapter
 - instantiates services with repositories and other service interfaces
+- instantiates in-memory state-machine services used by domain services
 - instantiates route modules with their services
 - injects only narrow non-repository capabilities when a service needs whole
   store lifecycle behavior, such as vault unlock
@@ -227,6 +232,7 @@ objects by hand in dependency order:
 ```text
 store adapter
   -> domain repositories
+  -> in-memory state machines
   -> domain services
   -> domain routes
 ```
@@ -268,6 +274,8 @@ The exact files may vary by domain, but the responsibilities do not:
 - `ipc.ts` defines and registers that domain's endpoints with the central API
   registry, validates route payloads, and calls one domain service method
 - `service.ts` owns business workflows and state transitions
+- current application workflow state is kept in memory by domain state-machine
+  services, not persisted as session columns or generic settings
 - `repository.ts` is the only domain code that touches the store adapter, and
   domain repositories are table repositories only
 - `entity.ts` and `types.ts` define domain and route contract types

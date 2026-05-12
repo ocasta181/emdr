@@ -18,7 +18,7 @@ export type GuideActionProposal =
   | {
       type: "log_stimulation_set";
       sessionId: string;
-      flowState: GuideSessionFlowState;
+      workflowState: GuideSessionFlowState;
       cycleCount: number;
       observation: string;
       disturbance?: number;
@@ -26,20 +26,25 @@ export type GuideActionProposal =
   | {
       type: "end_session";
       sessionId: string;
-      flowState: GuideSessionFlowState;
+      workflowState: GuideSessionFlowState;
       finalDisturbance?: number;
       notes?: string;
     };
 
+export type GuideSessionWorkflowSnapshot = {
+  state: GuideSessionFlowState;
+  activeSessionId?: string;
+};
+
 export type GuideActionResult =
   | {
       accepted: true;
-      flowState: GuideSessionFlowState;
+      workflow: GuideSessionWorkflowSnapshot;
       result: unknown;
     }
   | {
       accepted: false;
-      flowState: GuideSessionFlowState;
+      workflow: GuideSessionWorkflowSnapshot;
       reason: string;
     };
 
@@ -54,6 +59,7 @@ export type GuideSessionView = {
   sessionId: string;
   targetId: string;
   targetDescription: string;
+  workflowState: GuideSessionFlowState;
   stimulationSetCount: number;
 };
 
@@ -92,7 +98,7 @@ export type GuideSessionMutator = {
 
 export type GuideSessionFlowValidator = {
   canApplySessionFlowAction(state: GuideSessionFlowState, action: GuideSessionFlowAction): boolean;
-  nextSessionFlowState(state: GuideSessionFlowState, action: GuideSessionFlowAction): GuideSessionFlowState;
+  currentSessionWorkflow(): GuideSessionWorkflowSnapshot;
 };
 
 export type GuideStimulationSetWriter = {

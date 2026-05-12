@@ -45,7 +45,7 @@ function guideActionProposalFrom(payload: unknown): GuideActionProposal {
     return {
       type,
       sessionId: requiredString(value, "sessionId"),
-      flowState: requiredStringEnum(value, "flowState", guideSessionFlowStates, "a session flow state"),
+      workflowState: requiredStringEnum(value, "workflowState", guideSessionFlowStates, "a session flow state"),
       cycleCount: requiredNumberInRange(value, "cycleCount", { min: 1, max: 10000 }),
       observation: requiredString(value, "observation"),
       disturbance: optionalNumberInRange(value, "disturbance", disturbanceRange)
@@ -55,7 +55,7 @@ function guideActionProposalFrom(payload: unknown): GuideActionProposal {
   return {
     type,
     sessionId: requiredString(value, "sessionId"),
-    flowState: requiredStringEnum(value, "flowState", guideSessionFlowStates, "a session flow state"),
+    workflowState: requiredStringEnum(value, "workflowState", guideSessionFlowStates, "a session flow state"),
     finalDisturbance: optionalNumberInRange(value, "finalDisturbance", disturbanceRange),
     notes: optionalString(value, "notes")
   };

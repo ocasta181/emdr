@@ -1,8 +1,12 @@
 import type {
   BilateralStimulationSettings,
+  GuideActionProposal,
+  GuideActionResult,
   GuideView,
   SessionAggregate,
   SessionEndPatch,
+  SessionFlowAction,
+  SessionWorkflowSnapshot,
   Settings,
   StimulationSet,
   StimulationSetDraft,
@@ -56,6 +60,10 @@ export async function getGuideView(activeSessionId?: string): Promise<GuideView>
   return emdr().request<GuideView>("guide:view", activeSessionId ? { activeSessionId } : undefined);
 }
 
+export async function getSessionWorkflow(): Promise<SessionWorkflowSnapshot> {
+  return emdr().request<SessionWorkflowSnapshot>("session:workflow");
+}
+
 export async function createTarget(draft: TargetDraft): Promise<Target> {
   return emdr().request<Target>("target:create", draft);
 }
@@ -72,12 +80,23 @@ export async function updateSessionAssessment(sessionId: string, assessment: Ses
   return emdr().request<SessionAggregate>("session:update-assessment", { sessionId, assessment });
 }
 
+export async function advanceSessionFlow(
+  action: SessionFlowAction,
+  sessionId?: string
+): Promise<SessionWorkflowSnapshot> {
+  return emdr().request<SessionWorkflowSnapshot>("session:advance-flow", { sessionId, action });
+}
+
 export async function endSession(patch: SessionEndPatch): Promise<SessionAggregate> {
   return emdr().request<SessionAggregate>("session:end", patch);
 }
 
 export async function logStimulationSet(draft: StimulationSetDraft): Promise<StimulationSet> {
   return emdr().request<StimulationSet>("stimulation-set:log", draft);
+}
+
+export async function applyGuideAction(proposal: GuideActionProposal): Promise<GuideActionResult> {
+  return emdr().request<GuideActionResult>("guide:apply-action", proposal);
 }
 
 export async function updateBilateralStimulationSettings(

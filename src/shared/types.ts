@@ -95,6 +95,11 @@ export type SessionFlowAction =
   | "close_session"
   | "return_to_idle";
 
+export type SessionWorkflowSnapshot = {
+  state: SessionFlowState;
+  activeSessionId?: string;
+};
+
 export type BilateralStimulationSettings = {
   speed: number;
   dotSize: "small" | "medium" | "large";
@@ -118,6 +123,35 @@ export type SessionEndPatch = {
   notes?: string;
 };
 
+export type GuideActionProposal =
+  | {
+      type: "log_stimulation_set";
+      sessionId: string;
+      workflowState: SessionFlowState;
+      cycleCount: number;
+      observation: string;
+      disturbance?: number;
+    }
+  | {
+      type: "end_session";
+      sessionId: string;
+      workflowState: SessionFlowState;
+      finalDisturbance?: number;
+      notes?: string;
+    };
+
+export type GuideActionResult =
+  | {
+      accepted: true;
+      workflow: SessionWorkflowSnapshot;
+      result: unknown;
+    }
+  | {
+      accepted: false;
+      workflow: SessionWorkflowSnapshot;
+      reason: string;
+    };
+
 export type GuidePanelAction = {
   type: "open_targets";
   label: string;
@@ -127,6 +161,7 @@ export type GuideSessionView = {
   sessionId: string;
   targetId: string;
   targetDescription: string;
+  workflowState: SessionFlowState;
   stimulationSetCount: number;
 };
 

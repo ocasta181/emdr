@@ -15,6 +15,11 @@ export type SessionLookup = {
   requireSession(sessionId: string): unknown;
 };
 
+export type StimulationSetSessionWorkflow = {
+  requireActiveSessionAction(sessionId: string, action: "log_stimulation_set"): unknown;
+  applyActiveSessionAction(sessionId: string, action: "log_stimulation_set"): unknown;
+};
+
 export type StimulationSetIpcService = {
   listBySession(sessionId: string): StimulationSet[] | Promise<StimulationSet[]>;
   logStimulationSet(draft: StimulationSetDraft): StimulationSet | Promise<StimulationSet>;

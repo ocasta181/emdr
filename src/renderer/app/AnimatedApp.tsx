@@ -2,18 +2,19 @@ import { useEffect, useReducer, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../animation/RoomScene";
 import type { GuideAction, GuideAnimationIntent } from "../animation/guideAnimationModel";
 import {
+  advanceSessionFlow,
+  applyGuideAction,
   createTarget as createTargetRecord,
   createVault,
-  endSession as endSessionRecord,
   exportVault,
   getGuideView,
   getSettings,
+  getSessionWorkflow,
   getVaultStatus,
   importVault,
   listAllTargets,
   listSessions,
   listTargets,
-  logStimulationSet,
   reviseTarget as reviseTargetRecord,
   startSession as startSessionRecord,
   unlockWithPassword,
@@ -25,6 +26,8 @@ import type {
   BilateralStimulationSettings,
   GuideView,
   SessionAggregate,
+  SessionFlowAction,
+  SessionWorkflowSnapshot,
   Settings,
   Target,
   TargetStatus
@@ -75,6 +78,7 @@ export function AnimatedApp() {
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
   const [activeSession, setActiveSession] = useState<SessionAggregate | null>(null);
+  const [sessionWorkflow, setSessionWorkflow] = useState<SessionWorkflowSnapshot>({ state: "idle" });
   const [guideView, setGuideView] = useState<GuideView | null>(null);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>([]);
@@ -90,8 +94,12 @@ export function AnimatedApp() {
   }, []);
 
   async function loadUnlockedDatabase() {
-    const [nextViewData, nextGuideView] = await Promise.all([loadViewData(), getGuideView()]);
+    const [nextViewData, workflow] = await Promise.all([loadViewData(), getSessionWorkflow()]);
+    const restoredActiveSession = activeSessionFromWorkflow(nextViewData.sessions, workflow);
+    const nextGuideView = await getGuideView(restoredActiveSession?.id);
     setViewData(nextViewData);
+    setActiveSession(restoredActiveSession);
+    setSessionWorkflow(workflow);
     setGuideView(nextGuideView);
     setAuthState("ready");
   }
@@ -133,6 +141,7 @@ export function AnimatedApp() {
     const result = await importVault();
     if (result.canceled) return false;
     setActiveSession(null);
+    setSessionWorkflow({ state: "idle" });
     setEditingTarget(null);
     setGuideView(null);
     setAuthState("locked");
@@ -160,9 +169,14 @@ export function AnimatedApp() {
   }
 
   async function startSession(target: Target) {
+    if (sessionWorkflow.state === "idle" || sessionWorkflow.state === "post_session") {
+      setSessionWorkflow(await advanceSessionFlow("start_session"));
+    }
     const session = await startSessionRecord(target.id);
+    const workflow = await getSessionWorkflow();
     await refreshViewData();
     setActiveSession(session);
+    setSessionWorkflow(workflow);
     setEditingTarget(null);
     await refreshGuideView(session.id);
     dispatchRoomEvent({ type: "select_guide" });
@@ -172,7 +186,17 @@ export function AnimatedApp() {
 
   async function endActiveSession() {
     if (!activeSession) return;
-    await endSessionRecord({ sessionId: activeSession.id });
+    const reviewWorkflow = await advanceSessionToReview(activeSession.id, sessionWorkflow);
+    const result = await applyGuideAction({
+      type: "end_session",
+      sessionId: activeSession.id,
+      workflowState: reviewWorkflow.state
+    });
+    if (!result.accepted) {
+      setSessionWorkflow(result.workflow);
+      throw new Error(result.reason);
+    }
+    setSessionWorkflow(await advanceSessionFlow("return_to_idle", activeSession.id));
     await refreshViewData();
     await refreshGuideView();
     setActiveSession(null);
@@ -206,21 +230,34 @@ export function AnimatedApp() {
   async function toggleStimulation() {
     if (stimulationRunning) {
       await logStimulationSetIfActive();
+      if (activeSession) {
+        setSessionWorkflow(await advanceSessionFlow("pause_stimulation", activeSession.id));
+      }
       dispatchRoomEvent({ type: "pause_stimulation" });
     } else {
+      if (activeSession) {
+        setSessionWorkflow(await advanceSessionForStimulationStart(activeSession.id, sessionWorkflow));
+      }
       dispatchRoomEvent({ type: "start_stimulation" });
     }
   }
 
   async function logStimulationSetIfActive() {
     if (!activeSession) return;
-    const set = await logStimulationSet({
+    const result = await applyGuideAction({
+      type: "log_stimulation_set",
       sessionId: activeSession.id,
+      workflowState: sessionWorkflow.state,
       cycleCount: 24,
       observation: ""
     });
+    if (!result.accepted) {
+      setSessionWorkflow(result.workflow);
+      throw new Error(result.reason);
+    }
+    setSessionWorkflow(result.workflow);
     const nextViewData = await refreshViewData();
-    setActiveSession(nextViewData.sessions.find((session) => session.id === set.sessionId) ?? activeSession);
+    setActiveSession(nextViewData.sessions.find((session) => session.id === activeSession.id) ?? activeSession);
     await refreshGuideView(activeSession.id);
   }
 
@@ -392,6 +429,39 @@ async function loadViewData(): Promise<AppViewData> {
     getSettings()
   ]);
   return { targets, allTargets, sessions, settings };
+}
+
+function activeSessionFromWorkflow(sessions: SessionAggregate[], workflow: SessionWorkflowSnapshot) {
+  return workflow.activeSessionId
+    ? sessions.find((session) => session.id === workflow.activeSessionId && !session.endedAt) ?? null
+    : null;
+}
+
+async function advanceSessionForStimulationStart(sessionId: string, workflow: SessionWorkflowSnapshot) {
+  if (workflow.state === "preparation") {
+    return advanceSessionFlow("approve_assessment", sessionId);
+  }
+  if (workflow.state === "stimulation") {
+    return advanceSessionFlow("start_stimulation", sessionId);
+  }
+  if (workflow.state === "interjection" || workflow.state === "closure") {
+    return advanceSessionFlow("continue_stimulation", sessionId);
+  }
+  throw new Error(`Cannot start stimulation from ${workflow.state}.`);
+}
+
+async function advanceSessionToReview(sessionId: string, workflow: SessionWorkflowSnapshot) {
+  let current = workflow;
+  for (const action of closureActionsFrom(current)) {
+    current = await advanceSessionFlow(action, sessionId);
+  }
+  return current;
+}
+
+function closureActionsFrom(workflow: SessionWorkflowSnapshot): SessionFlowAction[] {
+  if (workflow.state === "review" || workflow.state === "post_session") return [];
+  if (workflow.state === "closure") return ["request_review"];
+  return ["begin_closure", "request_review"];
 }
 
 function IdleGuideChat({ guideView, onOpenTargets }: { guideView: GuideView; onOpenTargets: () => void }) {
