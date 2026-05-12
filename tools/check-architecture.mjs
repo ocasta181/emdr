@@ -10,6 +10,8 @@ const dbMethodNames = new Set(["exec", "export", "prepare", "run"]);
 const collectionMethodNames = new Set(["concat", "filter", "map", "push", "reduce", "splice"]);
 const businessUtilityNames = new Set(["createId", "nowIso", "replaceById"]);
 const businessFileNamePatterns = [/\/factory(?:\.[cm]?tsx?)?$/, /\/flow(?:\.[cm]?tsx?)?$/, /Machine(?:\.[cm]?tsx?)?$/];
+const schemaSqlPattern = /\b(CREATE|ALTER|DROP)\s+(TABLE|INDEX|TRIGGER|VIEW)\b/i;
+const baselineMigrationPath = "src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.ts";
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -117,6 +119,22 @@ function analyzeImports(sourceFile) {
         message: `Agent infrastructure cannot import renderer, Electron IPC, repositories, or store internals: ${specifier}`
       });
     }
+
+    if (importsAppDomain(resolved)) {
+      report({
+        node: importDeclaration,
+        rule: "architecture/no-app-domain",
+        message: `App-wide orchestration is not a domain. Remove app domain imports: ${specifier}`
+      });
+    }
+
+    if (importsMigrations(resolved) && !isMigrationLayer(filePath)) {
+      report({
+        node: importDeclaration,
+        rule: "architecture/no-runtime-migrations",
+        message: `Application runtime code must not import migrations: ${specifier}`
+      });
+    }
   }
 }
 
@@ -221,6 +239,97 @@ function analyzeUiBusinessLogic(sourceFile) {
   });
 }
 
+function analyzeSchemaBoundary(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+
+  sourceFile.forEachDescendant((node) => {
+    if (!isStringLikeNode(node)) return;
+    if (!schemaSqlPattern.test(node.getText())) return;
+
+    if (!isMigrationFile(filePath)) {
+      report({
+        node,
+        rule: "architecture/schema-in-migrations-only",
+        message: "Schema DDL must live only in migration files."
+      });
+    }
+  });
+}
+
+function analyzeAppDomain(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (!filePath.startsWith("src/main/internal/domain/app/")) return;
+
+  report({
+    node: sourceFile,
+    rule: "architecture/no-app-domain",
+    fingerprint: "app-domain-file",
+    message: "There is no app domain. App-wide orchestration belongs outside src/main/internal/domain."
+  });
+}
+
+function analyzeDomainRepositoryFormula(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (!isDomainRepositoryFile(filePath)) return;
+
+  for (const statement of sourceFile.getStatements()) {
+    if (Node.isFunctionDeclaration(statement) || Node.isClassDeclaration(statement)) {
+      report({
+        node: statement,
+        rule: "architecture/domain-repository-formula",
+        message: "Domain repositories must stay formulaic: export a repository factory only, with no custom functions/classes."
+      });
+    }
+  }
+
+  sourceFile.forEachDescendant((node) => {
+    if (Node.isCallExpression(node)) {
+      const expression = node.getExpression();
+      if (Node.isPropertyAccessExpression(expression) && expression.getExpression().getText() === "db") {
+        report({
+          node: expression,
+          rule: "architecture/domain-repository-formula",
+          message: "Domain repositories must not run SQL directly; use SQLBaseRepository with the existing formula."
+        });
+      }
+    }
+
+    if (isStringLikeNode(node) && schemaSqlPattern.test(node.getText())) {
+      report({
+        node,
+        rule: "architecture/domain-repository-formula",
+        message: "Repositories must not define, destroy, or modify table schemas."
+      });
+    }
+  });
+}
+
+function analyzeMigrationFileSet(sourceFiles) {
+  const migrationFiles = sourceFiles.filter((sourceFile) => isMigrationFile(normalizePath(sourceFile.getFilePath())));
+  const baseline = migrationFiles.find((sourceFile) => normalizePath(sourceFile.getFilePath()) === baselineMigrationPath);
+
+  if (migrationFiles.length === 1 && baseline) return;
+
+  for (const sourceFile of migrationFiles) {
+    if (normalizePath(sourceFile.getFilePath()) === baselineMigrationPath) continue;
+    report({
+      node: sourceFile,
+      rule: "architecture/single-baseline-migration",
+      fingerprint: "extra-migration-file",
+      message: "This pre-live codebase must have exactly one baseline migration file. Fold schema changes into 0001."
+    });
+  }
+
+  if (!baseline && sourceFiles.length > 0) {
+    report({
+      node: sourceFiles[0],
+      rule: "architecture/single-baseline-migration",
+      fingerprint: "missing-baseline-migration",
+      message: `Missing required baseline migration file: ${baselineMigrationPath}`
+    });
+  }
+}
+
 function importsUi(specifier, resolved) {
   return (
     specifier === "react" ||
@@ -251,6 +360,14 @@ function importsAgentForbiddenDependency(resolved) {
     resolved.includes("/repository") ||
     resolved.startsWith("src/main/internal/lib/store/")
   );
+}
+
+function importsAppDomain(resolved) {
+  return resolved.startsWith("src/main/internal/domain/app/");
+}
+
+function importsMigrations(resolved) {
+  return resolved.startsWith("src/main/internal/lib/store/sqlite/migrations/");
 }
 
 function isServiceLayer(filePath) {
@@ -296,6 +413,18 @@ function isAgentLayer(filePath) {
   return filePath.startsWith("src/main/internal/lib/agent/");
 }
 
+function isMigrationLayer(filePath) {
+  return filePath.startsWith("src/main/internal/lib/store/sqlite/migrations/");
+}
+
+function isMigrationFile(filePath) {
+  return /^src\/main\/internal\/lib\/store\/sqlite\/migrations\/\d{4}_.+\.[cm]?ts$/.test(filePath);
+}
+
+function isDomainRepositoryFile(filePath) {
+  return /^src\/main\/internal\/domain\/[^/]+\/repository\.[cm]?ts$/.test(filePath);
+}
+
 function isDomainFile(filePath) {
   return filePath.startsWith("domain/");
 }
@@ -320,17 +449,27 @@ function analyzeFiles(files) {
   const results = [];
 
   withFindings(results, () => {
+    const sourceFiles = [];
     for (const file of files) {
       const sourceFile = project.createSourceFile(file.path, file.text, { overwrite: true });
+      sourceFiles.push(sourceFile);
       analyzeTypeRuntimeBoundary(sourceFile);
       analyzeImports(sourceFile);
       analyzeDbTouches(sourceFile);
       analyzeBusinessLogic(sourceFile);
       analyzeUiBusinessLogic(sourceFile);
+      analyzeSchemaBoundary(sourceFile);
+      analyzeAppDomain(sourceFile);
+      analyzeDomainRepositoryFormula(sourceFile);
     }
+    analyzeMigrationFileSet(sourceFiles);
   });
 
   return results;
+}
+
+function isStringLikeNode(node) {
+  return Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node) || Node.isTemplateExpression(node);
 }
 
 function withFindings(findings, callback) {
