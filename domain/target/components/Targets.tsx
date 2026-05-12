@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Database } from "../../app/types";
+import type { Database } from "../../../src/main/internal/domain/app/types";
 import { optionalNumber } from "../../../utils";
 import type { Target, TargetStatus } from "../entity";
 import { createTarget } from "../factory";

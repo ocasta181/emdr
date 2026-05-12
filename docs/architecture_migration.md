@@ -145,9 +145,11 @@ Checklist:
 - [x] Move generic SQLite connection, transaction, and migration runner code to
   `src/main/internal/lib/store`.
 - [x] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
+- [x] Move app, vault, target, session, stimulation-set, and setting domains to
+  `src/main/internal/domain/<domain>`.
 - [ ] Move guide domain to
   `src/main/internal/domain/<domain>`.
-- [ ] Keep repositories in their owning domain folders.
+- [x] Keep repositories in their owning domain folders.
 - [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
 - [ ] Split `core/internal/sqlite/app-store.ts` into store lifecycle, vault-backed
   loading/saving, repository wiring, and app orchestration.
@@ -160,7 +162,7 @@ Exit criteria:
 - [ ] Only repositories and generic store infrastructure import `sql.js`.
 - [ ] No renderer or preload code imports store modules.
 - [ ] Domain-specific SQL and mappings live with the owning domain.
-- [ ] Legacy `core/internal` store and vault paths are removed or reduced to
+- [x] Legacy `core/internal` store and vault paths are removed or reduced to
   temporary shims.
 
 ## Phase 5: Decouple Preload And Renderer

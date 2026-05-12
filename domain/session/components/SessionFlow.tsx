@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Database } from "../../app/types";
+import type { Database } from "../../../src/main/internal/domain/app/types";
 import { BilateralStimulationSettings, ballColors } from "../../setting/components/BilateralStimulationSettings";
 import { updateBilateralStimulationSettings } from "../../setting/service";
 import { createStimulationSet } from "../../stimulation-set/factory";

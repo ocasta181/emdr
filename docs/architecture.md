@@ -123,6 +123,7 @@ src/
 
     internal/
       domain/
+        app/
         vault/
         target/
         session/

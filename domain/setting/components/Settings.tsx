@@ -1,4 +1,4 @@
-import type { Database } from "../../app/types";
+import type { Database } from "../../../src/main/internal/domain/app/types";
 import { VaultTransfer } from "../../vault/components/VaultTransfer";
 import { updateBilateralStimulationSettings } from "../service";
 import { BilateralStimulationSettings } from "./BilateralStimulationSettings";

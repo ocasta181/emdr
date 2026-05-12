@@ -1,5 +1,4 @@
 import type { Database } from "./types";
-import { createEmptyDatabase } from "../domain/app/factory";
 
 const STORAGE_KEY = "emdr-local-dev-db";
 
@@ -36,11 +35,11 @@ export async function importVault() {
 export async function loadDatabase(): Promise<Database> {
   if (window.emdr) {
     const loaded = await window.emdr.loadDatabase();
-    return loaded ? (loaded as Database) : createEmptyDatabase();
+    return loaded ? (loaded as Database) : emptyDatabase();
   }
 
   const loaded = localStorage.getItem(STORAGE_KEY);
-  return loaded ? (JSON.parse(loaded) as Database) : createEmptyDatabase();
+  return loaded ? (JSON.parse(loaded) as Database) : emptyDatabase();
 }
 
 export async function saveDatabase(database: Database) {
@@ -49,4 +48,18 @@ export async function saveDatabase(database: Database) {
   } else {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(database));
   }
+}
+
+function emptyDatabase(): Database {
+  return {
+    targets: [],
+    sessions: [],
+    settings: {
+      bilateralStimulation: {
+        speed: 1,
+        dotSize: "medium",
+        dotColor: "green"
+      }
+    }
+  };
 }

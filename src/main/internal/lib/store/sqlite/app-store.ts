@@ -5,8 +5,8 @@ import {
 } from "./connection.js";
 import { VaultService, type VaultStatus } from "../../../domain/vault/service.js";
 import { runMigrations } from "./migrations/index.js";
-import { createEmptyDatabase } from "../../../../../../domain/app/factory.js";
-import type { Database } from "../../../../../../domain/app/types.js";
+import { createEmptyDatabase } from "../../../domain/app/factory.js";
+import type { Database } from "../../../domain/app/types.js";
 import { createSessionAggregate, createSessionFromAggregate } from "../../../domain/session/factory.js";
 import { newSessionRepository } from "../../../domain/session/repository.js";
 import type { SessionAggregate } from "../../../domain/session/types.js";
