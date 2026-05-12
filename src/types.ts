@@ -1,6 +1,125 @@
-export type { Database } from "./main/internal/domain/app/types";
-export type { Session } from "./main/internal/domain/session/entity";
-export type { Assessment, SessionAggregate } from "./main/internal/domain/session/types";
-export type { BilateralStimulationSettings, Settings } from "./main/internal/domain/setting/types";
-export type { StimulationSet } from "./main/internal/domain/stimulation-set/entity";
-export type { Target, TargetStatus } from "./main/internal/domain/target/entity";
+export type TargetStatus = "active" | "completed" | "deferred";
+
+export type Target = {
+  id: string;
+  parentId?: string;
+  isCurrent: boolean;
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+  negativeCognition: string;
+  positiveCognition: string;
+  clusterTag?: string;
+  initialDisturbance?: number;
+  currentDisturbance?: number;
+  status: TargetStatus;
+  notes?: string;
+};
+
+export type TargetDraft = Pick<Target, "description" | "negativeCognition" | "positiveCognition"> &
+  Partial<Pick<Target, "clusterTag" | "initialDisturbance" | "currentDisturbance" | "status" | "notes">>;
+
+export type Assessment = {
+  image?: string;
+  negativeCognition: string;
+  positiveCognition: string;
+  believability?: number;
+  emotions?: string;
+  disturbance?: number;
+  bodyLocation?: string;
+};
+
+export type Session = {
+  id: string;
+  targetId: string;
+  startedAt: string;
+  endedAt?: string;
+  assessmentImage?: string;
+  assessmentNegativeCognition: string;
+  assessmentPositiveCognition: string;
+  assessmentBelievability?: number;
+  assessmentEmotions?: string;
+  assessmentDisturbance?: number;
+  assessmentBodyLocation?: string;
+  finalDisturbance?: number;
+  notes?: string;
+};
+
+export type StimulationSet = {
+  id: string;
+  sessionId: string;
+  setNumber: number;
+  createdAt: string;
+  cycleCount: number;
+  observation: string;
+  disturbance?: number;
+};
+
+export type SessionAggregate = Omit<
+  Session,
+  | "assessmentImage"
+  | "assessmentNegativeCognition"
+  | "assessmentPositiveCognition"
+  | "assessmentBelievability"
+  | "assessmentEmotions"
+  | "assessmentDisturbance"
+  | "assessmentBodyLocation"
+> & {
+  assessment: Assessment;
+  stimulationSets: StimulationSet[];
+};
+
+export type SessionFlowState =
+  | "idle"
+  | "target_selection"
+  | "preparation"
+  | "stimulation"
+  | "interjection"
+  | "closure"
+  | "review"
+  | "post_session";
+
+export type SessionFlowAction =
+  | "start_session"
+  | "select_target"
+  | "create_target_draft"
+  | "update_assessment"
+  | "approve_assessment"
+  | "start_stimulation"
+  | "pause_stimulation"
+  | "log_stimulation_set"
+  | "continue_stimulation"
+  | "request_grounding"
+  | "begin_closure"
+  | "request_review"
+  | "close_session"
+  | "return_to_idle";
+
+export type BilateralStimulationSettings = {
+  speed: number;
+  dotSize: "small" | "medium" | "large";
+  dotColor: "green" | "blue" | "white" | "orange";
+};
+
+export type Settings = {
+  bilateralStimulation: BilateralStimulationSettings;
+};
+
+export type Database = {
+  targets: Target[];
+  sessions: SessionAggregate[];
+  settings: Settings;
+};
+
+export type StimulationSetDraft = {
+  sessionId: string;
+  cycleCount: number;
+  observation: string;
+  disturbance?: number;
+};
+
+export type SessionEndPatch = {
+  sessionId: string;
+  finalDisturbance?: number;
+  notes?: string;
+};
