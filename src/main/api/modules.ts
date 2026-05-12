@@ -1,26 +1,26 @@
-import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
-import { createGuideModule } from "../internal/domain/guide/module.js";
-import { GuideService } from "../internal/domain/guide/service.js";
-import type { GuideIpcService } from "../internal/domain/guide/types.js";
-import { createVaultModule } from "../internal/domain/vault/module.js";
-import type { VaultIpcService } from "../internal/domain/vault/types.js";
-import { createTargetModule } from "../internal/domain/target/module.js";
-import { createSettingModule } from "../internal/domain/setting/module.js";
-import { createStimulationSetModule } from "../internal/domain/stimulation-set/module.js";
-import { createSessionModule } from "../internal/domain/session/module.js";
+import { GuideRoutes } from "../internal/domain/guide/module.js";
+import { SessionRoutes } from "../internal/domain/session/module.js";
 import { newSessionRepository } from "../internal/domain/session/repository.js";
 import { nextSessionFlowState, SessionService } from "../internal/domain/session/service.js";
 import type { SessionIpcService } from "../internal/domain/session/types.js";
+import { SettingRoutes } from "../internal/domain/setting/module.js";
 import { newSettingRepository } from "../internal/domain/setting/repository.js";
 import { SettingService } from "../internal/domain/setting/service.js";
 import type { SettingIpcService } from "../internal/domain/setting/types.js";
+import { StimulationSetRoutes } from "../internal/domain/stimulation-set/module.js";
 import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
 import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
 import type { StimulationSetIpcService } from "../internal/domain/stimulation-set/types.js";
+import { TargetRoutes } from "../internal/domain/target/module.js";
 import { newTargetRepository } from "../internal/domain/target/repository.js";
 import { TargetService } from "../internal/domain/target/service.js";
 import type { TargetIpcService } from "../internal/domain/target/types.js";
+import { VaultRoutes } from "../internal/domain/vault/module.js";
 import { VaultService } from "../internal/domain/vault/service.js";
+import type { VaultIpcService } from "../internal/domain/vault/types.js";
+import { GuideService } from "../internal/domain/guide/service.js";
+import type { GuideIpcService } from "../internal/domain/guide/types.js";
+import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
 import {
   appVaultStatus,
   createAppVault,
@@ -34,10 +34,11 @@ import {
 import type { InitializeOptions, MainModule } from "./types.js";
 
 export async function Initialize(options: InitializeOptions): Promise<MainModule[]> {
+  const routes = options.routes;
   const userDataPath = options.getUserDataPath;
   const vaultDialogs = createVaultFileDialogs();
 
-  const vaultIpcService = {
+  const vaultService = {
     status() {
       return appVaultStatus(userDataPath());
     },
@@ -57,8 +58,8 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
     },
 
     async exportVault() {
-      const vaultService = new VaultService(userDataPath());
-      const destinationPath = await vaultDialogs.chooseExportPath(vaultService.defaultExportName());
+      const vaultFileService = new VaultService(userDataPath());
+      const destinationPath = await vaultDialogs.chooseExportPath(vaultFileService.defaultExportName());
       if (!destinationPath) return { canceled: true };
 
       await exportAppVault(userDataPath(), destinationPath);
@@ -76,68 +77,66 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
       return { canceled: false };
     }
   } satisfies VaultIpcService;
-  const vaultModule = createVaultModule(vaultIpcService);
 
-  const targetIpcService = {
+  const targetService = {
     listCurrentTargets() {
       return readFromAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
 
-        return targetService.listCurrentTargets();
+        return targetDomainService.listCurrentTargets();
       });
     },
 
     listAllTargets() {
       return readFromAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
 
-        return targetService.listAllTargets();
+        return targetDomainService.listAllTargets();
       });
     },
 
     addTarget(draft) {
       return mutateAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
 
-        return targetService.addTarget(draft);
+        return targetDomainService.addTarget(draft);
       });
     },
 
     reviseTarget(previousId, patch) {
       return mutateAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
 
-        return targetService.reviseTarget(previousId, patch);
+        return targetDomainService.reviseTarget(previousId, patch);
       });
     }
   } satisfies TargetIpcService;
-  const targetModule = createTargetModule(targetIpcService);
 
-  const sessionIpcService = {
+  const sessionService = {
     listSessions() {
       return readFromAppDatabase(userDataPath(), (db) => {
         const sessionRepository = newSessionRepository(db);
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
         const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-        const sessionService = new SessionService(sessionRepository, stimulationSetService);
+        const sessionDomainService = new SessionService(sessionRepository, stimulationSetService);
 
-        return sessionService.listSessions();
+        return sessionDomainService.listSessions();
       });
     },
 
     startSession(targetId) {
       return mutateAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
         const sessionRepository = newSessionRepository(db);
-        const sessionService = new SessionService(sessionRepository);
+        const sessionDomainService = new SessionService(sessionRepository);
 
-        return sessionService.startSession(targetService.requireTarget(targetId));
+        return sessionDomainService.startSession(targetDomainService.requireTarget(targetId));
       });
     },
 
@@ -147,9 +146,9 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
         const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-        const sessionService = new SessionService(sessionRepository, stimulationSetService);
+        const sessionDomainService = new SessionService(sessionRepository, stimulationSetService);
 
-        return sessionService.updateAssessment(sessionId, assessment);
+        return sessionDomainService.updateAssessment(sessionId, assessment);
       });
     },
 
@@ -163,47 +162,45 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
         const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-        const sessionService = new SessionService(sessionRepository, stimulationSetService);
+        const sessionDomainService = new SessionService(sessionRepository, stimulationSetService);
 
-        return sessionService.endSession(request.sessionId, {
+        return sessionDomainService.endSession(request.sessionId, {
           finalDisturbance: request.finalDisturbance,
           notes: request.notes
         });
       });
     }
   } satisfies SessionIpcService;
-  const sessionModule = createSessionModule(sessionIpcService);
 
-  const settingIpcService = {
+  const settingService = {
     getSettings() {
       return readFromAppDatabase(userDataPath(), (db) => {
         const settingRepository = newSettingRepository(db);
-        const settingService = new SettingService(settingRepository);
+        const settingDomainService = new SettingService(settingRepository);
 
-        return settingService.getSettings();
+        return settingDomainService.getSettings();
       });
     },
 
     updateBilateralStimulationSettings(patch) {
       return mutateAppDatabase(userDataPath(), (db) => {
         const settingRepository = newSettingRepository(db);
-        const settingService = new SettingService(settingRepository);
+        const settingDomainService = new SettingService(settingRepository);
 
-        return settingService.updateBilateralStimulationSettings(patch);
+        return settingDomainService.updateBilateralStimulationSettings(patch);
       });
     }
   } satisfies SettingIpcService;
-  const settingModule = createSettingModule(settingIpcService);
 
-  const stimulationSetIpcService = {
+  const stimulationSetService = {
     listBySession(sessionId) {
       return readFromAppDatabase(userDataPath(), (db) => {
         const sessionRepository = newSessionRepository(db);
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
-        const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
+        const stimulationSetDomainService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
 
-        return stimulationSetService.listBySession(sessionId);
+        return stimulationSetDomainService.listBySession(sessionId);
       });
     },
 
@@ -212,55 +209,59 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
         const sessionRepository = newSessionRepository(db);
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
-        const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
+        const stimulationSetDomainService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
 
-        return stimulationSetService.logStimulationSet(draft);
+        return stimulationSetDomainService.logStimulationSet(draft);
       });
     }
   } satisfies StimulationSetIpcService;
-  const stimulationSetModule = createStimulationSetModule(stimulationSetIpcService);
 
-  const guideIpcService = {
+  const guideService = {
     getView(request) {
       return readFromAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
         const sessionRepository = newSessionRepository(db);
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
-        const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-        const sessionService = new SessionService(sessionRepository, stimulationSetService);
-        const guideService = new GuideService(targetService, sessionService, stimulationSetService);
+        const stimulationSetDomainService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
+        const sessionDomainService = new SessionService(sessionRepository, stimulationSetDomainService);
+        const guideDomainService = new GuideService(
+          targetDomainService,
+          sessionDomainService,
+          stimulationSetDomainService
+        );
 
-        return guideService.getView(request);
+        return guideDomainService.getView(request);
       });
     },
 
     applyAction(proposal) {
       return mutateAppDatabase(userDataPath(), (db) => {
         const targetRepository = newTargetRepository(db);
-        const targetService = new TargetService(targetRepository);
+        const targetDomainService = new TargetService(targetRepository);
         const sessionRepository = newSessionRepository(db);
         const sessionLookupService = new SessionService(sessionRepository);
         const stimulationSetRepository = newStimulationSetRepository(db);
-        const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
-        const sessionService = new SessionService(sessionRepository, stimulationSetService);
-        const guideService = new GuideService(targetService, sessionService, stimulationSetService);
+        const stimulationSetDomainService = new StimulationSetService(stimulationSetRepository, sessionLookupService);
+        const sessionDomainService = new SessionService(sessionRepository, stimulationSetDomainService);
+        const guideDomainService = new GuideService(
+          targetDomainService,
+          sessionDomainService,
+          stimulationSetDomainService
+        );
 
-        return guideService.applyAction(proposal);
+        return guideDomainService.applyAction(proposal);
       });
     }
   } satisfies GuideIpcService;
-  const guideModule = createGuideModule(guideIpcService);
 
-  const modules: MainModule[] = [
-    vaultModule,
-    targetModule,
-    sessionModule,
-    settingModule,
-    stimulationSetModule,
-    guideModule
-  ];
+  const vaultRoutes = new VaultRoutes(routes, vaultService);
+  const targetRoutes = new TargetRoutes(routes, targetService);
+  const sessionRoutes = new SessionRoutes(routes, sessionService);
+  const settingRoutes = new SettingRoutes(routes, settingService);
+  const stimulationSetRoutes = new StimulationSetRoutes(routes, stimulationSetService);
+  const guideRoutes = new GuideRoutes(routes, guideService);
 
-  return modules;
+  return [vaultRoutes, targetRoutes, sessionRoutes, settingRoutes, stimulationSetRoutes, guideRoutes];
 }

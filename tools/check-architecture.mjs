@@ -12,6 +12,8 @@ const businessUtilityNames = new Set(["createId", "nowIso", "replaceById"]);
 const businessFileNamePatterns = [/\/factory(?:\.[cm]?tsx?)?$/, /\/flow(?:\.[cm]?tsx?)?$/, /Machine(?:\.[cm]?tsx?)?$/];
 const schemaSqlPattern = /\b(CREATE|ALTER|DROP)\s+(TABLE|INDEX|TRIGGER|VIEW)\b/i;
 const baselineMigrationPath = "src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.ts";
+const routeConstructorForbiddenDependencyPattern =
+  /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -304,6 +306,56 @@ function analyzeDomainRepositoryFormula(sourceFile) {
   });
 }
 
+function analyzeRouteDependencyFlow(sourceFile) {
+  const routeClasses = sourceFile.getClasses().filter((classDeclaration) => classDeclaration.getName()?.endsWith("Routes"));
+  if (routeClasses.length === 0) return;
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const specifier = importDeclaration.getModuleSpecifierValue();
+    const resolved = resolveImport(normalizePath(sourceFile.getFilePath()), specifier);
+
+    if (importsRouteForbiddenDependency(resolved)) {
+      report({
+        node: importDeclaration,
+        rule: "architecture/route-service-boundary",
+        message: "Routes must receive services only. Build db -> repo -> service before constructing the route."
+      });
+    }
+  }
+
+  for (const routeClass of routeClasses) {
+    for (const constructorDeclaration of routeClass.getConstructors()) {
+      for (const parameter of constructorDeclaration.getParameters()) {
+        if (routeParameterUsesForbiddenDependency(parameter)) {
+          report({
+            node: parameter,
+            rule: "architecture/route-service-boundary",
+            message: "Route constructors must not take db, repository, or database accessor dependencies. Pass services into routes."
+          });
+        }
+      }
+    }
+
+    routeClass.forEachDescendant((node) => {
+      if (Node.isCallExpression(node) && routeCallUsesForbiddenDependency(node)) {
+        report({
+          node,
+          rule: "architecture/route-service-boundary",
+          message: "Routes must not create repositories or open databases. Compose db -> repo -> service before route construction."
+        });
+      }
+
+      if (Node.isNewExpression(node) && routeNewExpressionUsesForbiddenDependency(node)) {
+        report({
+          node,
+          rule: "architecture/route-service-boundary",
+          message: "Routes must not instantiate repositories. Compose db -> repo -> service before route construction."
+        });
+      }
+    });
+  }
+}
+
 function analyzeMigrationFileSet(sourceFiles) {
   const migrationFiles = sourceFiles.filter((sourceFile) => isMigrationFile(normalizePath(sourceFile.getFilePath())));
   const baseline = migrationFiles.find((sourceFile) => normalizePath(sourceFile.getFilePath()) === baselineMigrationPath);
@@ -368,6 +420,32 @@ function importsAppDomain(resolved) {
 
 function importsMigrations(resolved) {
   return resolved.startsWith("src/main/internal/lib/store/sqlite/migrations/");
+}
+
+function importsRouteForbiddenDependency(resolved) {
+  return resolved.includes("/repository") || resolved.startsWith("src/main/internal/lib/store/");
+}
+
+function routeParameterUsesForbiddenDependency(parameter) {
+  const name = parameter.getName();
+  const typeNode = parameter.getTypeNode();
+  return routeConstructorForbiddenDependencyPattern.test(name) || (
+    typeNode ? routeConstructorForbiddenDependencyPattern.test(typeNode.getText()) : false
+  );
+}
+
+function routeCallUsesForbiddenDependency(callExpression) {
+  const expression = callExpression.getExpression();
+  if (Node.isIdentifier(expression)) {
+    return /^(readFromAppDatabase|mutateAppDatabase|new[A-Z].*Repository)$/.test(expression.getText());
+  }
+
+  return false;
+}
+
+function routeNewExpressionUsesForbiddenDependency(newExpression) {
+  const expression = newExpression.getExpression();
+  return /\b[A-Z]\w*Repository\b/.test(expression.getText());
 }
 
 function isServiceLayer(filePath) {
@@ -461,6 +539,7 @@ function analyzeFiles(files) {
       analyzeSchemaBoundary(sourceFile);
       analyzeAppDomain(sourceFile);
       analyzeDomainRepositoryFormula(sourceFile);
+      analyzeRouteDependencyFlow(sourceFile);
     }
     analyzeMigrationFileSet(sourceFiles);
   });

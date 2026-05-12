@@ -1,15 +1,13 @@
-import type { MainModule } from "../../../api/types.js";
+import type { ApiRegistry, MainModule } from "../../../api/types.js";
 import { registerSessionIpc } from "./ipc.js";
 import type { SessionIpcService } from "./types.js";
 
-export function createSessionModule(service: SessionIpcService): MainModule {
-  return {
-    Name() {
-      return "session";
-    },
+export class SessionRoutes implements MainModule {
+  constructor(routes: ApiRegistry, service: SessionIpcService) {
+    registerSessionIpc(routes, service);
+  }
 
-    Register(registry) {
-      registerSessionIpc(registry, service);
-    }
-  };
+  Name() {
+    return "session";
+  }
 }

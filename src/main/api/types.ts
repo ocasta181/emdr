@@ -13,9 +13,9 @@ export type ApiRegistry = {
 
 export type MainModule = {
   Name(): string;
-  Register(registry: ApiRegistry): void;
 };
 
 export type InitializeOptions = {
+  routes: ApiRegistry;
   getUserDataPath: () => string;
 };

@@ -1,15 +1,13 @@
-import type { MainModule } from "../../../api/types.js";
+import type { ApiRegistry, MainModule } from "../../../api/types.js";
 import { registerGuideIpc } from "./ipc.js";
 import type { GuideIpcService } from "./types.js";
 
-export function createGuideModule(service: GuideIpcService): MainModule {
-  return {
-    Name() {
-      return "guide";
-    },
+export class GuideRoutes implements MainModule {
+  constructor(routes: ApiRegistry, service: GuideIpcService) {
+    registerGuideIpc(routes, service);
+  }
 
-    Register(registry) {
-      registerGuideIpc(registry, service);
-    }
-  };
+  Name() {
+    return "guide";
+  }
 }

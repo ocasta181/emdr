@@ -17,10 +17,7 @@ export async function Start() {
   await app.whenReady();
 
   const registry = createApiRegistry();
-  const modules = await Initialize({ getUserDataPath: userDataPath });
-  for (const module of modules) {
-    module.Register(registry);
-  }
+  await Initialize({ routes: registry, getUserDataPath: userDataPath });
 
   registerIpcRoutes(ipcMain, registry);
   installNetworkGuard(session.defaultSession, { devServerUrl: process.env.VITE_DEV_SERVER_URL });
