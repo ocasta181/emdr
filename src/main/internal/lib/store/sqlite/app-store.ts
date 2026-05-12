@@ -1,6 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { VaultService, type VaultStatus } from "../../../domain/vault/service.js";
-import { createInitializedAppDatabase, openMigratedAppDatabase } from "./app-database.js";
-import { exportSqliteDatabase, type SqliteDatabase } from "./connection.js";
+import { createSqliteDatabase, exportSqliteDatabase, type SqliteDatabase } from "./connection.js";
 import { runSqliteTransaction } from "./transaction.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
@@ -13,7 +13,12 @@ export function appVaultStatus(userDataPath: string): VaultStatus {
 }
 
 export async function createAppVault(userDataPath: string, password: string) {
-  const db = await createInitializedAppDatabase();
+  const templatePath = process.env.EMDR_SQLITE_TEMPLATE_PATH;
+  if (!templatePath) {
+    throw new Error("EMDR_SQLITE_TEMPLATE_PATH must point to a migrated SQLite database template.");
+  }
+
+  const db = await createSqliteDatabase(await readFile(templatePath));
   const { recoveryCode, dataKey } = await new VaultService(userDataPath).create(password, exportSqliteDatabase(db));
   setActiveDatabase(userDataPath, db, dataKey);
   return { recoveryCode };
@@ -21,12 +26,12 @@ export async function createAppVault(userDataPath: string, password: string) {
 
 export async function unlockAppVaultWithPassword(userDataPath: string, password: string) {
   const unlocked = await new VaultService(userDataPath).unlockWithPassword(password);
-  setActiveDatabase(userDataPath, await openMigratedAppDatabase(unlocked.plaintext), unlocked.dataKey);
+  setActiveDatabase(userDataPath, await createSqliteDatabase(unlocked.plaintext), unlocked.dataKey);
 }
 
 export async function unlockAppVaultWithRecoveryCode(userDataPath: string, recoveryCode: string) {
   const unlocked = await new VaultService(userDataPath).unlockWithRecoveryCode(recoveryCode);
-  setActiveDatabase(userDataPath, await openMigratedAppDatabase(unlocked.plaintext), unlocked.dataKey);
+  setActiveDatabase(userDataPath, await createSqliteDatabase(unlocked.plaintext), unlocked.dataKey);
 }
 
 export async function readFromAppDatabase<T>(userDataPath: string, reader: (db: SqliteDatabase) => T): Promise<T> {

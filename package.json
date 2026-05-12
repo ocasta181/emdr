@@ -13,6 +13,7 @@
     "electron:animated": "pnpm build && electron . --animated-ui",
     "build:electron": "tsc -p electron/tsconfig.json",
     "build": "tsc && vite build && tsc -p electron/tsconfig.json",
+    "migrate:sqlite": "pnpm build:electron && node dist-electron/src/main/internal/lib/store/sqlite/migrations/cli.js",
     "preview": "vite preview --host 127.0.0.1",
     "prepare": "husky",
     "check:architecture": "node tools/check-architecture.mjs",
@@ -37,6 +38,7 @@
     "concurrently": "^9.2.1",
     "husky": "^9.1.7",
     "ts-morph": "^28.0.0",
+    "umzug": "^3.8.3",
     "wait-on": "^9.0.5"
   }
 }

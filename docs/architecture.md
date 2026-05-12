@@ -133,7 +133,6 @@ src/
 
     internal/
       domain/
-        app/
         vault/
         target/
         session/
@@ -281,11 +280,13 @@ Generic store infrastructure:
 - SQL adapter abstraction
 - SQLite connection lifecycle
 - transactions
-- migration runner
+- standalone migration CLI for creating migrated SQLite templates
 - low-level SQL utilities
 - vault-backed database loading and saving primitives when they are generic
 
 No domain-specific tables, queries, mappings, or business rules belong here.
+Schema DDL belongs only in migration files. Runtime app logic must not create,
+destroy, modify, or migrate database schemas.
 
 ### `src/main/internal/lib/vault`
 
@@ -457,6 +458,8 @@ Store rules:
 - generic store machinery lives in `src/main/internal/lib/store`
 - domain-specific repositories live in `src/main/internal/domain/<domain>`
 - domain-specific SQL mappings live with the owning domain repository
+- migrations are run as standalone tooling, not during app startup, vault
+  setup, unlock, import, or export
 - the renderer never receives a store handle or full database snapshot
 
 ## Agent Shape

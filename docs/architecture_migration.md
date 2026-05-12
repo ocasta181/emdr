@@ -44,9 +44,12 @@ The current codebase is partway through that migration:
 - `src/main/api/` now has only `app.ts`, `modules.ts`, `registry.ts`, and
   `types.ts`.
 - `src/main/internal/lib/store/sqlite/app-store.ts` keeps vault unlock state and
-  encrypted save behavior, while
-  `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
-  repository-backed full database snapshot mapping.
+  encrypted save behavior. It does not create or migrate schemas.
+- SQLite schema creation is owned by the single baseline migration
+  `src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.ts`.
+- `pnpm migrate:sqlite -- --database <path>` creates or migrates a standalone
+  SQLite template. Fresh vault setup reads that migrated template from
+  `EMDR_SQLITE_TEMPLATE_PATH`.
 - Domain services, repositories, and IPC endpoint definitions exist under
   `src/main/internal/domain`; the guide domain now owns non-display guide view
   decisions while renderer animation remains in `src/renderer/animation`.
@@ -58,19 +61,24 @@ The current codebase is partway through that migration:
   under `src/main/internal/lib/agent`; guide action proposals are validated and
   applied through domain services, but no live agent sidecar is wired yet.
 
-Current command results:
+Verification targets:
 
-- `pnpm run build` succeeds.
-- `pnpm run check:architecture` succeeds.
-- `git status --short --branch` is clean except for untracked `.claude/`.
+- `pnpm run build`
+- `pnpm run check:architecture`
+- `pnpm migrate:sqlite -- --database <path>`
+- Electron smoke test with `EMDR_SQLITE_TEMPLATE_PATH` pointing at a migrated
+  SQLite template
 
 ## Migration Rules
 
 - Migrate structure first, then restore the build.
 - Preserve encrypted vault compatibility unless a deliberate vault migration is
   added and tested.
-- Preserve SQLite migrations. Do not edit applied migrations to change behavior;
-  add new versioned migrations.
+- This codebase is not live yet, so keep exactly one baseline SQLite migration
+  and fold schema changes into `0001_initial_schema.ts`.
+- After the first live release, schema changes must be new versioned migrations.
+- Never run migrations from app startup, vault setup, unlock, import, export, or
+  repository code.
 - Keep the app local-only. Electron should continue blocking remote content.
 - Keep `src/main/**` free of React, Pixi, display state, and browser-only APIs.
 - Keep renderer code free of imports from `src/main/internal/**`.
@@ -164,14 +172,17 @@ Checklist:
 - [x] Move generic SQLite connection, transaction, and migration runner code to
   `src/main/internal/lib/store`.
 - [x] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
-- [x] Move app, vault, target, session, stimulation-set, and setting domains to
+- [x] Remove the non-domain `app` abstraction.
+- [x] Move vault, target, session, stimulation-set, and setting domains to
   `src/main/internal/domain/<domain>`.
 - [x] Move guide domain to
   `src/main/internal/domain/<domain>`.
 - [x] Keep repositories in their owning domain folders.
 - [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
-- [x] Split `src/main/internal/lib/store/sqlite/app-store.ts` into vault-backed
-  store lifecycle and repository-backed app database mapping.
+- [x] Remove runtime database snapshot creation and migration logic from
+  `src/main/internal/lib/store/sqlite/app-store.ts`.
+- [x] Add standalone SQLite migration tooling for creating migrated database
+  templates.
 - [x] Replace full-snapshot `replaceAll` persistence with granular repository
   writes for command handlers.
   - [x] Target routes write through `TargetService` and the target repository.
