@@ -75,6 +75,8 @@ The current codebase is partway through that migration:
 - A UI smoke confirms setup, password unlock, target creation, session start,
   stimulation start/pause, stimulation-set logging, session end, relaunch, and
   history display.
+- An automated Electron smoke confirms setup, target creation, and the full
+  visible session workflow graph from preparation through post-session.
 - The session workflow state machine now lives in main-process memory. It is
   reset on vault unlock/lock and is not persisted to SQLite.
 - The visible animated UI now starts sessions, starts/pauses stimulation, logs
@@ -379,7 +381,7 @@ Checklist:
   unlock/save/import/export, and API route handlers.
 - [ ] Add an Electron smoke test for setup, unlock, target creation, session
   start, stimulation-set logging, session end, export, and import.
-- [ ] Add an Electron smoke test for the full session state-machine flow.
+- [x] Add an Electron smoke test for the full session state-machine flow.
 - [x] Extend `tools/check-architecture.mjs` or add a targeted static check so
   renderer code cannot call graph-bypassing session mutation routes for workflow
   actions.
@@ -390,7 +392,7 @@ Exit criteria:
 - [x] `pnpm run check:architecture` passes.
 - [ ] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
-- [ ] UI state-machine coverage exists for the full graph.
+- [x] UI state-machine coverage exists for the full graph.
 - [ ] The implemented directory tree matches `docs/architecture.md`.
 
 ## Suggested Commit Cadence
