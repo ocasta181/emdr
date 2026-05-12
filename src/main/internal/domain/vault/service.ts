@@ -14,7 +14,7 @@ import {
   wrapWithPassword,
   wrapWithRecoveryCode,
   writeVaultFile
-} from "../../src/main/internal/lib/vault/vault.js";
+} from "../../lib/vault/vault.js";
 import type { UnlockedVault } from "./types.js";
 
 export type { UnlockedVault, VaultStatus } from "./types.js";

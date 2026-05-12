@@ -1,5 +1,5 @@
 import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { VaultService } from "../../../domain/vault/service.js";
+import { VaultService } from "../internal/domain/vault/service.js";
 import type { MainModule } from "./modules.types.js";
 import type { LegacyMainModuleOptions } from "./legacy-module.types.js";
 

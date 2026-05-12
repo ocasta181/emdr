@@ -3,7 +3,7 @@ import {
   exportSqliteDatabase,
   type SqliteDatabase
 } from "./connection.js";
-import { VaultService, type VaultStatus } from "../../../../../../domain/vault/service.js";
+import { VaultService, type VaultStatus } from "../../../domain/vault/service.js";
 import { runMigrations } from "./migrations/index.js";
 import { createEmptyDatabase } from "../../../../../../domain/app/factory.js";
 import type { Database } from "../../../../../../domain/app/types.js";
