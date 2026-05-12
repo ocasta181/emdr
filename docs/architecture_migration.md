@@ -311,13 +311,13 @@ Exit criteria:
 Goal: make the visible app flow use the session graph end-to-end instead of
 calling lower-level mutation routes directly.
 
-Current gap found by UI E2E:
+Earlier gap found by UI E2E:
 
 - The main process registers `session:transition-flow` and `guide:apply-action`.
-- The renderer API client does not expose those routes.
-- `AnimatedApp.tsx` calls direct mutation routes for session start, set logging,
-  and session end.
-- The renderer has no `SessionFlowState` view model and no preparation,
+- The renderer API client did not expose those routes.
+- `AnimatedApp.tsx` called direct mutation routes for session start, set
+  logging, and session end.
+- The renderer had no `SessionFlowState` view model and no preparation,
   assessment, closure, or review screens.
 
 Checklist:
@@ -332,16 +332,16 @@ Checklist:
 - [x] Expose renderer API client methods for graph-validated workflow commands.
 - [x] Route UI session start through `idle -> target_selection -> preparation`
   instead of directly creating an active session without workflow state.
-- [ ] Add preparation and assessment UI that updates assessment data and advances
+- [x] Add preparation and assessment UI that updates assessment data and advances
   through `update_assessment` and `approve_assessment`.
 - [x] Route stimulation start, pause, continuation, and set logging through
   graph-validated actions.
 - [x] Route closure, review, and session end through graph-validated actions.
 - [x] Update `GuideService.applyAction` and renderer guide actions so human UI
   and future agent proposals use the same validation path.
-- [ ] Update view models so `guide:view`, session history, and active-session UI
+- [x] Update view models so `guide:view`, session history, and active-session UI
   expose the current workflow state where useful without persisting it.
-- [ ] Add UI coverage for the full graph:
+- [x] Add manual UI coverage for the full graph:
   `idle -> target_selection -> preparation -> stimulation -> interjection ->
   closure -> review -> post_session`.
 - [ ] Add a regression check that the UI cannot log stimulation before the graph
@@ -350,14 +350,14 @@ Checklist:
 
 Exit criteria:
 
-- [ ] The visible Electron UI can traverse the full session graph end-to-end.
+- [x] The visible Electron UI can traverse the full session graph end-to-end.
 - [x] Renderer code no longer starts sessions, logs stimulation sets, or ends
   sessions through graph-bypassing mutation routes.
 - [ ] Renderer refresh during an active session restores the authoritative
   workflow state from main memory.
 - [ ] Define recovery behavior for app relaunch with an unfinished durable
   session row, without persisting application workflow state in SQLite.
-- [ ] Manual UI E2E and automated smoke coverage both verify the full graph.
+- [ ] Automated smoke coverage verifies the full graph.
 
 ## Phase 9: Enforce The Final Boundary
 

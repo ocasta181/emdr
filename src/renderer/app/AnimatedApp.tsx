@@ -20,9 +20,11 @@ import {
   unlockWithPassword,
   unlockWithRecoveryCode,
   updateBilateralStimulationSettings,
+  updateSessionAssessment,
   type VaultStatus
 } from "../api/client";
 import type {
+  Assessment,
   BilateralStimulationSettings,
   GuideView,
   SessionAggregate,
@@ -186,11 +188,13 @@ export function AnimatedApp() {
 
   async function endActiveSession() {
     if (!activeSession) return;
-    const reviewWorkflow = await advanceSessionToReview(activeSession.id, sessionWorkflow);
+    if (sessionWorkflow.state !== "review") {
+      throw new Error(`Cannot end a session from ${sessionWorkflow.state}.`);
+    }
     const result = await applyGuideAction({
       type: "end_session",
       sessionId: activeSession.id,
-      workflowState: reviewWorkflow.state
+      workflowState: sessionWorkflow.state
     });
     if (!result.accepted) {
       setSessionWorkflow(result.workflow);
@@ -203,6 +207,34 @@ export function AnimatedApp() {
     if (stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
     }
+  }
+
+  async function saveSessionAssessment(assessment: Assessment) {
+    if (!activeSession) return;
+    const session = await updateSessionAssessment(activeSession.id, assessment);
+    setActiveSession(session);
+    await refreshViewData();
+    setSessionWorkflow(await getSessionWorkflow());
+    await refreshGuideView(session.id);
+  }
+
+  async function approveSessionAssessment(assessment: Assessment) {
+    if (!activeSession) return;
+    const session = await updateSessionAssessment(activeSession.id, assessment);
+    setActiveSession(session);
+    await refreshViewData();
+    setSessionWorkflow(await advanceSessionFlow("approve_assessment", session.id));
+    await refreshGuideView(session.id);
+  }
+
+  async function advanceActiveSessionWorkflow(action: SessionFlowAction) {
+    if (!activeSession) return;
+    if (stimulationRunning && (action === "begin_closure" || action === "request_grounding")) {
+      await logStimulationSetIfActive();
+      dispatchRoomEvent({ type: "pause_stimulation" });
+    }
+    setSessionWorkflow(await advanceSessionFlow(action, activeSession.id));
+    await refreshGuideView(activeSession.id);
   }
 
   async function updateSettings(patch: Partial<BilateralStimulationSettings>) {
@@ -314,6 +346,9 @@ export function AnimatedApp() {
   const sessionsByTargetId = new Map(viewData.targets.map((target) => [target.id, target] as const));
   const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const allTargets = viewData.allTargets;
+  const canToggleStimulation = Boolean(
+    activeSession && (stimulationRunning || ["stimulation", "interjection", "closure"].includes(sessionWorkflow.state))
+  );
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -345,8 +380,8 @@ export function AnimatedApp() {
           >
             Guide
           </button>
-          <button onClick={toggleStimulation} disabled={!activeSession && !stimulationRunning}>
-            {stimulationRunning ? "Pause" : "Start"} Set
+          <button onClick={toggleStimulation} disabled={!canToggleStimulation}>
+            {stimulationButtonLabel(sessionWorkflow, stimulationRunning)}
           </button>
           {stimulationRunning && (
             <button onClick={() => dispatchRoomEvent({ type: "select_settings" })}>Ball settings</button>
@@ -367,10 +402,17 @@ export function AnimatedApp() {
                   session={activeSession}
                   targetDescription={sessionsByTargetId.get(activeSession.targetId)?.description}
                   guideView={guideView}
+                  workflow={sessionWorkflow}
                   chatMessages={chatMessages}
                   chatDraft={chatDraft}
                   onChatChange={setChatDraft}
                   onSubmitChat={submitChat}
+                  onSaveAssessment={saveSessionAssessment}
+                  onApproveAssessment={approveSessionAssessment}
+                  onContinueStimulation={() => void advanceActiveSessionWorkflow("continue_stimulation")}
+                  onRequestGrounding={() => void advanceActiveSessionWorkflow("request_grounding")}
+                  onBeginClosure={() => void advanceActiveSessionWorkflow("begin_closure")}
+                  onRequestReview={() => void advanceActiveSessionWorkflow("request_review")}
                   onEndSession={endActiveSession}
                 />
               ) : (
@@ -437,6 +479,12 @@ function activeSessionFromWorkflow(sessions: SessionAggregate[], workflow: Sessi
     : null;
 }
 
+function stimulationButtonLabel(workflow: SessionWorkflowSnapshot, running: boolean) {
+  if (running) return "Pause Set";
+  if (workflow.state === "interjection" || workflow.state === "closure") return "Continue Set";
+  return "Start Set";
+}
+
 async function advanceSessionForStimulationStart(sessionId: string, workflow: SessionWorkflowSnapshot) {
   if (workflow.state === "preparation") {
     return advanceSessionFlow("approve_assessment", sessionId);
@@ -448,20 +496,6 @@ async function advanceSessionForStimulationStart(sessionId: string, workflow: Se
     return advanceSessionFlow("continue_stimulation", sessionId);
   }
   throw new Error(`Cannot start stimulation from ${workflow.state}.`);
-}
-
-async function advanceSessionToReview(sessionId: string, workflow: SessionWorkflowSnapshot) {
-  let current = workflow;
-  for (const action of closureActionsFrom(current)) {
-    current = await advanceSessionFlow(action, sessionId);
-  }
-  return current;
-}
-
-function closureActionsFrom(workflow: SessionWorkflowSnapshot): SessionFlowAction[] {
-  if (workflow.state === "review" || workflow.state === "post_session") return [];
-  if (workflow.state === "closure") return ["request_review"];
-  return ["begin_closure", "request_review"];
 }
 
 function IdleGuideChat({ guideView, onOpenTargets }: { guideView: GuideView; onOpenTargets: () => void }) {
@@ -483,32 +517,63 @@ function ActiveSessionChat({
   session,
   targetDescription,
   guideView,
+  workflow,
   chatMessages,
   chatDraft,
   onChatChange,
   onSubmitChat,
+  onSaveAssessment,
+  onApproveAssessment,
+  onContinueStimulation,
+  onRequestGrounding,
+  onBeginClosure,
+  onRequestReview,
   onEndSession
 }: {
   session: SessionAggregate;
   targetDescription?: string;
   guideView: GuideView;
+  workflow: SessionWorkflowSnapshot;
   chatMessages: string[];
   chatDraft: string;
   onChatChange: (value: string) => void;
   onSubmitChat: (event: FormEvent) => void;
+  onSaveAssessment: (assessment: Assessment) => void;
+  onApproveAssessment: (assessment: Assessment) => void;
+  onContinueStimulation: () => void;
+  onRequestGrounding: () => void;
+  onBeginClosure: () => void;
+  onRequestReview: () => void;
   onEndSession: () => void;
 }) {
   const sessionView = guideView.mode === "session" ? guideView.activeSession : undefined;
   const displayTargetDescription = sessionView?.targetDescription ?? targetDescription ?? "Unknown target";
   const setCount = sessionView?.stimulationSetCount ?? session.stimulationSets.length;
   const messages = (guideView.mode === "session" ? guideView.messages : []).concat(chatMessages);
+  const workflowState = sessionView?.workflowState ?? workflow.state;
 
   return (
     <>
       <p className="authNotice">
-        {displayTargetDescription} · {setCount} set
+        {displayTargetDescription} · {workflowLabel(workflowState)} · {setCount} set
         {setCount === 1 ? "" : "s"} logged
       </p>
+      {workflowState === "preparation" && (
+        <AssessmentForm
+          assessment={session.assessment}
+          onSave={onSaveAssessment}
+          onApprove={onApproveAssessment}
+        />
+      )}
+      {workflowState !== "preparation" && workflowState !== "review" && workflowState !== "post_session" && (
+        <WorkflowControls
+          workflow={workflowState}
+          onContinueStimulation={onContinueStimulation}
+          onRequestGrounding={onRequestGrounding}
+          onBeginClosure={onBeginClosure}
+          onRequestReview={onRequestReview}
+        />
+      )}
       <div className="chatLog">
         {messages.map((message, index) => (
           <p className="userBubble" key={`${message}-${index}`}>
@@ -527,11 +592,133 @@ function ActiveSessionChat({
         </label>
         <button type="submit">Send</button>
       </form>
-      <div className="buttonRow">
-        <button onClick={onEndSession}>End session</button>
-      </div>
+      {workflowState === "review" && (
+        <div className="buttonRow">
+          <button onClick={onEndSession}>End session</button>
+          <button onClick={onBeginClosure}>Return to closure</button>
+        </div>
+      )}
     </>
   );
+}
+
+function AssessmentForm({
+  assessment,
+  onSave,
+  onApprove
+}: {
+  assessment: Assessment;
+  onSave: (assessment: Assessment) => void;
+  onApprove: (assessment: Assessment) => void;
+}) {
+  const [draft, setDraft] = useState(assessment);
+
+  useEffect(() => setDraft(assessment), [assessment]);
+
+  function set<K extends keyof Assessment>(key: K, value: Assessment[K]) {
+    setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  return (
+    <form
+      className="form workflowForm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave(draft);
+      }}
+    >
+      <label>
+        Image
+        <textarea value={draft.image ?? ""} onChange={(event) => set("image", event.target.value)} />
+      </label>
+      <label>
+        Negative cognition
+        <input
+          value={draft.negativeCognition}
+          onChange={(event) => set("negativeCognition", event.target.value)}
+        />
+      </label>
+      <label>
+        Positive cognition
+        <input
+          value={draft.positiveCognition}
+          onChange={(event) => set("positiveCognition", event.target.value)}
+        />
+      </label>
+      <div className="twoCol">
+        <label>
+          VOC
+          <input
+            type="number"
+            min="1"
+            max="7"
+            value={draft.believability ?? ""}
+            onChange={(event) => set("believability", optionalNumber(event.target.value))}
+          />
+        </label>
+        <label>
+          SUD
+          <input
+            type="number"
+            min="0"
+            max="10"
+            value={draft.disturbance ?? ""}
+            onChange={(event) => set("disturbance", optionalNumber(event.target.value))}
+          />
+        </label>
+      </div>
+      <label>
+        Emotions
+        <input value={draft.emotions ?? ""} onChange={(event) => set("emotions", event.target.value)} />
+      </label>
+      <label>
+        Body location
+        <input value={draft.bodyLocation ?? ""} onChange={(event) => set("bodyLocation", event.target.value)} />
+      </label>
+      <div className="buttonRow">
+        <button type="submit">Save assessment</button>
+        <button type="button" onClick={() => onApprove(draft)}>
+          Approve assessment
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function WorkflowControls({
+  workflow,
+  onContinueStimulation,
+  onRequestGrounding,
+  onBeginClosure,
+  onRequestReview
+}: {
+  workflow: SessionWorkflowSnapshot["state"];
+  onContinueStimulation: () => void;
+  onRequestGrounding: () => void;
+  onBeginClosure: () => void;
+  onRequestReview: () => void;
+}) {
+  return (
+    <div className="workflowControls">
+      {(workflow === "interjection" || workflow === "closure") && (
+        <button onClick={onContinueStimulation}>Continue stimulation</button>
+      )}
+      {(workflow === "stimulation" || workflow === "closure") && (
+        <button onClick={onRequestGrounding}>Grounding</button>
+      )}
+      {(workflow === "stimulation" || workflow === "interjection") && (
+        <button onClick={onBeginClosure}>Begin closure</button>
+      )}
+      {workflow === "closure" && <button onClick={onRequestReview}>Request review</button>}
+    </div>
+  );
+}
+
+function workflowLabel(state: SessionWorkflowSnapshot["state"]) {
+  return state
+    .split("_")
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function TargetsPanel({
