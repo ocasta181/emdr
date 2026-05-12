@@ -191,7 +191,7 @@ Exit criteria:
 - [x] Domain modules self-register their endpoints with the API registry.
 - [x] `src/main/api/registry.ts` owns route registration mechanics but no domain
   behavior.
-- [x] No `db:*` channels remain.
+- [x] No `db:*` or `store:*` channels remain.
 
 ## Phase 4: Rehome Store, Vault, And Domain Code
 

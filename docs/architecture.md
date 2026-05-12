@@ -483,7 +483,7 @@ domain service or app coordinator
 
 IPC rules:
 
-- no generic `db:load` or `db:save` channels
+- no generic `db:*` or `store:*` channels
 - no generic domain mutation channel that bypasses route registration
 - the main route registry is owned by `src/main/api/registry.ts`
 - domains register their own IPC endpoints during module registration

@@ -16,6 +16,7 @@ const routeConstructorForbiddenDependencyPattern =
   /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|AppStoreDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
 const serviceConstructorForbiddenDependencyPattern = /\b(db|database|AppDatabase|AppStoreDatabase|SqliteDatabase)\b/i;
 const rendererForbiddenWorkflowRoutes = new Set(["session:end", "stimulation-set:log"]);
+const genericPersistenceRoutePrefixes = ["db:", "store:"];
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -167,11 +168,11 @@ function analyzeDbTouches(sourceFile) {
       }
 
       const firstArgument = node.getArguments()[0];
-      if (firstArgument?.getKind() === SyntaxKind.StringLiteral && firstArgument.getText().startsWith('"db:')) {
+      if (Node.isStringLiteral(firstArgument) && isGenericPersistenceRoute(firstArgument.getLiteralText())) {
         report({
           node,
           rule: "architecture/db-in-repository-only",
-          message: "Database IPC channels must be wrapped by a repository."
+          message: "Generic database/store IPC channels must be replaced with domain routes backed by repositories."
         });
       }
     }
@@ -557,6 +558,10 @@ function importsAppDomain(resolved) {
 
 function importsMigrations(resolved) {
   return resolved.startsWith("src/main/internal/lib/store/sqlite/migrations/");
+}
+
+function isGenericPersistenceRoute(route) {
+  return genericPersistenceRoutePrefixes.some((prefix) => route.startsWith(prefix));
 }
 
 function databaseMethodAccessLooksLikeDb(expression) {
