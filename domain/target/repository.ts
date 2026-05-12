@@ -1,5 +1,5 @@
-import type { SqliteDatabase } from "../../core/internal/sqlite/connection.js";
-import { SQLBaseRepository } from "../../core/internal/repository/base.js";
+import type { SqliteDatabase } from "../../src/main/internal/lib/store/sqlite/connection.js";
+import { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
 import type { Target } from "./entity.js";
 
 export const newTargetRepository = (db: SqliteDatabase) =>

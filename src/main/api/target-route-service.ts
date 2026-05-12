@@ -1,4 +1,4 @@
-import { loadAppDatabase, saveAppDatabase } from "../../../core/internal/sqlite/app-store.js";
+import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 import { createTarget, createTargetRevision } from "../../../domain/target/factory.js";
 import type { Target, TargetStatus } from "../../../domain/target/entity.js";
 import type { TargetDraft } from "../../../domain/target/types.js";

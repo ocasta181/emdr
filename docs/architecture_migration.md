@@ -142,13 +142,13 @@ Goal: move current internal code to the agreed target roots.
 
 Checklist:
 
-- [ ] Move generic SQLite connection, transaction, and migration runner code to
+- [x] Move generic SQLite connection, transaction, and migration runner code to
   `src/main/internal/lib/store`.
 - [x] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
 - [ ] Move target, session, stimulation-set, setting, vault, and guide domains to
   `src/main/internal/domain/<domain>`.
 - [ ] Keep repositories in their owning domain folders.
-- [ ] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
+- [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
 - [ ] Split `core/internal/sqlite/app-store.ts` into store lifecycle, vault-backed
   loading/saving, repository wiring, and app orchestration.
 - [ ] Replace full-snapshot `replaceAll` persistence with granular repository

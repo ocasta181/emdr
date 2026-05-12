@@ -3,19 +3,19 @@ import {
   exportSqliteDatabase,
   type SqliteDatabase
 } from "./connection.js";
-import { VaultService, type VaultStatus } from "../../../domain/vault/service.js";
+import { VaultService, type VaultStatus } from "../../../../../../domain/vault/service.js";
 import { runMigrations } from "./migrations/index.js";
-import { createEmptyDatabase } from "../../../domain/app/factory.js";
-import type { Database } from "../../../domain/app/types.js";
-import { createSessionAggregate, createSessionFromAggregate } from "../../../domain/session/factory.js";
-import { newSessionRepository } from "../../../domain/session/repository.js";
-import type { SessionAggregate } from "../../../domain/session/types.js";
-import { createDefaultSettings } from "../../../domain/setting/factory.js";
-import { newSettingRepository } from "../../../domain/setting/repository.js";
-import type { Settings } from "../../../domain/setting/types.js";
-import { newStimulationSetRepository } from "../../../domain/stimulation-set/repository.js";
-import type { StimulationSet } from "../../../domain/stimulation-set/entity.js";
-import { newTargetRepository } from "../../../domain/target/repository.js";
+import { createEmptyDatabase } from "../../../../../../domain/app/factory.js";
+import type { Database } from "../../../../../../domain/app/types.js";
+import { createSessionAggregate, createSessionFromAggregate } from "../../../../../../domain/session/factory.js";
+import { newSessionRepository } from "../../../../../../domain/session/repository.js";
+import type { SessionAggregate } from "../../../../../../domain/session/types.js";
+import { createDefaultSettings } from "../../../../../../domain/setting/factory.js";
+import { newSettingRepository } from "../../../../../../domain/setting/repository.js";
+import type { Settings } from "../../../../../../domain/setting/types.js";
+import { newStimulationSetRepository } from "../../../../../../domain/stimulation-set/repository.js";
+import type { StimulationSet } from "../../../../../../domain/stimulation-set/entity.js";
+import { newTargetRepository } from "../../../../../../domain/target/repository.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;

@@ -1,4 +1,4 @@
-import type { SQLBaseRepository } from "../../core/internal/repository/base.js";
+import type { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
 import type { Target } from "./entity.js";
 import { createTarget, createTargetRevision } from "./factory.js";
 import { nowIso } from "../../utils.js";

@@ -1,4 +1,4 @@
-import type { SQLBaseRepository } from "../../core/internal/repository/base.js";
+import type { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
 import { nowIso } from "../../utils.js";
 import type { Target } from "../target/entity.js";
 import type { Session } from "./entity.js";

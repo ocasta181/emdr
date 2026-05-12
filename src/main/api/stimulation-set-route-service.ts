@@ -1,4 +1,4 @@
-import { loadAppDatabase, saveAppDatabase } from "../../../core/internal/sqlite/app-store.js";
+import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 import { createStimulationSet } from "../../../domain/stimulation-set/factory.js";
 import type { StimulationSetRouteService } from "../internal/domain/stimulation-set/types.js";
 

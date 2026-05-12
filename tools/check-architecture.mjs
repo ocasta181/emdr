@@ -221,7 +221,12 @@ function importsUi(specifier, resolved) {
 }
 
 function importsPersistence(specifier, resolved) {
-  return specifier === "sql.js" || resolved.startsWith("core/internal/sqlite/") || resolved === "src/db";
+  return (
+    specifier === "sql.js" ||
+    resolved.startsWith("core/internal/sqlite/") ||
+    resolved.startsWith("src/main/internal/lib/store/sqlite/") ||
+    resolved === "src/db"
+  );
 }
 
 function importsBusinessImplementation(resolved) {

@@ -1,4 +1,4 @@
-import { loadAppDatabase, saveAppDatabase } from "../../../core/internal/sqlite/app-store.js";
+import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 import { createSessionForTarget } from "../../../domain/session/factory.js";
 import { sessionStateGraph } from "../../../domain/session/flow.js";
 import type { Assessment, SessionFlowAction, SessionFlowState } from "../../../domain/session/types.js";
