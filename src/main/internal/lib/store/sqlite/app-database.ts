@@ -11,11 +11,12 @@ import type { StimulationSet } from "../../../domain/stimulation-set/entity.js";
 import { newTargetRepository } from "../../../domain/target/repository.js";
 import { createSqliteDatabase, type SqliteDatabase } from "./connection.js";
 import { runMigrations } from "./migrations/index.js";
+import { runSqliteTransaction } from "./transaction.js";
 
 export async function createInitializedAppDatabase() {
   const db = await createSqliteDatabase();
   runMigrations(db);
-  writeAppDatabase(db, createEmptyDatabase());
+  runSqliteTransaction(db, () => writeAppDatabase(db, createEmptyDatabase()));
   return db;
 }
 
@@ -34,21 +35,12 @@ export function readAppDatabase(db: SqliteDatabase): Database {
 }
 
 export function writeAppDatabase(db: SqliteDatabase, database: Database) {
-  db.run("BEGIN TRANSACTION");
-
-  try {
-    newTargetRepository(db).replaceAll(database.targets);
-    newSessionRepository(db).replaceAll(database.sessions.map(createSessionFromAggregate));
-    newStimulationSetRepository(db).replaceAll(database.sessions.flatMap((session) => session.stimulationSets));
-    newSettingRepository(db).replaceAll([
-      { key: "bilateralStimulation", valueJson: JSON.stringify(database.settings.bilateralStimulation) }
-    ]);
-
-    db.run("COMMIT");
-  } catch (error) {
-    db.run("ROLLBACK");
-    throw error;
-  }
+  newTargetRepository(db).replaceAll(database.targets);
+  newSessionRepository(db).replaceAll(database.sessions.map(createSessionFromAggregate));
+  newStimulationSetRepository(db).replaceAll(database.sessions.flatMap((session) => session.stimulationSets));
+  newSettingRepository(db).replaceAll([
+    { key: "bilateralStimulation", valueJson: JSON.stringify(database.settings.bilateralStimulation) }
+  ]);
 }
 
 function readSessionAggregates(db: SqliteDatabase): SessionAggregate[] {

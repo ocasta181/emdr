@@ -2,6 +2,7 @@ import { VaultService, type VaultStatus } from "../../../domain/vault/service.js
 import type { Database } from "../../../domain/app/types.js";
 import { createInitializedAppDatabase, openMigratedAppDatabase, readAppDatabase, writeAppDatabase } from "./app-database.js";
 import { exportSqliteDatabase, type SqliteDatabase } from "./connection.js";
+import { runSqliteTransaction } from "./transaction.js";
 
 let databasePromise: Promise<SqliteDatabase> | undefined;
 let activePath: string | undefined;
@@ -30,14 +31,23 @@ export async function unlockAppVaultWithRecoveryCode(userDataPath: string, recov
 }
 
 export async function loadAppDatabase(userDataPath: string): Promise<Database> {
-  const db = await openDatabase(userDataPath);
-  return readAppDatabase(db);
+  return readFromAppDatabase(userDataPath, readAppDatabase);
 }
 
 export async function saveAppDatabase(userDataPath: string, database: Database) {
+  await mutateAppDatabase(userDataPath, (db) => writeAppDatabase(db, database));
+}
+
+export async function readFromAppDatabase<T>(userDataPath: string, reader: (db: SqliteDatabase) => T): Promise<T> {
   const db = await openDatabase(userDataPath);
-  writeAppDatabase(db, database);
+  return reader(db);
+}
+
+export async function mutateAppDatabase<T>(userDataPath: string, mutator: (db: SqliteDatabase) => T): Promise<T> {
+  const db = await openDatabase(userDataPath);
+  const result = runSqliteTransaction(db, () => mutator(db));
   await saveActiveDatabase(userDataPath, db);
+  return result;
 }
 
 export async function exportAppVault(userDataPath: string, destinationPath: string) {

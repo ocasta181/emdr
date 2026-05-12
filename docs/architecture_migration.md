@@ -155,7 +155,12 @@ Checklist:
   store lifecycle and repository-backed app database mapping.
 - [ ] Replace full-snapshot `replaceAll` persistence with granular repository
   writes for command handlers.
-- [ ] Add transaction helpers for workflows that update multiple tables.
+  - [x] Target routes write through `TargetService` and the target repository.
+  - [ ] Session routes write through `SessionService` and session repositories.
+  - [ ] Stimulation-set routes write through `StimulationSetService` and the
+    stimulation-set repository.
+  - [ ] Setting routes write through `SettingService` and the setting repository.
+- [x] Add transaction helpers for workflows that update multiple tables.
 
 Exit criteria:
 

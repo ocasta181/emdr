@@ -1,46 +1,27 @@
-import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { createTarget, createTargetRevision } from "../internal/domain/target/factory.js";
 import type { Target, TargetStatus } from "../internal/domain/target/entity.js";
+import { newTargetRepository } from "../internal/domain/target/repository.js";
+import { TargetService } from "../internal/domain/target/service.js";
 import type { TargetDraft } from "../internal/domain/target/types.js";
-import { nowIso } from "../../../utils.js";
 import type { TargetRouteService } from "../internal/domain/target/ipc.types.js";
+import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
 
 export function createTargetRouteService(options: { getUserDataPath: () => string }): TargetRouteService {
   const userDataPath = options.getUserDataPath;
 
   return {
     async list() {
-      const database = await loadAppDatabase(userDataPath());
-      return database.targets
-        .filter((target) => target.isCurrent)
-        .sort((a, b) => (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1));
+      return readFromAppDatabase(userDataPath(), (db) => new TargetService(newTargetRepository(db)).listCurrentTargets());
     },
 
     async create(payload) {
-      const database = await loadAppDatabase(userDataPath());
-      const target = createTarget(targetDraftFrom(payload));
-      await saveAppDatabase(userDataPath(), { ...database, targets: database.targets.concat(target) });
-      return target;
+      return mutateAppDatabase(userDataPath(), (db) => new TargetService(newTargetRepository(db)).addTarget(targetDraftFrom(payload)));
     },
 
     async revise(payload) {
       const request = targetRevisionRequestFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const previous = database.targets.find((target) => target.id === request.previousId);
-      if (!previous) {
-        throw new Error(`Target not found: ${request.previousId}`);
-      }
-
-      const next = createTargetRevision(previous, request.patch);
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        targets: database.targets
-          .map((target) =>
-            target.id === previous.id ? { ...target, isCurrent: false, updatedAt: nowIso() } : target
-          )
-          .concat(next)
-      });
-      return next;
+      return mutateAppDatabase(userDataPath(), (db) =>
+        new TargetService(newTargetRepository(db)).reviseTarget(request.previousId, request.patch)
+      );
     }
   };
 }
