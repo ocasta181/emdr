@@ -281,7 +281,7 @@ Checklist:
 - [x] Remove obsolete roots from the checker such as legacy `domain`,
   `infrastructure`, `core`, and renderer `src` paths after migration.
 - [x] Make `pnpm run check:architecture` pass in full.
-- [ ] Keep `pnpm run check:architecture:staged` in commit hooks.
+- [x] Keep `pnpm run check:architecture:staged` in commit hooks.
 - [ ] Add unit tests for pure domain services and state graphs.
 - [ ] Add integration tests for repositories, transactions, migrations, vault
   unlock/save/import/export, and API route handlers.
