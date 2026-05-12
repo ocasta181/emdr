@@ -177,8 +177,8 @@ Checklist:
 
 Exit criteria:
 
-- [ ] Only repositories and generic store infrastructure import `sql.js`.
-- [ ] No renderer or preload code imports main internals or store modules.
+- [x] Only repositories and generic store infrastructure import `sql.js`.
+- [x] No renderer or preload code imports main internals or store modules.
 - [ ] Domain-specific SQL and mappings live with the owning domain.
 - [x] Legacy `core/internal` store and vault paths are removed or reduced to
   temporary shims.
@@ -228,7 +228,7 @@ Checklist:
   export.
 - [x] Delete transitional route aliases and legacy import shims.
 - [x] Run `pnpm run build`.
-- [ ] Run `pnpm run check:architecture:staged` before each commit.
+- [x] Run `pnpm run check:architecture:staged` before each commit.
 
 Exit criteria:
 
@@ -272,7 +272,7 @@ Checklist:
 - [x] Update `tools/check-architecture.mjs` for the `src/main/api`,
   `src/main/internal`, `electron/preload.cts`, `src/renderer`, and `src/shared`
   layout.
-- [ ] Remove obsolete roots from the checker such as legacy `domain`,
+- [x] Remove obsolete roots from the checker such as legacy `domain`,
   `infrastructure`, `core`, and renderer `src` paths after migration.
 - [x] Make `pnpm run check:architecture` pass in full.
 - [ ] Keep `pnpm run check:architecture:staged` in commit hooks.
@@ -284,7 +284,7 @@ Checklist:
 
 Exit criteria:
 
-- [ ] `pnpm run build` passes.
+- [x] `pnpm run build` passes.
 - [x] `pnpm run check:architecture` passes.
 - [ ] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
