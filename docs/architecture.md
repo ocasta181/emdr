@@ -129,6 +129,7 @@ src/
       app.ts
       registry.ts
       modules.ts
+      types.ts
 
     internal/
       domain/
@@ -216,6 +217,18 @@ Main-process dependency wiring:
 
 This is the only file that should stand up every domain at once.
 
+`src/main/api` contains only these composition files plus `types.ts`. It must
+not contain per-domain route services, domain behavior, repositories, or
+transport adapters beyond the central registry.
+
+### `src/main/api/types.ts`
+
+Main API type definitions:
+
+- route handler and registry types
+- main module shape
+- module initialization options
+
 ### `src/main/internal/domain`
 
 Core Engine domains. Each domain owns its bounded context:
@@ -229,19 +242,18 @@ src/main/internal/domain/<domain>/
   entity.ts
   types.ts
   factory.ts
-  schemas.ts
 ```
 
 The exact files may vary by domain, but the responsibilities do not:
 
 - `module.ts` wires that domain's service, router/IPC registration, and public
   module shape
-- `ipc.ts` registers that domain's endpoints with the central API registry
+- `ipc.ts` defines and registers that domain's endpoints with the central API
+  registry, validates route payloads, and calls one domain service method
 - `service.ts` owns business workflows and state transitions
 - `repository.ts` is the only domain code that touches the store adapter
-- `entity.ts` and `types.ts` define domain types
+- `entity.ts` and `types.ts` define domain and route contract types
 - `factory.ts` creates valid domain entities when a factory is useful
-- `schemas.ts` validates boundary payloads when runtime validation is needed
 
 Domains may depend on internal library abstractions and injected service
 interfaces. They should not import renderer code, preload code, Electron shell
@@ -258,9 +270,9 @@ Generic IPC infrastructure:
 - subscription helper primitives
 - transport-safe error helpers
 
-Domain-specific routes do not live here. Route ownership belongs to
-`src/main/api/registry.ts` and domain route registration belongs to each
-domain's `ipc.ts`.
+Domain-specific routes do not live here. Route registration mechanics belong to
+`src/main/api/registry.ts`; endpoint definitions and payload parsing belong to
+each domain's `ipc.ts`.
 
 ### `src/main/internal/lib/store`
 

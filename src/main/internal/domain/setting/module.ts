@@ -1,8 +1,8 @@
-import type { MainModule } from "../../../api/modules.types.js";
+import type { MainModule } from "../../../api/types.js";
 import { registerSettingIpc } from "./ipc.js";
-import type { SettingRouteService } from "./ipc.types.js";
+import type { SettingIpcService } from "./types.js";
 
-export function createSettingModule(service: SettingRouteService): MainModule {
+export function createSettingModule(service: SettingIpcService): MainModule {
   return {
     Name() {
       return "setting";

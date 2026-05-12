@@ -1,8 +1,8 @@
-import type { MainModule } from "../../../api/modules.types.js";
+import type { MainModule } from "../../../api/types.js";
 import { registerStimulationSetIpc } from "./ipc.js";
-import type { StimulationSetRouteService } from "./ipc.types.js";
+import type { StimulationSetIpcService } from "./types.js";
 
-export function createStimulationSetModule(service: StimulationSetRouteService): MainModule {
+export function createStimulationSetModule(service: StimulationSetIpcService): MainModule {
   return {
     Name() {
       return "stimulation-set";

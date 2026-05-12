@@ -24,6 +24,14 @@ function sessionStateNode(state: SessionFlowState): SessionStateNode {
   return node;
 }
 
+export function nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
+  const edge = sessionStateNode(state).edges.find((item) => item.action === action);
+  if (!edge) {
+    throw new Error(`Action ${action} is not allowed from ${state}.`);
+  }
+  return edge.to;
+}
+
 export class SessionService {
   constructor(
     private readonly repo: SQLBaseRepository<Session>,
@@ -84,11 +92,7 @@ export class SessionService {
   }
 
   nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState {
-    const edge = sessionStateNode(state).edges.find((item) => item.action === action);
-    if (!edge) {
-      throw new Error(`Action ${action} is not allowed from ${state}.`);
-    }
-    return edge.to;
+    return nextSessionFlowState(state, action);
   }
 
   canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {

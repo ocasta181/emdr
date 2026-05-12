@@ -1,3 +1,5 @@
+import type { StimulationSet } from "./entity.js";
+
 export type StimulationSetDraft = {
   sessionId: string;
   cycleCount: number;
@@ -11,4 +13,9 @@ export type StimulationSetRecordDraft = StimulationSetDraft & {
 
 export type SessionLookup = {
   requireSession(sessionId: string): unknown;
+};
+
+export type StimulationSetIpcService = {
+  listBySession(sessionId: string): StimulationSet[] | Promise<StimulationSet[]>;
+  logStimulationSet(draft: StimulationSetDraft): StimulationSet | Promise<StimulationSet>;
 };

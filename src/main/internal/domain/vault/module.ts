@@ -1,8 +1,8 @@
-import type { MainModule } from "../../../api/modules.types.js";
+import type { MainModule } from "../../../api/types.js";
 import { registerVaultIpc } from "./ipc.js";
-import type { VaultRouteService } from "./ipc.types.js";
+import type { VaultIpcService } from "./types.js";
 
-export function createVaultModule(service: VaultRouteService): MainModule {
+export function createVaultModule(service: VaultIpcService): MainModule {
   return {
     Name() {
       return "vault";

@@ -41,15 +41,18 @@ The current codebase is partway through that migration:
 - `src/shared/types.ts` holds serializable view contracts shared across the
   renderer/main process boundary.
 - Transitional `legacy:*` full-snapshot IPC routes have been removed.
+- `src/main/api/` now has only `app.ts`, `modules.ts`, `registry.ts`, and
+  `types.ts`.
 - `src/main/internal/lib/store/sqlite/app-store.ts` keeps vault unlock state and
   encrypted save behavior, while
   `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
   repository-backed full database snapshot mapping.
-- Domain services and repositories exist under `src/main/internal/domain`, but
-  the renderer still relies on transitional full-snapshot load/save routes for
-  several workflows.
-- `src/main/api/domain-services.ts` centralizes repository and service
-  construction for route handlers that run against the active unlocked database.
+- Domain services, repositories, and IPC endpoint definitions exist under
+  `src/main/internal/domain`.
+- `src/main/api/modules.ts` centralizes repository and service construction for
+  handlers that run against the active unlocked database.
+- API-layer `*-route-service.ts` adapters have been removed; domain `ipc.ts`
+  files validate route payloads and call domain services directly.
 - The agent sidecar is documented but not implemented.
 
 Current command results:
@@ -138,7 +141,7 @@ Checklist:
 - [x] Add setting routes for read and bilateral-stimulation update.
 - [x] Add query routes for current targets, all targets, sessions, and settings
   view data.
-- [ ] Validate route payloads at the domain IPC boundary.
+- [x] Validate route payloads at the domain IPC boundary.
 - [x] Delete the transitional generic `db:load` and `db:save` routes after
   equivalent domain routes exist.
 

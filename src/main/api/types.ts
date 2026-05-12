@@ -10,3 +10,12 @@ export type ApiRegistry = {
   dispatch(route: string, payload: unknown): Promise<unknown>;
   routes(): string[];
 };
+
+export type MainModule = {
+  Name(): string;
+  Register(registry: ApiRegistry): void;
+};
+
+export type InitializeOptions = {
+  getUserDataPath: () => string;
+};

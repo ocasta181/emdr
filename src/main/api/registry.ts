@@ -1,4 +1,4 @@
-import type { ApiRegistry, ApiRouteHandler } from "./registry.types.js";
+import type { ApiRegistry, ApiRouteHandler } from "./types.js";
 
 export function createApiRegistry(): ApiRegistry {
   const handlers = new Map<string, ApiRouteHandler>();

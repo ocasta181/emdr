@@ -1,8 +1,8 @@
-import type { MainModule } from "../../../api/modules.types.js";
+import type { MainModule } from "../../../api/types.js";
 import { registerSessionIpc } from "./ipc.js";
-import type { SessionRouteService } from "./ipc.types.js";
+import type { SessionIpcService } from "./types.js";
 
-export function createSessionModule(service: SessionRouteService): MainModule {
+export function createSessionModule(service: SessionIpcService): MainModule {
   return {
     Name() {
       return "session";

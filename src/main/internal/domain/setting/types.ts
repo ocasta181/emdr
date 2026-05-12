@@ -7,3 +7,10 @@ export type BilateralStimulationSettings = {
 export type Settings = {
   bilateralStimulation: BilateralStimulationSettings;
 };
+
+export type SettingIpcService = {
+  getSettings(): Settings | Promise<Settings>;
+  updateBilateralStimulationSettings(
+    patch: Partial<BilateralStimulationSettings>
+  ): BilateralStimulationSettings | Promise<BilateralStimulationSettings>;
+};

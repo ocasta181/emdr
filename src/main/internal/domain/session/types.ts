@@ -31,6 +31,28 @@ export type SessionEndPatch = {
   notes?: string;
 };
 
+export type SessionEndRequest = SessionEndPatch & {
+  sessionId: string;
+};
+
+export type SessionAssessmentUpdateRequest = {
+  sessionId: string;
+  assessment: Assessment;
+};
+
+export type SessionFlowTransitionRequest = {
+  state: SessionFlowState;
+  action: SessionFlowAction;
+};
+
+export type SessionIpcService = {
+  listSessions(): SessionAggregate[] | Promise<SessionAggregate[]>;
+  startSession(targetId: string): SessionAggregate | Promise<SessionAggregate>;
+  updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate | Promise<SessionAggregate>;
+  nextSessionFlowState(state: SessionFlowState, action: SessionFlowAction): SessionFlowState | Promise<SessionFlowState>;
+  endSession(request: SessionEndRequest): SessionAggregate | Promise<SessionAggregate>;
+};
+
 export type SessionStimulationSetReader = {
   listBySession(sessionId: string): StimulationSet[];
 };
