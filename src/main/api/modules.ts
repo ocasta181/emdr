@@ -1,4 +1,6 @@
 import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
+import { createGuideModule } from "../internal/domain/guide/module.js";
+import { GuideService } from "../internal/domain/guide/service.js";
 import { createVaultModule } from "../internal/domain/vault/module.js";
 import { createTargetModule } from "../internal/domain/target/module.js";
 import { createSettingModule } from "../internal/domain/setting/module.js";
@@ -135,6 +137,11 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
       logStimulationSet(draft: StimulationSetDraft) {
         return mutateServices(userDataPath, (services) => services.stimulationSets.logStimulationSet(draft));
       }
+    }),
+    createGuideModule({
+      getView(request) {
+        return readServices(userDataPath, (services) => services.guide.getView(request));
+      }
     })
   ];
 }
@@ -151,13 +158,16 @@ function mutateServices<T>(
 }
 
 function createDomainServices(db: SqliteDatabase) {
+  const targets = new TargetService(newTargetRepository(db));
   const sessionLookup = new SessionService(newSessionRepository(db));
   const stimulationSets = new StimulationSetService(newStimulationSetRepository(db), sessionLookup);
+  const sessions = new SessionService(newSessionRepository(db), stimulationSets);
 
   return {
-    targets: new TargetService(newTargetRepository(db)),
-    sessions: new SessionService(newSessionRepository(db), stimulationSets),
+    targets,
+    sessions,
     settings: new SettingService(newSettingRepository(db)),
-    stimulationSets
+    stimulationSets,
+    guide: new GuideService(targets, sessions)
   };
 }

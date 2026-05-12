@@ -1,5 +1,6 @@
 import type {
   BilateralStimulationSettings,
+  GuideView,
   SessionAggregate,
   SessionEndPatch,
   Settings,
@@ -49,6 +50,10 @@ export async function listSessions(): Promise<SessionAggregate[]> {
 
 export async function getSettings(): Promise<Settings> {
   return emdr().request<Settings>("settings:get");
+}
+
+export async function getGuideView(activeSessionId?: string): Promise<GuideView> {
+  return emdr().request<GuideView>("guide:view", activeSessionId ? { activeSessionId } : undefined);
 }
 
 export async function createTarget(draft: TargetDraft): Promise<Target> {

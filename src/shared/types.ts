@@ -117,3 +117,23 @@ export type SessionEndPatch = {
   finalDisturbance?: number;
   notes?: string;
 };
+
+export type GuidePanelAction = {
+  type: "open_targets";
+  label: string;
+};
+
+export type GuideSessionView = {
+  sessionId: string;
+  targetId: string;
+  targetDescription: string;
+  stimulationSetCount: number;
+};
+
+export type GuideView = {
+  mode: "idle" | "session";
+  targetCount: number;
+  messages: string[];
+  primaryAction?: GuidePanelAction;
+  activeSession?: GuideSessionView;
+};

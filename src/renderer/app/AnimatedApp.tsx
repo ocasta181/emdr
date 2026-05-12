@@ -6,6 +6,7 @@ import {
   createVault,
   endSession as endSessionRecord,
   exportVault,
+  getGuideView,
   getSettings,
   getVaultStatus,
   importVault,
@@ -20,7 +21,14 @@ import {
   updateBilateralStimulationSettings,
   type VaultStatus
 } from "../api/client";
-import type { BilateralStimulationSettings, SessionAggregate, Settings, Target, TargetStatus } from "../../shared/types";
+import type {
+  BilateralStimulationSettings,
+  GuideView,
+  SessionAggregate,
+  Settings,
+  Target,
+  TargetStatus
+} from "../../shared/types";
 import { optionalNumber } from "../../../utils";
 import {
   animatedPanelForState,
@@ -67,6 +75,7 @@ export function AnimatedApp() {
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
   const [editingTarget, setEditingTarget] = useState<Target | null>(null);
   const [activeSession, setActiveSession] = useState<SessionAggregate | null>(null);
+  const [guideView, setGuideView] = useState<GuideView | null>(null);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>([]);
 
@@ -81,7 +90,9 @@ export function AnimatedApp() {
   }, []);
 
   async function loadUnlockedDatabase() {
-    setViewData(await loadViewData());
+    const [nextViewData, nextGuideView] = await Promise.all([loadViewData(), getGuideView()]);
+    setViewData(nextViewData);
+    setGuideView(nextGuideView);
     setAuthState("ready");
   }
 
@@ -89,6 +100,12 @@ export function AnimatedApp() {
     const nextViewData = await loadViewData();
     setViewData(nextViewData);
     return nextViewData;
+  }
+
+  async function refreshGuideView(activeSessionId?: string) {
+    const nextGuideView = await getGuideView(activeSessionId);
+    setGuideView(nextGuideView);
+    return nextGuideView;
   }
 
   async function setupVault(password: string) {
@@ -117,6 +134,7 @@ export function AnimatedApp() {
     if (result.canceled) return false;
     setActiveSession(null);
     setEditingTarget(null);
+    setGuideView(null);
     setAuthState("locked");
     return true;
   }
@@ -129,6 +147,7 @@ export function AnimatedApp() {
       status: "active"
     });
     await refreshViewData();
+    await refreshGuideView(activeSession?.id);
     setEditingTarget(target);
   }
 
@@ -136,6 +155,7 @@ export function AnimatedApp() {
     if (!editingTarget) return;
     await reviseTargetRecord(editingTarget.id, targetPatchFrom(target));
     await refreshViewData();
+    await refreshGuideView(activeSession?.id);
     setEditingTarget(null);
   }
 
@@ -144,15 +164,17 @@ export function AnimatedApp() {
     await refreshViewData();
     setActiveSession(session);
     setEditingTarget(null);
+    await refreshGuideView(session.id);
     dispatchRoomEvent({ type: "select_guide" });
     setGuideAnimation({ type: "action", action: "speak" });
-    setChatMessages([`Started session for "${target.description}".`]);
+    setChatMessages([]);
   }
 
   async function endActiveSession() {
     if (!activeSession) return;
     await endSessionRecord({ sessionId: activeSession.id });
     await refreshViewData();
+    await refreshGuideView();
     setActiveSession(null);
     if (stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
@@ -199,6 +221,7 @@ export function AnimatedApp() {
     });
     const nextViewData = await refreshViewData();
     setActiveSession(nextViewData.sessions.find((session) => session.id === set.sessionId) ?? activeSession);
+    await refreshGuideView(activeSession.id);
   }
 
   function closePanel() {
@@ -243,6 +266,11 @@ export function AnimatedApp() {
 
   const panel = animatedPanelForState(roomState);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
+
+  if (!guideView) {
+    return <div className="boot">Loading local data...</div>;
+  }
+
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
   const settings = viewData.settings.bilateralStimulation;
   const targets = viewData.targets;
@@ -301,6 +329,7 @@ export function AnimatedApp() {
                 <ActiveSessionChat
                   session={activeSession}
                   targetDescription={sessionsByTargetId.get(activeSession.targetId)?.description}
+                  guideView={guideView}
                   chatMessages={chatMessages}
                   chatDraft={chatDraft}
                   onChatChange={setChatDraft}
@@ -309,7 +338,7 @@ export function AnimatedApp() {
                 />
               ) : (
                 <IdleGuideChat
-                  targetCount={targets.length}
+                  guideView={guideView}
                   onOpenTargets={() => {
                     dispatchRoomEvent({ type: "select_targets" });
                     setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
@@ -365,15 +394,17 @@ async function loadViewData(): Promise<AppViewData> {
   return { targets, allTargets, sessions, settings };
 }
 
-function IdleGuideChat({ targetCount, onOpenTargets }: { targetCount: number; onOpenTargets: () => void }) {
+function IdleGuideChat({ guideView, onOpenTargets }: { guideView: GuideView; onOpenTargets: () => void }) {
   return (
     <div className="chatLog">
-      <p className="guideBubble">
-        {targetCount === 0
-          ? "We have no targets yet. Open Targets to add the first one."
-          : `You have ${targetCount} active target${targetCount === 1 ? "" : "s"}. Pick one to start a session.`}
-      </p>
-      <button onClick={onOpenTargets}>Open Targets</button>
+      {guideView.messages.map((message, index) => (
+        <p className="guideBubble" key={`${message}-${index}`}>
+          {message}
+        </p>
+      ))}
+      {guideView.primaryAction?.type === "open_targets" && (
+        <button onClick={onOpenTargets}>{guideView.primaryAction.label}</button>
+      )}
     </div>
   );
 }
@@ -381,6 +412,7 @@ function IdleGuideChat({ targetCount, onOpenTargets }: { targetCount: number; on
 function ActiveSessionChat({
   session,
   targetDescription,
+  guideView,
   chatMessages,
   chatDraft,
   onChatChange,
@@ -389,20 +421,26 @@ function ActiveSessionChat({
 }: {
   session: SessionAggregate;
   targetDescription?: string;
+  guideView: GuideView;
   chatMessages: string[];
   chatDraft: string;
   onChatChange: (value: string) => void;
   onSubmitChat: (event: FormEvent) => void;
   onEndSession: () => void;
 }) {
+  const sessionView = guideView.mode === "session" ? guideView.activeSession : undefined;
+  const displayTargetDescription = sessionView?.targetDescription ?? targetDescription ?? "Unknown target";
+  const setCount = sessionView?.stimulationSetCount ?? session.stimulationSets.length;
+  const messages = (guideView.mode === "session" ? guideView.messages : []).concat(chatMessages);
+
   return (
     <>
       <p className="authNotice">
-        {targetDescription ?? "Unknown target"} · {session.stimulationSets.length} set
-        {session.stimulationSets.length === 1 ? "" : "s"} logged
+        {displayTargetDescription} · {setCount} set
+        {setCount === 1 ? "" : "s"} logged
       </p>
       <div className="chatLog">
-        {chatMessages.map((message, index) => (
+        {messages.map((message, index) => (
           <p className="userBubble" key={`${message}-${index}`}>
             {message}
           </p>

@@ -48,7 +48,8 @@ The current codebase is partway through that migration:
   `src/main/internal/lib/store/sqlite/app-database.ts` owns migrations and the
   repository-backed full database snapshot mapping.
 - Domain services, repositories, and IPC endpoint definitions exist under
-  `src/main/internal/domain`.
+  `src/main/internal/domain`; the guide domain now owns non-display guide view
+  decisions while renderer animation remains in `src/renderer/animation`.
 - `src/main/api/modules.ts` centralizes repository and service construction for
   handlers that run against the active unlocked database.
 - API-layer `*-route-service.ts` adapters have been removed; domain `ipc.ts`
@@ -163,7 +164,7 @@ Checklist:
 - [x] Move vault crypto and file primitives to `src/main/internal/lib/vault`.
 - [x] Move app, vault, target, session, stimulation-set, and setting domains to
   `src/main/internal/domain/<domain>`.
-- [ ] Move guide domain to
+- [x] Move guide domain to
   `src/main/internal/domain/<domain>`.
 - [x] Keep repositories in their owning domain folders.
 - [x] Keep generic SQL adapter abstractions in `src/main/internal/lib/store`.
