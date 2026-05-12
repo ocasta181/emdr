@@ -75,8 +75,9 @@ The current codebase is partway through that migration:
 - A UI smoke confirms setup, password unlock, target creation, session start,
   stimulation start/pause, stimulation-set logging, session end, relaunch, and
   history display.
-- An automated Electron smoke confirms setup, target creation, and the full
-  visible session workflow graph from preparation through post-session.
+- An automated Electron smoke confirms setup, target creation, the full visible
+  session workflow graph from preparation through post-session, vault export,
+  import, and unlock after import.
 - The session workflow state machine now lives in main-process memory. It is
   reset on vault unlock/lock and is not persisted to SQLite.
 - The visible animated UI now starts sessions, starts/pauses stimulation, logs
@@ -379,7 +380,7 @@ Checklist:
 - [ ] Add unit tests for pure domain services and state graphs.
 - [ ] Add integration tests for repositories, transactions, migrations, vault
   unlock/save/import/export, and API route handlers.
-- [ ] Add an Electron smoke test for setup, unlock, target creation, session
+- [x] Add an Electron smoke test for setup, unlock, target creation, session
   start, stimulation-set logging, session end, export, and import.
 - [x] Add an Electron smoke test for the full session state-machine flow.
 - [x] Extend `tools/check-architecture.mjs` or add a targeted static check so

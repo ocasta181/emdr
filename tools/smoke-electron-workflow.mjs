@@ -1,8 +1,8 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { Initialize } from "../dist-electron/src/main/api/modules.js";
 import { createApiRegistry } from "../dist-electron/src/main/api/registry.js";
 import { registerIpcRoutes } from "../dist-electron/src/main/internal/lib/ipc/electron.js";
@@ -109,7 +109,27 @@ async function main() {
     await clickButton(window, "End session");
     await waitForText(window, "Pick one to start a session");
 
-    console.log("Electron workflow smoke passed.");
+    phase = "export vault";
+    const exportPath = path.join(tempDir, "workflow-export.emdr-vault");
+    installVaultDialogStubs(exportPath);
+    await clickButton(window, "Close");
+    await clickRoomSettings(window);
+    await waitForText(window, "Ball Settings");
+    await clickButton(window, "Export");
+    await waitForFile(exportPath);
+
+    phase = "import vault";
+    await clickButton(window, "Import");
+    await waitForText(window, "Unlock");
+
+    phase = "unlock imported vault";
+    await setControlValue(window, 0, "passphrase-123", "input");
+    await clickButton(window, "Unlock");
+    await waitForText(window, "Open Targets");
+    await clickButton(window, "Open Targets");
+    await waitForText(window, "Electron workflow target");
+
+    process.stdout.write("Electron workflow smoke passed.\n");
   } finally {
     clearTimeout(smokeTimeout);
     app.quit();
@@ -117,11 +137,38 @@ async function main() {
   }
 }
 
+function installVaultDialogStubs(exportPath) {
+  dialog.showSaveDialog = async () => ({ canceled: false, filePath: exportPath });
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exportPath] });
+  dialog.showMessageBox = async () => ({ response: 0, checkboxChecked: false });
+}
+
 async function clickButton(window, label) {
   await window.webContents.executeJavaScript(
     `(${domHelpers})().clickButton(${JSON.stringify(label)})`,
     true
   );
+}
+
+async function clickRoomSettings(window) {
+  const point = await window.webContents.executeJavaScript(
+    `(() => {
+      const room = document.querySelector(".roomScene");
+      if (!(room instanceof HTMLElement)) throw new Error("Room scene not found.");
+      const rect = room.getBoundingClientRect();
+      return {
+        x: Math.round(rect.left + rect.width * 0.86),
+        y: Math.round(rect.top + rect.height * 0.6)
+      };
+    })()`,
+    true
+  );
+
+  window.webContents.focus();
+  window.webContents.sendInputEvent({ type: "mouseMove", x: point.x, y: point.y });
+  window.webContents.sendInputEvent({ type: "mouseDown", x: point.x, y: point.y, button: "left", clickCount: 1 });
+  window.webContents.sendInputEvent({ type: "mouseUp", x: point.x, y: point.y, button: "left", clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
 async function setControlValue(window, index, value, selector) {
@@ -161,6 +208,20 @@ async function waitForText(window, text, timeoutMs = 5000) {
 
   const body = await window.webContents.executeJavaScript("document.body.innerText", true);
   throw new Error(`Timed out waiting for text "${text}". Body text: ${body}`);
+}
+
+async function waitForFile(filePath, timeoutMs = 5000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      await access(filePath);
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  throw new Error(`Timed out waiting for file ${filePath}.`);
 }
 
 function domHelpers() {
