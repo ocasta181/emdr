@@ -152,6 +152,11 @@ export type GuideActionResult =
       reason: string;
     };
 
+export type GuideAgentResponse = {
+  messages: string[];
+  proposals: GuideActionProposal[];
+};
+
 export type GuidePanelAction = {
   type: "open_targets";
   label: string;

@@ -16,6 +16,7 @@ import {
   listSessions,
   listTargets,
   reviseTarget as reviseTargetRecord,
+  sendGuideMessage,
   startSession as startSessionRecord,
   unlockWithPassword,
   unlockWithRecoveryCode,
@@ -26,6 +27,7 @@ import {
 import type {
   Assessment,
   BilateralStimulationSettings,
+  GuideActionProposal,
   GuideView,
   SessionAggregate,
   SessionFlowAction,
@@ -82,6 +84,7 @@ export function AnimatedApp() {
   const [activeSession, setActiveSession] = useState<SessionAggregate | null>(null);
   const [sessionWorkflow, setSessionWorkflow] = useState<SessionWorkflowSnapshot>({ state: "idle" });
   const [guideView, setGuideView] = useState<GuideView | null>(null);
+  const [guideProposals, setGuideProposals] = useState<GuideActionProposal[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>([]);
 
@@ -146,6 +149,7 @@ export function AnimatedApp() {
     setSessionWorkflow({ state: "idle" });
     setEditingTarget(null);
     setGuideView(null);
+    setGuideProposals([]);
     setAuthState("locked");
     return true;
   }
@@ -184,6 +188,7 @@ export function AnimatedApp() {
     dispatchRoomEvent({ type: "select_guide" });
     setGuideAnimation({ type: "action", action: "speak" });
     setChatMessages([]);
+    setGuideProposals([]);
   }
 
   async function endActiveSession() {
@@ -204,6 +209,7 @@ export function AnimatedApp() {
     await refreshViewData();
     await refreshGuideView();
     setActiveSession(null);
+    setGuideProposals([]);
     if (stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
     }
@@ -211,6 +217,7 @@ export function AnimatedApp() {
 
   async function saveSessionAssessment(assessment: Assessment) {
     if (!activeSession) return;
+    setGuideProposals([]);
     const session = await updateSessionAssessment(activeSession.id, assessment);
     setActiveSession(session);
     await refreshViewData();
@@ -220,6 +227,7 @@ export function AnimatedApp() {
 
   async function approveSessionAssessment(assessment: Assessment) {
     if (!activeSession) return;
+    setGuideProposals([]);
     const session = await updateSessionAssessment(activeSession.id, assessment);
     setActiveSession(session);
     await refreshViewData();
@@ -229,6 +237,7 @@ export function AnimatedApp() {
 
   async function advanceActiveSessionWorkflow(action: SessionFlowAction) {
     if (!activeSession) return;
+    setGuideProposals([]);
     if (stimulationRunning && (action === "begin_closure" || action === "request_grounding")) {
       await logStimulationSetIfActive();
       dispatchRoomEvent({ type: "pause_stimulation" });
@@ -260,6 +269,7 @@ export function AnimatedApp() {
   }
 
   async function toggleStimulation() {
+    setGuideProposals([]);
     if (stimulationRunning) {
       await logStimulationSetIfActive();
       if (activeSession) {
@@ -288,6 +298,7 @@ export function AnimatedApp() {
       throw new Error(result.reason);
     }
     setSessionWorkflow(result.workflow);
+    setGuideProposals([]);
     const nextViewData = await refreshViewData();
     setActiveSession(nextViewData.sessions.find((session) => session.id === activeSession.id) ?? activeSession);
     await refreshGuideView(activeSession.id);
@@ -297,12 +308,44 @@ export function AnimatedApp() {
     dispatchRoomEvent({ type: "close_panel" });
   }
 
-  function submitChat(event: FormEvent) {
+  async function applyAgentProposal(proposal: GuideActionProposal) {
+    const result = await applyGuideAction(proposal);
+    if (!result.accepted) {
+      setSessionWorkflow(result.workflow);
+      throw new Error(result.reason);
+    }
+
+    setGuideProposals((current) => current.filter((item) => item !== proposal));
+
+    if (proposal.type === "end_session") {
+      setSessionWorkflow(await advanceSessionFlow("return_to_idle", proposal.sessionId));
+      await refreshViewData();
+      await refreshGuideView();
+      setActiveSession(null);
+      setGuideProposals([]);
+      return;
+    }
+
+    setSessionWorkflow(result.workflow);
+    const nextViewData = await refreshViewData();
+    setActiveSession(nextViewData.sessions.find((session) => session.id === proposal.sessionId) ?? activeSession);
+    await refreshGuideView(proposal.sessionId);
+  }
+
+  async function submitChat(event: FormEvent) {
     event.preventDefault();
     const message = chatDraft.trim();
     if (!message) return;
     setChatMessages((current) => current.concat(message));
     setChatDraft("");
+    try {
+      const response = await sendGuideMessage(message, activeSession?.id);
+      setChatMessages((current) => current.concat(response.messages));
+      setGuideProposals(response.proposals);
+    } catch {
+      setChatMessages((current) => current.concat("The local guide is unavailable right now."));
+      setGuideProposals([]);
+    }
   }
 
   function handleGuideActionComplete(action: GuideAction) {
@@ -405,8 +448,10 @@ export function AnimatedApp() {
                   workflow={sessionWorkflow}
                   chatMessages={chatMessages}
                   chatDraft={chatDraft}
+                  guideProposals={guideProposals}
                   onChatChange={setChatDraft}
                   onSubmitChat={submitChat}
+                  onApplyProposal={applyAgentProposal}
                   onSaveAssessment={saveSessionAssessment}
                   onApproveAssessment={approveSessionAssessment}
                   onContinueStimulation={() => void advanceActiveSessionWorkflow("continue_stimulation")}
@@ -520,8 +565,10 @@ function ActiveSessionChat({
   workflow,
   chatMessages,
   chatDraft,
+  guideProposals,
   onChatChange,
   onSubmitChat,
+  onApplyProposal,
   onSaveAssessment,
   onApproveAssessment,
   onContinueStimulation,
@@ -536,8 +583,10 @@ function ActiveSessionChat({
   workflow: SessionWorkflowSnapshot;
   chatMessages: string[];
   chatDraft: string;
+  guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
   onSubmitChat: (event: FormEvent) => void;
+  onApplyProposal: (proposal: GuideActionProposal) => void;
   onSaveAssessment: (assessment: Assessment) => void;
   onApproveAssessment: (assessment: Assessment) => void;
   onContinueStimulation: () => void;
@@ -592,6 +641,15 @@ function ActiveSessionChat({
         </label>
         <button type="submit">Send</button>
       </form>
+      {guideProposals.length > 0 && (
+        <div className="buttonRow">
+          {guideProposals.map((proposal, index) => (
+            <button key={`${proposal.type}-${index}`} onClick={() => onApplyProposal(proposal)}>
+              {guideProposalLabel(proposal)}
+            </button>
+          ))}
+        </div>
+      )}
       {workflowState === "review" && (
         <div className="buttonRow">
           <button onClick={onEndSession}>End session</button>
@@ -600,6 +658,11 @@ function ActiveSessionChat({
       )}
     </>
   );
+}
+
+function guideProposalLabel(proposal: GuideActionProposal) {
+  if (proposal.type === "log_stimulation_set") return "Apply logged set";
+  return "Apply session end";
 }
 
 function AssessmentForm({

@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { GuideAgentSidecarClient } from "../dist-electron/src/main/internal/domain/guide/agent-client.js";
 import { GuideService } from "../dist-electron/src/main/internal/domain/guide/service.js";
+import { AgentSidecar, JsonLineAgentTransport } from "../dist-electron/src/main/internal/lib/agent/index.js";
 import {
   nextSessionFlowState,
   SessionWorkflowMachine
 } from "../dist-electron/src/main/internal/domain/session/service.js";
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("session state graph permits only defined workflow edges", () => {
   assert.equal(nextSessionFlowState("idle", "start_session"), "target_selection");
@@ -122,7 +128,78 @@ test("guide service applies allowed actions through domain service ports", () =>
   ]);
 });
 
-function createGuideHarness(state) {
+test("guide service returns structured advisory agent responses without mutating", async () => {
+  const { guide, calls } = createGuideHarness("stimulation", {
+    respond: async (context) => {
+      assert.equal(context.message, "log this set");
+      assert.equal(context.workflow.state, "stimulation");
+      assert.equal(context.view.mode, "session");
+      return {
+        messages: ["I can propose logging this set."],
+        proposals: [
+          {
+            type: "log_stimulation_set",
+            sessionId: "ses_test",
+            workflowState: "stimulation",
+            cycleCount: 24,
+            observation: "log this set"
+          }
+        ]
+      };
+    }
+  });
+
+  const response = await guide.respondToMessage({ activeSessionId: "ses_test", message: "log this set" });
+  assert.deepEqual(response.messages, ["I can propose logging this set."]);
+  assert.equal(response.proposals.length, 1);
+  assert.deepEqual(calls, []);
+});
+
+test("scripted guide sidecar returns structured advisory proposals", async (t) => {
+  const sidecar = new AgentSidecar(
+    {
+      command: process.execPath,
+      args: [path.join(repoRoot, "agent/scripted-guide-sidecar.mjs")],
+      startupTimeoutMs: 1000,
+      shutdownTimeoutMs: 1000
+    },
+    undefined,
+    (child) => new JsonLineAgentTransport(child.stdout, child.stdin)
+  );
+  t.after(() => sidecar.stop());
+
+  const client = new GuideAgentSidecarClient(sidecar);
+  const response = await client.respond({
+    message: "done with this set",
+    workflow: { state: "stimulation", activeSessionId: "ses_test" },
+    view: {
+      mode: "session",
+      targetCount: 1,
+      messages: [],
+      activeSession: {
+        sessionId: "ses_test",
+        targetId: "tar_test",
+        targetDescription: "Test target",
+        workflowState: "stimulation",
+        stimulationSetCount: 0
+      }
+    }
+  });
+
+  assert.equal(response.messages.length, 1);
+  assert.deepEqual(response.proposals, [
+    {
+      type: "log_stimulation_set",
+      sessionId: "ses_test",
+      workflowState: "stimulation",
+      cycleCount: 24,
+      observation: "done with this set",
+      disturbance: undefined
+    }
+  ]);
+});
+
+function createGuideHarness(state, agent) {
   const target = { id: "tar_test", description: "Test target" };
   const calls = [];
   let workflow = { state, activeSessionId: "ses_test" };
@@ -156,7 +233,8 @@ function createGuideHarness(state) {
         calls.push({ type: "log", draft });
         return { id: "set_test", ...draft };
       }
-    }
+    },
+    agent
   );
 
   return { guide, calls };

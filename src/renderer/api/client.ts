@@ -2,6 +2,7 @@ import type {
   BilateralStimulationSettings,
   GuideActionProposal,
   GuideActionResult,
+  GuideAgentResponse,
   GuideView,
   SessionAggregate,
   SessionFlowAction,
@@ -55,6 +56,10 @@ export async function getSettings(): Promise<Settings> {
 
 export async function getGuideView(activeSessionId?: string): Promise<GuideView> {
   return emdr().request<GuideView>("guide:view", activeSessionId ? { activeSessionId } : undefined);
+}
+
+export async function sendGuideMessage(message: string, activeSessionId?: string): Promise<GuideAgentResponse> {
+  return emdr().request<GuideAgentResponse>("guide:message", { activeSessionId, message });
 }
 
 export async function getSessionWorkflow(): Promise<SessionWorkflowSnapshot> {

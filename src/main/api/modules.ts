@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { GuideAgentSidecarClient } from "../internal/domain/guide/agent-client.js";
 import { GuideRoutes } from "../internal/domain/guide/module.js";
 import { GuideService } from "../internal/domain/guide/service.js";
 import { SessionRoutes } from "../internal/domain/session/module.js";
@@ -14,6 +17,7 @@ import { newTargetRepository } from "../internal/domain/target/repository.js";
 import { TargetService } from "../internal/domain/target/service.js";
 import { VaultRoutes } from "../internal/domain/vault/module.js";
 import { VaultService } from "../internal/domain/vault/service.js";
+import { AgentSidecar, JsonLineAgentTransport } from "../internal/lib/agent/index.js";
 import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
 import { AppStoreDatabase } from "../internal/lib/store/sqlite/app-store.js";
 import { VaultFileService } from "../internal/lib/vault/service.js";
@@ -37,7 +41,22 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService, sessionWorkflow);
   const sessionService = new SessionService(sessionRepository, sessionWorkflow, stimulationSetService);
   const settingService = new SettingService(settingRepository);
-  const guideService = new GuideService(targetService, sessionService, stimulationSetService);
+
+  const scriptedGuideAgentPath = path.resolve("agent/scripted-guide-sidecar.mjs");
+  const guideAgentSidecar = existsSync(scriptedGuideAgentPath)
+    ? new AgentSidecar(
+        {
+          command: process.execPath,
+          args: [scriptedGuideAgentPath],
+          startupTimeoutMs: 1000,
+          shutdownTimeoutMs: 1000
+        },
+        undefined,
+        (child) => new JsonLineAgentTransport(child.stdout, child.stdin)
+      )
+    : undefined;
+  const guideAgent = guideAgentSidecar ? new GuideAgentSidecarClient(guideAgentSidecar) : undefined;
+  const guideService = new GuideService(targetService, sessionService, stimulationSetService, guideAgent);
   const vaultService = new VaultService(vaultFileService, {
     isUnlocked: () => db.isUnlocked(),
     createPlaintext: () => db.createPlaintextFromTemplate(),

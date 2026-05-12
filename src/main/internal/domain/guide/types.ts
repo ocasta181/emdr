@@ -2,6 +2,11 @@ export type GuideViewRequest = {
   activeSessionId?: string;
 };
 
+export type GuideMessageRequest = {
+  activeSessionId?: string;
+  message: string;
+};
+
 export type GuideSessionFlowState =
   | "idle"
   | "target_selection"
@@ -47,6 +52,21 @@ export type GuideActionResult =
       workflow: GuideSessionWorkflowSnapshot;
       reason: string;
     };
+
+export type GuideAgentResponse = {
+  messages: string[];
+  proposals: GuideActionProposal[];
+};
+
+export type GuideAgentContext = {
+  message: string;
+  view: GuideView;
+  workflow: GuideSessionWorkflowSnapshot;
+};
+
+export type GuideAgentPort = {
+  respond(context: GuideAgentContext): Promise<GuideAgentResponse>;
+};
 
 export type GuideViewMode = "idle" | "session";
 
@@ -112,5 +132,6 @@ export type GuideStimulationSetWriter = {
 
 export type GuideIpcService = {
   getView(request: GuideViewRequest): GuideView | Promise<GuideView>;
+  respondToMessage(request: GuideMessageRequest): GuideAgentResponse | Promise<GuideAgentResponse>;
   applyAction(proposal: GuideActionProposal): GuideActionResult | Promise<GuideActionResult>;
 };

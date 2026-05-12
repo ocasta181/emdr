@@ -100,6 +100,13 @@ test("registered routes persist through migrated SQLite repositories and vault i
       disturbance: 5
     }
   });
+  const guideResponse = await request("guide:message", {
+    activeSessionId: session.id,
+    message: "what should I do next?"
+  });
+  assert.equal(guideResponse.proposals.length, 0);
+  assert.match(guideResponse.messages[0], /current session controls/);
+
   await request("session:advance-flow", { sessionId: session.id, action: "approve_assessment" });
   await request("stimulation-set:log", {
     sessionId: session.id,

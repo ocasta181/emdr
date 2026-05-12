@@ -67,8 +67,9 @@ The current codebase is partway through that migration:
   service receives narrow store lifecycle functions instead of the full database
   object.
 - Generic agent sidecar process and JSON-line transport infrastructure exists
-  under `src/main/internal/lib/agent`; guide action proposals are validated and
-  applied through domain services, but no live agent sidecar is wired yet.
+  under `src/main/internal/lib/agent`; a scripted local guide sidecar is wired
+  through guide routes, and guide action proposals are validated and applied
+  through domain services.
 - A registry-level smoke confirms vault setup/unlock, target creation, session
   start/end, stimulation-set logging, guide action validation, export/import,
   and relaunch unlock through registered routes.
@@ -300,13 +301,13 @@ Checklist:
 - [x] Ensure the agent never imports renderer code, repositories, SQLite code, or
   Electron IPC.
 - [x] Add tests for allowed and rejected guide actions per session state.
-- [ ] Wire a live agent sidecar into guide domain routes.
+- [x] Wire a live agent sidecar into guide domain routes.
 
 Exit criteria:
 
-- [ ] Agent output is advisory and structured.
-- [ ] Main process remains the only state mutator.
-- [ ] Renderer displays guide messages and proposed edits from main-process view
+- [x] Agent output is advisory and structured.
+- [x] Main process remains the only state mutator.
+- [x] Renderer displays guide messages and proposed edits from main-process view
   events.
 
 ## Phase 8: Wire UI To Session State Machine

@@ -25,6 +25,7 @@ const disturbanceRange = { min: 0, max: 10 };
 
 export function registerGuideIpc(registry: ApiRegistry, service: GuideIpcService) {
   registry.handle("guide:view", async (payload) => service.getView(guideViewRequestFrom(payload)));
+  registry.handle("guide:message", async (payload) => service.respondToMessage(guideMessageRequestFrom(payload)));
   registry.handle("guide:apply-action", async (payload) => service.applyAction(guideActionProposalFrom(payload)));
 }
 
@@ -34,6 +35,14 @@ function guideViewRequestFrom(payload: unknown): GuideViewRequest {
   const value = recordFrom(payload);
   return {
     activeSessionId: optionalString(value, "activeSessionId")
+  };
+}
+
+function guideMessageRequestFrom(payload: unknown) {
+  const value = recordFrom(payload);
+  return {
+    activeSessionId: optionalString(value, "activeSessionId"),
+    message: requiredString(value, "message")
   };
 }
 

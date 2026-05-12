@@ -1,6 +1,9 @@
 import type {
   GuideActionProposal,
   GuideActionResult,
+  GuideAgentPort,
+  GuideAgentResponse,
+  GuideMessageRequest,
   GuideSessionFlowAction,
   GuideSessionFlowValidator,
   GuideSessionMutator,
@@ -15,7 +18,8 @@ export class GuideService {
   constructor(
     private readonly targets: GuideTargetReader,
     private readonly sessions: GuideSessionReader & GuideSessionMutator & GuideSessionFlowValidator,
-    private readonly stimulationSets: GuideStimulationSetWriter
+    private readonly stimulationSets: GuideStimulationSetWriter,
+    private readonly agent?: GuideAgentPort
   ) {}
 
   getView(request: GuideViewRequest): GuideView {
@@ -50,6 +54,24 @@ export class GuideService {
         stimulationSetCount: session.stimulationSets.length
       }
     };
+  }
+
+  async respondToMessage(request: GuideMessageRequest): Promise<GuideAgentResponse> {
+    const view = this.getView({ activeSessionId: request.activeSessionId });
+    const workflow = this.sessions.currentSessionWorkflow();
+
+    if (!this.agent) {
+      return {
+        messages: [fallbackGuideMessage(view)],
+        proposals: []
+      };
+    }
+
+    return this.agent.respond({
+      message: request.message,
+      view,
+      workflow
+    });
   }
 
   applyAction(proposal: GuideActionProposal): GuideActionResult {
@@ -122,4 +144,12 @@ function idleGuideView(targetCount: number): GuideView {
       label: "Open Targets"
     }
   };
+}
+
+function fallbackGuideMessage(view: GuideView) {
+  if (view.mode === "session") {
+    return "I noted that. Continue with the current session controls when you are ready.";
+  }
+
+  return view.messages[0] ?? "Open Targets to choose what to work on.";
 }
