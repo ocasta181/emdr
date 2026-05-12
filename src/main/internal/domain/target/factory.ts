@@ -1,4 +1,5 @@
-import { createId, nowIso } from "../../../../../utils.js";
+import { nowIso } from "../../../../../utils.js";
+import { createId } from "../../lib/id/index.js";
 import type { Target } from "./entity.js";
 import type { TargetDraft } from "./types.js";
 

@@ -395,14 +395,7 @@ Exit criteria:
 - [x] Test coverage exists at service, repository, migration, route-handler, and
   smoke-test levels.
 - [x] UI state-machine coverage exists for the full graph.
-- [ ] The implemented directory tree matches `docs/architecture.md`.
-
-Remaining mismatch:
-
-- `docs/architecture.md` lists renderer feature folders for target, session,
-  stimulation-set, setting, and guide. The current renderer keeps those panels
-  in `src/renderer/app/AnimatedApp.tsx`, with only vault extracted under
-  `src/renderer/features/vault`.
+- [x] The implemented directory tree matches `docs/architecture.md`.
 
 ## Suggested Commit Cadence
 
