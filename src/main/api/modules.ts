@@ -13,22 +13,23 @@ import { TargetRoutes } from "../internal/domain/target/module.js";
 import { newTargetRepository } from "../internal/domain/target/repository.js";
 import { TargetService } from "../internal/domain/target/service.js";
 import { VaultRoutes } from "../internal/domain/vault/module.js";
-import { VaultApplicationService, VaultService } from "../internal/domain/vault/service.js";
+import { VaultService } from "../internal/domain/vault/service.js";
 import { createVaultFileDialogs } from "../internal/lib/electron/vault-file-dialogs.js";
 import { AppStoreDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import { VaultFileService } from "../internal/lib/vault/service.js";
 import type { InitializeOptions, MainModule } from "./types.js";
 
 export async function Initialize(options: InitializeOptions): Promise<MainModule[]> {
   const routes = options.routes;
   const userDataPath = options.getUserDataPath;
 
-  const db = new AppStoreDatabase(userDataPath());
+  const vaultFileService = new VaultFileService(userDataPath());
+  const db = new AppStoreDatabase((dataKey, plaintext) => vaultFileService.saveSync(dataKey, plaintext));
 
   const targetRepository = newTargetRepository(db);
   const sessionRepository = newSessionRepository(db);
   const settingRepository = newSettingRepository(db);
   const stimulationSetRepository = newStimulationSetRepository(db);
-  const vaultFileService = new VaultService(userDataPath());
 
   const targetService = new TargetService(targetRepository);
   const sessionLookupService = new SessionService(sessionRepository);
@@ -36,9 +37,14 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const sessionService = new SessionService(sessionRepository, stimulationSetService);
   const settingService = new SettingService(settingRepository);
   const guideService = new GuideService(targetService, sessionService, stimulationSetService);
-  const vaultService = new VaultApplicationService(db, vaultFileService, createVaultFileDialogs());
+  const vaultService = new VaultService(vaultFileService, {
+    isUnlocked: () => db.isUnlocked(),
+    createPlaintext: () => db.createPlaintextFromTemplate(),
+    unlock: (unlocked) => db.unlock(unlocked),
+    lock: () => db.lock()
+  });
 
-  const vaultRoutes = new VaultRoutes(routes, vaultService);
+  const vaultRoutes = new VaultRoutes(routes, vaultService, createVaultFileDialogs());
   const targetRoutes = new TargetRoutes(routes, targetService);
   const sessionRoutes = new SessionRoutes(routes, sessionService, targetService);
   const settingRoutes = new SettingRoutes(routes, settingService);

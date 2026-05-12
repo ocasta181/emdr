@@ -10,14 +10,14 @@ export type VaultIpcService = {
   create(password: string): { recoveryCode: string } | Promise<{ recoveryCode: string }>;
   unlockWithPassword(password: string): { ok: true } | Promise<{ ok: true }>;
   unlockWithRecoveryCode(recoveryCode: string): { ok: true } | Promise<{ ok: true }>;
-  exportVault(): { canceled: true } | { canceled: false; path: string } | Promise<{ canceled: true } | { canceled: false; path: string }>;
-  importVault(): { canceled: boolean } | Promise<{ canceled: boolean }>;
+  defaultExportName(): string;
+  exportVault(destinationPath: string): void | Promise<void>;
+  importVault(sourcePath: string): void | Promise<void>;
 };
 
-export type VaultStorage = {
-  status(): VaultStatus;
-  create(password: string): Promise<{ recoveryCode: string }>;
-  unlockWithPassword(password: string): Promise<void>;
-  unlockWithRecoveryCode(recoveryCode: string): Promise<void>;
+export type VaultStoreAccess = {
+  isUnlocked(): boolean;
+  createPlaintext(): Promise<Buffer>;
+  unlock(unlocked: UnlockedVault): void | Promise<void>;
   lock(): void;
 };

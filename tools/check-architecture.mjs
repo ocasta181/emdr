@@ -6,15 +6,15 @@ import { Node, Project, SyntaxKind } from "ts-morph";
 
 const sourceRoots = ["src", "electron", "utils.ts", "stateGraph.ts", "vite.config.ts"];
 const sourceExtensions = new Set([".ts", ".tsx", ".cts", ".mts"]);
-const dbMethodNames = new Set(["exec", "export", "prepare", "run"]);
+const dbMethodNames = new Set(["exec", "prepare", "run"]);
 const collectionMethodNames = new Set(["concat", "filter", "map", "push", "reduce", "splice"]);
 const businessUtilityNames = new Set(["createId", "nowIso", "replaceById"]);
 const businessFileNamePatterns = [/\/factory(?:\.[cm]?tsx?)?$/, /\/flow(?:\.[cm]?tsx?)?$/, /Machine(?:\.[cm]?tsx?)?$/];
 const schemaSqlPattern = /\b(CREATE|ALTER|DROP)\s+(TABLE|INDEX|TRIGGER|VIEW)\b/i;
 const baselineMigrationPath = "src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.ts";
 const routeConstructorForbiddenDependencyPattern =
-  /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
-const serviceConstructorForbiddenDependencyPattern = /\b(db|database|AppDatabase|SqliteDatabase)\b/i;
+  /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|AppStoreDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
+const serviceConstructorForbiddenDependencyPattern = /\b(db|database|AppDatabase|AppStoreDatabase|SqliteDatabase)\b/i;
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -157,7 +157,7 @@ function analyzeDbTouches(sourceFile) {
 
     if (Node.isCallExpression(node)) {
       const expression = node.getExpression();
-      if (!dbMethodsAllowed && Node.isPropertyAccessExpression(expression) && dbMethodNames.has(expression.getName())) {
+      if (!dbMethodsAllowed && Node.isPropertyAccessExpression(expression) && databaseMethodAccessLooksLikeDb(expression)) {
         report({
           node: expression,
           rule: "architecture/db-in-repository-only",
@@ -181,7 +181,7 @@ function analyzeDbTouches(sourceFile) {
         report({
           node,
           rule: "architecture/db-in-repository-only",
-          message: "AppStoreDatabase must only be instantiated in modules.ts, then passed into repositories."
+          message: "AppStoreDatabase must only be instantiated in modules.ts, then passed into repositories or narrow function ports."
         });
       }
     }
@@ -539,6 +539,14 @@ function importsAppDomain(resolved) {
 
 function importsMigrations(resolved) {
   return resolved.startsWith("src/main/internal/lib/store/sqlite/migrations/");
+}
+
+function databaseMethodAccessLooksLikeDb(expression) {
+  const methodName = expression.getName();
+  if (dbMethodNames.has(methodName)) return true;
+  if (methodName !== "export") return false;
+
+  return /\b(db|database|sqlite|store)\b/i.test(expression.getExpression().getText());
 }
 
 function importsRouteForbiddenDependency(resolved) {
