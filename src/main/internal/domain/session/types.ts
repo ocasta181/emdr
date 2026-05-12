@@ -26,6 +26,15 @@ export type SessionAggregate = Omit<
   stimulationSets: StimulationSet[];
 };
 
+export type SessionEndPatch = {
+  finalDisturbance?: number;
+  notes?: string;
+};
+
+export type SessionStimulationSetReader = {
+  listBySession(sessionId: string): StimulationSet[];
+};
+
 export type SessionFlowState =
   | "idle"
   | "target_selection"

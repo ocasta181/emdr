@@ -1,9 +1,14 @@
-import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { createSessionForTarget } from "../internal/domain/session/factory.js";
 import { sessionStateGraph } from "../internal/domain/session/flow.js";
+import { newSessionRepository } from "../internal/domain/session/repository.js";
+import { SessionService } from "../internal/domain/session/service.js";
 import type { Assessment, SessionFlowAction, SessionFlowState } from "../internal/domain/session/types.js";
-import { nowIso } from "../../../utils.js";
 import type { SessionRouteService } from "../internal/domain/session/ipc.types.js";
+import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
+import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
+import { newTargetRepository } from "../internal/domain/target/repository.js";
+import { TargetService } from "../internal/domain/target/service.js";
+import { mutateAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import type { SqliteDatabase } from "../internal/lib/store/sqlite/connection.js";
 
 export function createSessionRouteService(options: { getUserDataPath: () => string }): SessionRouteService {
   const userDataPath = options.getUserDataPath;
@@ -11,34 +16,16 @@ export function createSessionRouteService(options: { getUserDataPath: () => stri
   return {
     async start(payload) {
       const targetId = targetIdFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const target = database.targets.find((item) => item.id === targetId);
-      if (!target) {
-        throw new Error(`Target not found: ${targetId}`);
-      }
-
-      const session = createSessionForTarget(target);
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        sessions: database.sessions.concat(session)
-      });
-      return session;
+      return mutateAppDatabase(userDataPath(), (db) =>
+        createSessionService(db).startSession(new TargetService(newTargetRepository(db)).requireTarget(targetId))
+      );
     },
 
     async updateAssessment(payload) {
       const request = assessmentUpdateFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const session = database.sessions.find((item) => item.id === request.sessionId);
-      if (!session) {
-        throw new Error(`Session not found: ${request.sessionId}`);
-      }
-
-      const nextSession = { ...session, assessment: request.assessment };
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        sessions: database.sessions.map((item) => (item.id === nextSession.id ? nextSession : item))
-      });
-      return nextSession;
+      return mutateAppDatabase(userDataPath(), (db) =>
+        createSessionService(db).updateAssessment(request.sessionId, request.assessment)
+      );
     },
 
     transitionFlow(payload) {
@@ -53,25 +40,21 @@ export function createSessionRouteService(options: { getUserDataPath: () => stri
 
     async end(payload) {
       const request = endSessionRequestFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const session = database.sessions.find((item) => item.id === request.sessionId);
-      if (!session) {
-        throw new Error(`Session not found: ${request.sessionId}`);
-      }
-
-      const endedSession = {
-        ...session,
-        endedAt: nowIso(),
-        finalDisturbance: request.finalDisturbance ?? session.finalDisturbance,
-        notes: request.notes ?? session.notes
-      };
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        sessions: database.sessions.map((item) => (item.id === endedSession.id ? endedSession : item))
-      });
-      return endedSession;
+      return mutateAppDatabase(userDataPath(), (db) =>
+        createSessionService(db).endSession(request.sessionId, {
+          finalDisturbance: request.finalDisturbance,
+          notes: request.notes
+        })
+      );
     }
   };
+}
+
+function createSessionService(db: SqliteDatabase) {
+  return new SessionService(
+    newSessionRepository(db),
+    new StimulationSetService(newStimulationSetRepository(db))
+  );
 }
 
 function targetIdFrom(payload: unknown) {

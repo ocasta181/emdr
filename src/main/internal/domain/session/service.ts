@@ -2,9 +2,17 @@ import type { SQLBaseRepository } from "../../lib/store/repository/base.js";
 import { nowIso } from "../../../../../utils.js";
 import type { Target } from "../target/entity.js";
 import type { Session } from "./entity.js";
-import { createSessionForTarget, createSessionFromAggregate } from "./factory.js";
+import { createSessionAggregate, createSessionForTarget, createSessionFromAggregate } from "./factory.js";
 import { sessionStateGraph } from "./flow.js";
-import type { SessionAggregate, SessionFlowAction, SessionFlowState, SessionStateNode } from "./types.js";
+import type {
+  Assessment,
+  SessionAggregate,
+  SessionEndPatch,
+  SessionFlowAction,
+  SessionFlowState,
+  SessionStateNode,
+  SessionStimulationSetReader
+} from "./types.js";
 
 const sessionStateNodeByState = new Map(sessionStateGraph.map((node) => [node.state, node]));
 
@@ -17,7 +25,10 @@ function sessionStateNode(state: SessionFlowState): SessionStateNode {
 }
 
 export class SessionService {
-  constructor(private readonly repo: SQLBaseRepository<Session>) {}
+  constructor(
+    private readonly repo: SQLBaseRepository<Session>,
+    private readonly stimulationSets?: SessionStimulationSetReader
+  ) {}
 
   requireSession(sessionId: string): Session {
     const session = this.repo.find(sessionId);
@@ -33,11 +44,35 @@ export class SessionService {
     return aggregate;
   }
 
-  endSession(sessionId: string): Session {
+  updateAssessment(sessionId: string, assessment: Assessment): SessionAggregate {
     const session = this.requireSession(sessionId);
-    const endedAt = nowIso();
-    this.repo.update(sessionId, { endedAt } as Partial<Session>);
-    return { ...session, endedAt };
+    const patch = {
+      assessmentImage: assessment.image,
+      assessmentNegativeCognition: assessment.negativeCognition,
+      assessmentPositiveCognition: assessment.positiveCognition,
+      assessmentBelievability: assessment.believability,
+      assessmentEmotions: assessment.emotions,
+      assessmentDisturbance: assessment.disturbance,
+      assessmentBodyLocation: assessment.bodyLocation
+    } satisfies Partial<Session>;
+    this.repo.update(sessionId, patch);
+    return this.toAggregate({ ...session, ...patch });
+  }
+
+  endSession(sessionId: string, patch: SessionEndPatch = {}): SessionAggregate {
+    const session = this.requireSession(sessionId);
+    const endedSession = {
+      ...session,
+      endedAt: nowIso(),
+      finalDisturbance: patch.finalDisturbance ?? session.finalDisturbance,
+      notes: patch.notes ?? session.notes
+    };
+    this.repo.update(sessionId, {
+      endedAt: endedSession.endedAt,
+      finalDisturbance: endedSession.finalDisturbance,
+      notes: endedSession.notes
+    } as Partial<Session>);
+    return this.toAggregate(endedSession);
   }
 
   availableSessionFlowActions(state: SessionFlowState): SessionFlowAction[] {
@@ -54,5 +89,9 @@ export class SessionService {
 
   canApplySessionFlowAction(state: SessionFlowState, action: SessionFlowAction): boolean {
     return this.availableSessionFlowActions(state).includes(action);
+  }
+
+  private toAggregate(session: Session): SessionAggregate {
+    return createSessionAggregate(session, this.stimulationSets?.listBySession(session.id) ?? []);
   }
 }

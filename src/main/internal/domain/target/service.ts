@@ -8,6 +8,14 @@ import type { TargetDraft } from "./types.js";
 export class TargetService {
   constructor(private readonly repo: SQLBaseRepository<Target>) {}
 
+  requireTarget(targetId: string): Target {
+    const target = this.repo.find(targetId);
+    if (!target) {
+      throw new Error(`Target not found: ${targetId}`);
+    }
+    return target;
+  }
+
   listCurrentTargets(): Target[] {
     return this.repo
       .all()
@@ -22,10 +30,7 @@ export class TargetService {
   }
 
   reviseTarget(previousId: string, patch: Partial<Omit<Target, "id" | "parentId" | "createdAt">>): Target {
-    const previous = this.repo.find(previousId);
-    if (!previous) {
-      throw new Error(`Target not found: ${previousId}`);
-    }
+    const previous = this.requireTarget(previousId);
     this.repo.update(previousId, { isCurrent: false, updatedAt: nowIso() } as Partial<Target>);
     const next = createTargetRevision(previous, patch);
     this.repo.insert(next);

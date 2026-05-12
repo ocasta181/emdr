@@ -156,7 +156,7 @@ Checklist:
 - [ ] Replace full-snapshot `replaceAll` persistence with granular repository
   writes for command handlers.
   - [x] Target routes write through `TargetService` and the target repository.
-  - [ ] Session routes write through `SessionService` and session repositories.
+  - [x] Session routes write through `SessionService` and session repositories.
   - [x] Stimulation-set routes write through `StimulationSetService` and the
     stimulation-set repository.
   - [x] Setting routes write through `SettingService` and the setting repository.
