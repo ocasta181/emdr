@@ -1,4 +1,4 @@
-import type { SQLBaseRepository } from "../../src/main/internal/lib/store/repository/base.js";
+import type { SQLBaseRepository } from "../../lib/store/repository/base.js";
 import { createDefaultSettings } from "./factory.js";
 import type { Setting } from "./entity.js";
 import type { BilateralStimulationSettings, Settings } from "./types.js";

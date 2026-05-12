@@ -1,5 +1,5 @@
 import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import type { BilateralStimulationSettings } from "../../../domain/setting/types.js";
+import type { BilateralStimulationSettings } from "../internal/domain/setting/types.js";
 import type { SettingRouteService } from "../internal/domain/setting/ipc.types.js";
 
 export function createSettingRouteService(options: { getUserDataPath: () => string }): SettingRouteService {
