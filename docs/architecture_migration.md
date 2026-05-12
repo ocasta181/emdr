@@ -157,7 +157,7 @@ Checklist:
   writes for command handlers.
   - [x] Target routes write through `TargetService` and the target repository.
   - [ ] Session routes write through `SessionService` and session repositories.
-  - [ ] Stimulation-set routes write through `StimulationSetService` and the
+  - [x] Stimulation-set routes write through `StimulationSetService` and the
     stimulation-set repository.
   - [x] Setting routes write through `SettingService` and the setting repository.
 - [x] Add transaction helpers for workflows that update multiple tables.

@@ -19,6 +19,14 @@ function sessionStateNode(state: SessionFlowState): SessionStateNode {
 export class SessionService {
   constructor(private readonly repo: SQLBaseRepository<Session>) {}
 
+  requireSession(sessionId: string): Session {
+    const session = this.repo.find(sessionId);
+    if (!session) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    return session;
+  }
+
   startSession(target: Target): SessionAggregate {
     const aggregate = createSessionForTarget(target);
     this.repo.insert(createSessionFromAggregate(aggregate));
@@ -26,11 +34,7 @@ export class SessionService {
   }
 
   endSession(sessionId: string): Session {
-    const session = this.repo.find(sessionId);
-    if (!session) {
-      throw new Error(`Session not found: ${sessionId}`);
-    }
-
+    const session = this.requireSession(sessionId);
     const endedAt = nowIso();
     this.repo.update(sessionId, { endedAt } as Partial<Session>);
     return { ...session, endedAt };

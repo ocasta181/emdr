@@ -1,6 +1,10 @@
-import { loadAppDatabase, saveAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
-import { createStimulationSet } from "../internal/domain/stimulation-set/factory.js";
+import { newSessionRepository } from "../internal/domain/session/repository.js";
+import { SessionService } from "../internal/domain/session/service.js";
 import type { StimulationSetRouteService } from "../internal/domain/stimulation-set/ipc.types.js";
+import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
+import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
+import { mutateAppDatabase, readFromAppDatabase } from "../internal/lib/store/sqlite/app-store.js";
+import type { SqliteDatabase } from "../internal/lib/store/sqlite/connection.js";
 
 export function createStimulationSetRouteService(options: {
   getUserDataPath: () => string;
@@ -10,38 +14,21 @@ export function createStimulationSetRouteService(options: {
   return {
     async listBySession(payload) {
       const sessionId = sessionIdFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const session = database.sessions.find((item) => item.id === sessionId);
-      if (!session) {
-        throw new Error(`Session not found: ${sessionId}`);
-      }
-      return session.stimulationSets;
+      return readFromAppDatabase(userDataPath(), (db) => createStimulationSetService(db).listBySession(sessionId));
     },
 
     async log(payload) {
       const draft = stimulationSetDraftFrom(payload);
-      const database = await loadAppDatabase(userDataPath());
-      const session = database.sessions.find((item) => item.id === draft.sessionId);
-      if (!session) {
-        throw new Error(`Session not found: ${draft.sessionId}`);
-      }
-
-      const set = createStimulationSet({
-        ...draft,
-        setNumber: session.stimulationSets.length + 1
-      });
-      const nextSession = {
-        ...session,
-        stimulationSets: session.stimulationSets.concat(set)
-      };
-
-      await saveAppDatabase(userDataPath(), {
-        ...database,
-        sessions: database.sessions.map((item) => (item.id === nextSession.id ? nextSession : item))
-      });
-      return set;
+      return mutateAppDatabase(userDataPath(), (db) => createStimulationSetService(db).logStimulationSet(draft));
     }
   };
+}
+
+function createStimulationSetService(db: SqliteDatabase) {
+  return new StimulationSetService(
+    newStimulationSetRepository(db),
+    new SessionService(newSessionRepository(db))
+  );
 }
 
 function sessionIdFrom(payload: unknown) {

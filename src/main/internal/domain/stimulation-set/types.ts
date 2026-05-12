@@ -8,3 +8,7 @@ export type StimulationSetDraft = {
 export type StimulationSetRecordDraft = StimulationSetDraft & {
   setNumber: number;
 };
+
+export type SessionLookup = {
+  requireSession(sessionId: string): unknown;
+};
