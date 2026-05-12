@@ -54,7 +54,9 @@ The current codebase is partway through that migration:
   handlers that run against the active unlocked database.
 - API-layer `*-route-service.ts` adapters have been removed; domain `ipc.ts`
   files validate route payloads and call domain services directly.
-- The agent sidecar is documented but not implemented.
+- Generic agent sidecar process and JSON-line transport infrastructure exists
+  under `src/main/internal/lib/agent`; guide-specific agent behavior is not yet
+  wired.
 
 Current command results:
 
@@ -248,7 +250,7 @@ authority boundary.
 
 Checklist:
 
-- [ ] Add `src/main/internal/lib/agent` for sidecar startup, shutdown, health
+- [x] Add `src/main/internal/lib/agent` for sidecar startup, shutdown, health
   checks, transport, and model runtime configuration.
 - [ ] Add `src/main/internal/domain/guide` for guide prompts, structured action
   schemas, action validation, and guide-specific state.
