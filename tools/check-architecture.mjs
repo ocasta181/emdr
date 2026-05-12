@@ -14,6 +14,7 @@ const schemaSqlPattern = /\b(CREATE|ALTER|DROP)\s+(TABLE|INDEX|TRIGGER|VIEW)\b/i
 const baselineMigrationPath = "src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.ts";
 const routeConstructorForbiddenDependencyPattern =
   /\b(db|database|repository|repo|readDatabase|mutateDatabase|AppDatabase|SqliteDatabase|SQLBaseRepository)\b/i;
+const serviceConstructorForbiddenDependencyPattern = /\b(db|database|AppDatabase|SqliteDatabase)\b/i;
 
 const args = process.argv.slice(2);
 const stagedOnly = args.includes("--staged");
@@ -90,11 +91,11 @@ function analyzeImports(sourceFile) {
       });
     }
 
-    if (!isStoreAllowedLayer(filePath) && importsPersistence(specifier, resolved)) {
+    if (!isPersistenceImportAllowedLayer(filePath) && importsPersistence(specifier, resolved)) {
       report({
         node: importDeclaration,
         rule: "architecture/db-in-repository-only",
-        message: `Persistence access is only allowed in repository files: ${specifier}`
+        message: `Database access is only allowed in table repositories, store infrastructure, migrations, and modules.ts composition: ${specifier}`
       });
     }
 
@@ -142,7 +143,7 @@ function analyzeImports(sourceFile) {
 
 function analyzeDbTouches(sourceFile) {
   const filePath = normalizePath(sourceFile.getFilePath());
-  if (isStoreAllowedLayer(filePath)) return;
+  const dbMethodsAllowed = isDbMethodAllowedLayer(filePath);
 
   sourceFile.forEachDescendant((node) => {
     if (Node.isIdentifier(node) && ["indexedDB", "localStorage"].includes(node.getText())) {
@@ -156,11 +157,11 @@ function analyzeDbTouches(sourceFile) {
 
     if (Node.isCallExpression(node)) {
       const expression = node.getExpression();
-      if (Node.isPropertyAccessExpression(expression) && dbMethodNames.has(expression.getName())) {
+      if (!dbMethodsAllowed && Node.isPropertyAccessExpression(expression) && dbMethodNames.has(expression.getName())) {
         report({
           node: expression,
           rule: "architecture/db-in-repository-only",
-          message: `Database method "${expression.getName()}" is only allowed in repository files.`
+          message: `Database method "${expression.getName()}" is only allowed in repositories, store infrastructure, and migrations.`
         });
       }
 
@@ -170,6 +171,17 @@ function analyzeDbTouches(sourceFile) {
           node,
           rule: "architecture/db-in-repository-only",
           message: "Database IPC channels must be wrapped by a repository."
+        });
+      }
+    }
+
+    if (!isPersistenceImportAllowedLayer(filePath) && Node.isNewExpression(node)) {
+      const expression = node.getExpression();
+      if (expression.getText() === "AppStoreDatabase") {
+        report({
+          node,
+          rule: "architecture/db-in-repository-only",
+          message: "AppStoreDatabase must only be instantiated in modules.ts, then passed into repositories."
         });
       }
     }
@@ -306,6 +318,60 @@ function analyzeDomainRepositoryFormula(sourceFile) {
   });
 }
 
+function analyzeRepositoryFactoryInputs(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (!isDomainRepositoryFile(filePath)) return;
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const resolved = resolveImport(filePath, importDeclaration.getModuleSpecifierValue());
+    if (isServiceLayer(resolved)) {
+      report({
+        node: importDeclaration,
+        rule: "architecture/repository-db-only",
+        message: "Repositories may not depend on services. A repository factory may only take the database."
+      });
+    }
+  }
+
+  for (const statement of sourceFile.getStatements()) {
+    if (!Node.isVariableStatement(statement)) continue;
+
+    for (const declaration of statement.getDeclarations()) {
+      if (!/^new[A-Z]\w*Repository$/.test(declaration.getName())) continue;
+
+      const initializer = declaration.getInitializer();
+      if (!initializer || !Node.isArrowFunction(initializer)) {
+        report({
+          node: declaration,
+          rule: "architecture/repository-db-only",
+          message: "Repository exports must be factory arrow functions that take only db."
+        });
+        continue;
+      }
+
+      const parameters = initializer.getParameters();
+      if (parameters.length !== 1) {
+        report({
+          node: declaration,
+          rule: "architecture/repository-db-only",
+          message: "Repository factories may take exactly one argument: db."
+        });
+        continue;
+      }
+
+      const [parameter] = parameters;
+      const typeNode = parameter.getTypeNode();
+      if (parameter.getName() !== "db" || !typeNode || typeNode.getText() !== "SqliteDatabase") {
+        report({
+          node: parameter,
+          rule: "architecture/repository-db-only",
+          message: "Repository factories must be shaped as (db: SqliteDatabase)."
+        });
+      }
+    }
+  }
+}
+
 function analyzeRouteDependencyFlow(sourceFile) {
   const routeClasses = sourceFile.getClasses().filter((classDeclaration) => classDeclaration.getName()?.endsWith("Routes"));
   if (routeClasses.length === 0) return;
@@ -353,6 +419,59 @@ function analyzeRouteDependencyFlow(sourceFile) {
         });
       }
     });
+  }
+}
+
+function analyzeModuleCompositionRoot(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (filePath !== "src/main/api/modules.ts") return;
+
+  sourceFile.forEachDescendant((node) => {
+    if (Node.isIdentifier(node) && /^(readFromAppDatabase|mutateAppDatabase)$/.test(node.getText())) {
+      report({
+        node,
+        rule: "architecture/modules-linear-composition",
+        message: "modules.ts must compose db -> repo -> service -> route directly, not wrap services in database callbacks."
+      });
+    }
+
+    if (Node.isIdentifier(node) && /\w+IpcService$/.test(node.getText())) {
+      report({
+        node,
+        rule: "architecture/modules-linear-composition",
+        message: "modules.ts must instantiate concrete services, not redefine route-facing IpcService objects."
+      });
+    }
+
+    if (!Node.isVariableDeclaration(node)) return;
+    const initializer = node.getInitializer();
+    if (!initializer || !Node.isObjectLiteralExpression(initializer)) return;
+    if (!node.getName().endsWith("Service")) return;
+
+    report({
+      node,
+      rule: "architecture/modules-linear-composition",
+      message: "modules.ts service variables must be constructed with classes/functions, not object literals."
+    });
+  });
+}
+
+function analyzeServiceDependencyFlow(sourceFile) {
+  const filePath = normalizePath(sourceFile.getFilePath());
+  if (!isServiceLayer(filePath)) return;
+
+  for (const serviceClass of sourceFile.getClasses()) {
+    for (const constructorDeclaration of serviceClass.getConstructors()) {
+      for (const parameter of constructorDeclaration.getParameters()) {
+        if (serviceParameterUsesForbiddenDependency(parameter)) {
+          report({
+            node: parameter,
+            rule: "architecture/service-repository-boundary",
+            message: "Services must depend on repositories or service interfaces, not database handles."
+          });
+        }
+      }
+    }
   }
 }
 
@@ -448,6 +567,14 @@ function routeNewExpressionUsesForbiddenDependency(newExpression) {
   return /\b[A-Z]\w*Repository\b/.test(expression.getText());
 }
 
+function serviceParameterUsesForbiddenDependency(parameter) {
+  const name = parameter.getName();
+  const typeNode = parameter.getTypeNode();
+  return serviceConstructorForbiddenDependencyPattern.test(name) || (
+    typeNode ? serviceConstructorForbiddenDependencyPattern.test(typeNode.getText()) : false
+  );
+}
+
 function isServiceLayer(filePath) {
   return (
     /^domain\/[^/]+\/service\.[cm]?tsx?$/.test(filePath) ||
@@ -462,11 +589,31 @@ function isRepositoryLayer(filePath) {
   );
 }
 
-function isStoreAllowedLayer(filePath) {
+function isPersistenceImportAllowedLayer(filePath) {
   return (
     isRepositoryLayer(filePath) ||
-    filePath.startsWith("src/main/api/") ||
-    filePath.startsWith("src/main/internal/lib/")
+    isRepositoryCompositionFile(filePath) ||
+    isDatabaseImplementationLayer(filePath) ||
+    isMigrationLayer(filePath)
+  );
+}
+
+function isDbMethodAllowedLayer(filePath) {
+  return (
+    isRepositoryLayer(filePath) ||
+    isDatabaseImplementationLayer(filePath) ||
+    isMigrationLayer(filePath)
+  );
+}
+
+function isRepositoryCompositionFile(filePath) {
+  return filePath === "src/main/api/modules.ts";
+}
+
+function isDatabaseImplementationLayer(filePath) {
+  return (
+    filePath.startsWith("src/main/internal/lib/store/sqlite/") ||
+    filePath.startsWith("src/main/internal/lib/store/repository/")
   );
 }
 
@@ -539,7 +686,10 @@ function analyzeFiles(files) {
       analyzeSchemaBoundary(sourceFile);
       analyzeAppDomain(sourceFile);
       analyzeDomainRepositoryFormula(sourceFile);
+      analyzeRepositoryFactoryInputs(sourceFile);
       analyzeRouteDependencyFlow(sourceFile);
+      analyzeModuleCompositionRoot(sourceFile);
+      analyzeServiceDependencyFlow(sourceFile);
     }
     analyzeMigrationFileSet(sourceFiles);
   });

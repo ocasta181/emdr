@@ -1,6 +1,7 @@
 import initSqlJs from "sql.js";
-import type { BindParams, Database as SqlDatabase, SqlJsStatic } from "sql.js";
+import type { BindParams, SqlJsStatic } from "sql.js";
 import { createRequire } from "node:module";
+import type { SqliteDatabase } from "./types.js";
 export type { SqliteDatabase } from "./types.js";
 
 const require = createRequire(import.meta.url);
@@ -12,16 +13,16 @@ export async function createSqliteDatabase(bytes?: Uint8Array) {
   return bytes ? new SQL.Database(bytes) : new SQL.Database();
 }
 
-export function exportSqliteDatabase(db: SqlDatabase) {
+export function exportSqliteDatabase(db: SqliteDatabase) {
   return Buffer.from(db.export());
 }
 
-export function selectOne(db: SqlDatabase, sql: string, params: BindParams = []) {
+export function selectOne(db: SqliteDatabase, sql: string, params: BindParams = []) {
   const rows = selectAll(db, sql, params);
   return rows[0];
 }
 
-export function selectAll(db: SqlDatabase, sql: string, params: BindParams = []) {
+export function selectAll(db: SqliteDatabase, sql: string, params: BindParams = []) {
   const statement = db.prepare(sql, params);
   const rows: Record<string, unknown>[] = [];
 

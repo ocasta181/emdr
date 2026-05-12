@@ -11,9 +11,10 @@ import type {
   SessionEndRequest,
   SessionFlowAction,
   SessionFlowState,
-  SessionFlowTransitionRequest,
-  SessionIpcService
+  SessionFlowTransitionRequest
 } from "./types.js";
+import type { TargetService } from "../target/service.js";
+import type { SessionService } from "./service.js";
 
 const sessionFlowStates = [
   "idle",
@@ -45,17 +46,23 @@ const sessionFlowActions = [
 
 const disturbanceRange = { min: 0, max: 10 };
 
-export function registerSessionIpc(registry: ApiRegistry, service: SessionIpcService) {
-  registry.handle("session:list", async () => service.listSessions());
-  registry.handle("session:start", async (payload) => service.startSession(targetIdFrom(payload)));
+export function registerSessionIpc(registry: ApiRegistry, sessions: SessionService, targets: TargetService) {
+  registry.handle("session:list", async () => sessions.listSessions());
+  registry.handle("session:start", async (payload) => sessions.startSession(targets.requireTarget(targetIdFrom(payload))));
   registry.handle("session:update-assessment", async (payload) =>
-    service.updateAssessment(...assessmentUpdateArgsFrom(payload))
+    sessions.updateAssessment(...assessmentUpdateArgsFrom(payload))
   );
   registry.handle("session:transition-flow", async (payload) => {
     const request = flowTransitionFrom(payload);
-    return { state: await service.nextSessionFlowState(request.state, request.action) };
+    return { state: sessions.nextSessionFlowState(request.state, request.action) };
   });
-  registry.handle("session:end", async (payload) => service.endSession(endSessionRequestFrom(payload)));
+  registry.handle("session:end", async (payload) => {
+    const request = endSessionRequestFrom(payload);
+    return sessions.endSession(request.sessionId, {
+      finalDisturbance: request.finalDisturbance,
+      notes: request.notes
+    });
+  });
 }
 
 function targetIdFrom(payload: unknown) {
