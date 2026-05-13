@@ -127,6 +127,26 @@ label {
   width: auto;
 }
 
+.proposalList {
+  display: grid;
+  gap: 12px;
+}
+
+.proposalCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #34302a;
+  border-radius: 8px;
+  background: #201e1b;
+  padding: 14px;
+}
+
+.proposalCard h2 {
+  margin: 0;
+  color: #f4efe2;
+  font-size: 16px;
+}
+
 .app {
   min-height: 100vh;
 }

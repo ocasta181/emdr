@@ -104,6 +104,16 @@ async function main() {
     await clickButton(window, "Guide");
     await waitForText(window, "1 set logged");
     await waitForText(window, "Begin closure");
+    phase = "guide proposal logs stimulation";
+    await clickButton(window, "Continue stimulation");
+    await waitForText(window, "Stimulation");
+    await clickButton(window, "Start Set");
+    await waitForText(window, "Pause Set");
+    await setFieldByLabel(window, "Note", "done with set");
+    await clickButton(window, "Send");
+    await waitForText(window, "Review proposed set");
+    await clickButton(window, "Apply logged set");
+    await waitForText(window, "2 sets logged");
     phase = "begin closure";
     await clickButton(window, "Begin closure");
     await waitForText(window, "Closure");

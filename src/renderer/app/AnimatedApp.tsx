@@ -366,6 +366,10 @@ export function AnimatedApp() {
       return;
     }
 
+    if (proposal.type === "log_stimulation_set" && stimulationRunning) {
+      dispatchRoomEvent({ type: "pause_stimulation" });
+    }
+
     setSessionWorkflow(result.workflow);
     const nextViewData = await refreshViewData();
     setActiveSession(nextViewData.sessions.find((session) => session.id === proposal.sessionId) ?? activeSession);

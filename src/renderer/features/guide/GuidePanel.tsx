@@ -109,11 +109,13 @@ export function ActiveSessionChat({
         <button type="submit">Send</button>
       </form>
       {guideProposals.length > 0 && (
-        <div className="buttonRow">
+        <div className="proposalList">
           {guideProposals.map((proposal, index) => (
-            <button key={`${proposal.type}-${index}`} onClick={() => onApplyProposal(proposal)}>
-              {guideProposalLabel(proposal)}
-            </button>
+            <GuideProposalCard
+              key={`${proposal.type}-${index}`}
+              proposal={proposal}
+              onApply={onApplyProposal}
+            />
           ))}
         </div>
       )}
@@ -121,6 +123,94 @@ export function ActiveSessionChat({
         <SessionEndForm session={session} onEndSession={onEndSession} onBeginClosure={onBeginClosure} />
       )}
     </>
+  );
+}
+
+function GuideProposalCard({
+  proposal,
+  onApply
+}: {
+  proposal: GuideActionProposal;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  if (proposal.type === "log_stimulation_set") {
+    return <LogStimulationSetProposal proposal={proposal} onApply={onApply} />;
+  }
+
+  return <EndSessionProposal proposal={proposal} onApply={onApply} />;
+}
+
+function LogStimulationSetProposal({
+  proposal,
+  onApply
+}: {
+  proposal: Extract<GuideActionProposal, { type: "log_stimulation_set" }>;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  const [observation, setObservation] = useState(proposal.observation);
+  const [disturbance, setDisturbance] = useState(proposal.disturbance);
+
+  return (
+    <div className="proposalCard">
+      <h2>Review proposed set</h2>
+      <label>
+        Set observation
+        <textarea value={observation} onChange={(event) => setObservation(event.target.value)} />
+      </label>
+      <label>
+        Set SUD
+        <input
+          type="number"
+          min="0"
+          max="10"
+          value={disturbance ?? ""}
+          onChange={(event) => setDisturbance(optionalNumber(event.target.value))}
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => onApply({ ...proposal, observation, disturbance })}
+      >
+        Apply logged set
+      </button>
+    </div>
+  );
+}
+
+function EndSessionProposal({
+  proposal,
+  onApply
+}: {
+  proposal: Extract<GuideActionProposal, { type: "end_session" }>;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  const [finalDisturbance, setFinalDisturbance] = useState(proposal.finalDisturbance);
+  const [notes, setNotes] = useState(proposal.notes ?? "");
+
+  return (
+    <div className="proposalCard">
+      <h2>Review proposed close</h2>
+      <label>
+        Final SUD
+        <input
+          type="number"
+          min="0"
+          max="10"
+          value={finalDisturbance ?? ""}
+          onChange={(event) => setFinalDisturbance(optionalNumber(event.target.value))}
+        />
+      </label>
+      <label>
+        Notes
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+      </label>
+      <button
+        type="button"
+        onClick={() => onApply({ ...proposal, finalDisturbance, notes: notes.trim() || undefined })}
+      >
+        Apply session end
+      </button>
+    </div>
   );
 }
 
@@ -166,11 +256,6 @@ function SessionEndForm({
       </div>
     </form>
   );
-}
-
-function guideProposalLabel(proposal: GuideActionProposal) {
-  if (proposal.type === "log_stimulation_set") return "Apply logged set";
-  return "Apply session end";
 }
 
 function workflowLabel(state: SessionWorkflowSnapshot["state"]) {
