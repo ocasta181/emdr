@@ -514,6 +514,13 @@ h2 {
   color: #8c8679;
 }
 
+.inlineStatus {
+  align-self: center;
+  color: #8f897c;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .stimulusButton {
   justify-self: center;
   align-self: end;

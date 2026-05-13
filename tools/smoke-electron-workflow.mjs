@@ -68,9 +68,9 @@ async function main() {
     await setControlValue(window, 1, "passphrase-123", "input");
     await clickButton(window, "Set Up");
     await waitForText(window, "Recovery Key");
-    await expectButtonDisabled(window, "Continue", true);
+    await expectButtonPresent(window, "Continue", false);
     await clickCheckbox(window, "I saved this recovery key.");
-    await expectButtonDisabled(window, "Continue", false);
+    await expectButtonPresent(window, "Continue", true);
     await clickButton(window, "Continue");
     await waitForText(window, "Open Targets");
 
@@ -87,12 +87,12 @@ async function main() {
     await setFieldByLabel(window, "Positive cognition", "I can move");
     await clickButton(window, "Save Version");
     await waitForText(window, "Start session");
-    await expectButtonDisabled(window, "Start Set", false);
+    await expectButtonPresent(window, "Start Set", true);
 
     phase = "start session";
     await clickButton(window, "Start session");
     await waitForText(window, "Preparation");
-    await expectButtonDisabled(window, "Start Set", false);
+    await expectButtonPresent(window, "Start Set", true);
     phase = "guide proposal updates assessment";
     await setFieldByLabel(window, "Note", "assessment image is a beach");
     await clickButton(window, "Send");
@@ -101,7 +101,7 @@ async function main() {
     phase = "approve assessment";
     await clickButton(window, "Approve assessment");
     await waitForText(window, "Stimulation");
-    await expectButtonDisabled(window, "Start Set", false);
+    await expectButtonPresent(window, "Start Set", true);
 
     phase = "start stimulation";
     await clickButton(window, "Start Set");
@@ -111,10 +111,10 @@ async function main() {
     await waitForText(window, "1 set logged");
     await waitForText(window, "Begin closure");
     phase = "guide proposal logs stimulation";
-    await clickButton(window, "Continue stimulation");
-    await waitForText(window, "Stimulation");
-    await clickButton(window, "Start Set");
+    await clickButton(window, "Continue set");
     await waitForText(window, "Pause Set");
+    await clickButton(window, "Guide");
+    await waitForText(window, "2 sets logged");
     await setFieldByLabel(window, "Note", "done with set");
     await clickButton(window, "Send");
     await waitForText(window, "Review proposed set");
@@ -252,13 +252,13 @@ async function setFieldByLabel(window, label, value) {
   );
 }
 
-async function expectButtonDisabled(window, label, expected) {
-  const disabled = await window.webContents.executeJavaScript(
-    `(${domHelpers})().isButtonDisabled(${JSON.stringify(label)})`,
+async function expectButtonPresent(window, label, expected) {
+  const present = await window.webContents.executeJavaScript(
+    `(${domHelpers})().hasButton(${JSON.stringify(label)})`,
     true
   );
-  if (disabled !== expected) {
-    throw new Error(`Expected "${label}" disabled=${expected}, got ${disabled}.`);
+  if (present !== expected) {
+    throw new Error(`Expected button "${label}" present=${expected}, got ${present}.`);
   }
 }
 
@@ -331,8 +331,8 @@ function domHelpers() {
       buttonByLabel(label).click();
     },
 
-    isButtonDisabled(label) {
-      return buttonByLabel(label).disabled;
+    hasButton(label) {
+      return [...document.querySelectorAll("button")].some((item) => normalize(item.textContent ?? "") === label);
     },
 
     clickCheckbox(label) {

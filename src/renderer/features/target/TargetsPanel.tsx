@@ -63,12 +63,11 @@ export function TargetsPanel({
                 >
                   Edit
                 </button>
-                <button
-                  disabled={Boolean(activeSessionTargetId)}
-                  onClick={() => onStartSession(target)}
-                >
-                  {activeSessionTargetId === target.id ? "In session" : "Start session"}
-                </button>
+                {activeSessionTargetId === target.id ? (
+                  <span className="inlineStatus">In session</span>
+                ) : (
+                  !activeSessionTargetId && <button onClick={() => onStartSession(target)}>Start session</button>
+                )}
               </div>
             </article>
           ))}

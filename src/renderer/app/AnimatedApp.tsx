@@ -534,7 +534,7 @@ export function AnimatedApp() {
                   onApplyProposal={applyAgentProposal}
                   onSaveAssessment={saveSessionAssessment}
                   onApproveAssessment={approveSessionAssessment}
-                  onContinueStimulation={() => void advanceActiveSessionWorkflow("continue_stimulation")}
+                  onStartSet={() => void toggleStimulation()}
                   onRequestGrounding={() => void advanceActiveSessionWorkflow("request_grounding")}
                   onBeginClosure={() => void advanceActiveSessionWorkflow("begin_closure")}
                   onRequestReview={() => void advanceActiveSessionWorkflow("request_review")}

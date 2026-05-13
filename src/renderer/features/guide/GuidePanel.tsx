@@ -38,7 +38,7 @@ export function ActiveSessionChat({
   onApplyProposal,
   onSaveAssessment,
   onApproveAssessment,
-  onContinueStimulation,
+  onStartSet,
   onRequestGrounding,
   onBeginClosure,
   onRequestReview,
@@ -56,7 +56,7 @@ export function ActiveSessionChat({
   onApplyProposal: (proposal: GuideActionProposal) => void;
   onSaveAssessment: (assessment: Assessment) => void;
   onApproveAssessment: (assessment: Assessment) => void;
-  onContinueStimulation: () => void;
+  onStartSet: () => void;
   onRequestGrounding: () => void;
   onBeginClosure: () => void;
   onRequestReview: () => void;
@@ -81,10 +81,10 @@ export function ActiveSessionChat({
           onApprove={onApproveAssessment}
         />
       )}
-      {workflowState !== "preparation" && workflowState !== "review" && workflowState !== "post_session" && (
+      {workflowState !== "review" && workflowState !== "post_session" && (
         <WorkflowControls
           workflow={workflowState}
-          onContinueStimulation={onContinueStimulation}
+          onStartSet={onStartSet}
           onRequestGrounding={onRequestGrounding}
           onBeginClosure={onBeginClosure}
           onRequestReview={onRequestReview}

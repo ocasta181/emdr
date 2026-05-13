@@ -31,3 +31,4 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 - [x] Let History rows use the full panel width instead of the target-list column layout.
 - [x] Make the topbar Start Set action available whenever an active target exists.
 - [x] Replace visible History and Settings hotspot overlays with integrated room props.
+- [x] Expose active session next-step controls in the Guide panel without disabled buttons.

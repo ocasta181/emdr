@@ -2,22 +2,21 @@ import type { SessionWorkflowSnapshot } from "../../../shared/types";
 
 export function WorkflowControls({
   workflow,
-  onContinueStimulation,
+  onStartSet,
   onRequestGrounding,
   onBeginClosure,
   onRequestReview
 }: {
   workflow: SessionWorkflowSnapshot["state"];
-  onContinueStimulation: () => void;
+  onStartSet: () => void;
   onRequestGrounding: () => void;
   onBeginClosure: () => void;
   onRequestReview: () => void;
 }) {
   return (
     <div className="workflowControls">
-      {(workflow === "interjection" || workflow === "closure") && (
-        <button onClick={onContinueStimulation}>Continue stimulation</button>
-      )}
+      {(workflow === "preparation" || workflow === "stimulation") && <button onClick={onStartSet}>Start set</button>}
+      {(workflow === "interjection" || workflow === "closure") && <button onClick={onStartSet}>Continue set</button>}
       {(workflow === "stimulation" || workflow === "closure") && (
         <button onClick={onRequestGrounding}>Grounding</button>
       )}

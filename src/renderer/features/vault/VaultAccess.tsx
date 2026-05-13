@@ -85,9 +85,11 @@ export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: strin
           <button type="button" onClick={() => void copyRecoveryCode()}>
             Copy
           </button>
-          <button type="button" disabled={!confirmed} onClick={() => void onContinue()}>
-            Continue
-          </button>
+          {confirmed && (
+            <button type="button" onClick={() => void onContinue()}>
+              Continue
+            </button>
+          )}
         </div>
         <label className="confirmationLabel">
           <input
