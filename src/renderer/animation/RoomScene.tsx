@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../../assets/animated-room/orb.svg?url";
@@ -68,7 +68,6 @@ export function RoomScene({
         onActionComplete: (action) => actionCompleteRef.current(action)
       });
       const orb = new Sprite(orbTexture);
-      const labels = new Container();
       const dimmer = new Graphics();
       const fireflies = Array.from({ length: 18 }, (_, index) => ({
         xSeed: Math.random() * 1000,
@@ -80,7 +79,7 @@ export function RoomScene({
 
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hill, labels, guideCharacter.container);
+      stage.addChild(background, moon, hill, guideCharacter.container);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
@@ -107,26 +106,14 @@ export function RoomScene({
       let lastWidth = 0;
       let lastHeight = 0;
 
-      function drawLabel(text: string, x: number, y: number) {
-        const label = new Text({
-          text,
-          style: {
-            fill: "#f4efe2",
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontSize: 13,
-            fontWeight: "600"
-          }
-        });
-        label.anchor.set(0.5);
-        label.position.set(x, y);
-        labels.addChild(label);
-        return label;
-      }
-
       function redraw() {
         const width = app.renderer.width;
         const height = app.renderer.height;
         const floorY = height * 0.78;
+        const historyX = width * 0.68;
+        const historyY = height * 0.78;
+        const settingsX = width * 0.84;
+        const settingsY = height * 0.56;
 
         background.clear();
         background.rect(0, 0, width, height).fill("#171614");
@@ -141,18 +128,21 @@ export function RoomScene({
         hill.clear();
         hill.ellipse(width * 0.5, floorY + 40, width * 0.42, height * 0.15).fill("#302f28");
         hill.ellipse(width * 0.5, floorY + 26, width * 0.34, height * 0.1).fill("#3d3a31");
-        hill.roundRect(width * 0.82, height * 0.56, 80, 110, 8).fill("#383229");
-        hill.circle(width * 0.82 + 40, height * 0.55, 30).fill("#52442f");
+        hill.roundRect(settingsX - 40, settingsY - 4, 80, 120, 8).fill("#383229");
+        hill.roundRect(settingsX - 30, settingsY + 52, 60, 62, 8).fill("#40372d");
+        hill.circle(settingsX, settingsY + 18, 31).fill("#5a4a32");
+        hill.circle(settingsX - 8, settingsY + 10, 20).fill({ color: "#d8c692", alpha: 0.08 });
+        hill.ellipse(historyX, historyY + 32, 72, 16).fill({ color: "#080807", alpha: 0.2 });
+        hill.roundRect(historyX - 54, historyY - 18, 108, 58, 8).fill("#3f2f27");
+        hill.roundRect(historyX - 48, historyY - 13, 96, 48, 5).fill("#4a382e");
+        hill.rect(historyX - 48, historyY - 3, 96, 5).fill({ color: "#d8c692", alpha: 0.14 });
+        hill.rect(historyX - 36, historyY + 12, 66, 4).fill({ color: "#d8c692", alpha: 0.12 });
 
         guideCharacter.layout({
           x: width * 0.5,
           baselineY: floorY + 10,
           size: Math.min(260, width * 0.23)
         });
-
-        labels.removeChildren();
-        drawLabel("Settings", width * 0.82 + 40, height * 0.73);
-        drawLabel("History", width * 0.68, height * 0.82);
 
         const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
         guideHotspot.clear();
@@ -167,11 +157,11 @@ export function RoomScene({
 
         const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
         historyHotspot.clear();
-        historyHotspot.roundRect(width * 0.61, height * 0.7, 150, 92, 10).fill({ color: 0xd8c692, alpha: 0.045 });
+        historyHotspot.roundRect(historyX - 70, historyY - 34, 140, 92, 10).fill({ color: 0xffffff, alpha: 0.001 });
 
         const settingsHotspot = hotspots.find((item) => item.id === "settings")!.draw;
         settingsHotspot.clear();
-        settingsHotspot.roundRect(width * 0.82, height * 0.5, 90, 160, 10).fill({ color: 0xd8c692, alpha: 0.045 });
+        settingsHotspot.roundRect(settingsX - 52, settingsY - 14, 104, 142, 10).fill({ color: 0xffffff, alpha: 0.001 });
       }
 
       app.ticker.add((ticker) => {

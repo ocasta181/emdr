@@ -202,20 +202,27 @@ export function AnimatedApp() {
   }
 
   async function startSession(target: Target) {
+    await beginSession(target);
+    dispatchRoomEvent({ type: "select_guide" });
+    setGuideAnimation({ type: "action", action: "speak" });
+    setChatMessages([]);
+    setGuideProposals([]);
+  }
+
+  async function beginSession(target: Target) {
     if (sessionWorkflow.state === "idle" || sessionWorkflow.state === "post_session") {
       setSessionWorkflow(await advanceSessionFlow("start_session"));
     }
     const session = await startSessionRecord(target.id);
     const workflow = await getSessionWorkflow();
-    await refreshViewData();
-    setActiveSession(session);
+    const nextViewData = await refreshViewData();
+    const nextSession = nextViewData.sessions.find((item) => item.id === session.id) ?? session;
+    setActiveSession(nextSession);
     setSessionWorkflow(workflow);
     setEditingTarget(null);
     await refreshGuideView(session.id);
-    dispatchRoomEvent({ type: "select_guide" });
-    setGuideAnimation({ type: "action", action: "speak" });
-    setChatMessages([]);
     setGuideProposals([]);
+    return { session: nextSession, workflow };
   }
 
   async function endActiveSession(patch: { finalDisturbance?: number; notes?: string } = {}) {
@@ -309,9 +316,17 @@ export function AnimatedApp() {
     if (stimulationRunning) {
       await pauseActiveStimulation();
     } else {
-      if (activeSession) {
-        setSessionWorkflow(await advanceSessionForStimulationStart(activeSession.id, sessionWorkflow));
+      let session = activeSession;
+      let workflow = sessionWorkflow;
+      if (!session) {
+        const target = targets[0];
+        if (!target) return;
+        const started = await beginSession(target);
+        session = started.session;
+        workflow = started.workflow;
       }
+      setSessionWorkflow(await advanceSessionForStimulationStart(session.id, workflow));
+      await refreshGuideView(session.id);
       dispatchRoomEvent({ type: "start_stimulation" });
     }
   }
@@ -456,8 +471,13 @@ export function AnimatedApp() {
   const sessionsByTargetId = new Map(viewData.targets.map((target) => [target.id, target] as const));
   const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const allTargets = viewData.allTargets;
+  const canStartSetFromTarget = Boolean(
+    !activeSession && targets.length > 0 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
+  );
   const canToggleStimulation = Boolean(
-    activeSession && (stimulationRunning || ["stimulation", "interjection", "closure"].includes(sessionWorkflow.state))
+    canStartSetFromTarget ||
+      (activeSession &&
+        (stimulationRunning || ["preparation", "stimulation", "interjection", "closure"].includes(sessionWorkflow.state)))
   );
 
   return (
@@ -483,9 +503,9 @@ export function AnimatedApp() {
         </div>
         <div className="buttonRow">
           <button onClick={() => void openGuidePanel()}>Guide</button>
-          <button onClick={toggleStimulation} disabled={!canToggleStimulation}>
-            {stimulationButtonLabel(sessionWorkflow, stimulationRunning)}
-          </button>
+          {canToggleStimulation && (
+            <button onClick={toggleStimulation}>{stimulationButtonLabel(sessionWorkflow, stimulationRunning)}</button>
+          )}
           {stimulationRunning && (
             <button onClick={() => dispatchRoomEvent({ type: "select_settings" })}>Ball settings</button>
           )}

@@ -87,11 +87,12 @@ async function main() {
     await setFieldByLabel(window, "Positive cognition", "I can move");
     await clickButton(window, "Save Version");
     await waitForText(window, "Start session");
+    await expectButtonDisabled(window, "Start Set", false);
 
     phase = "start session";
     await clickButton(window, "Start session");
     await waitForText(window, "Preparation");
-    await expectButtonDisabled(window, "Start Set", true);
+    await expectButtonDisabled(window, "Start Set", false);
     phase = "guide proposal updates assessment";
     await setFieldByLabel(window, "Note", "assessment image is a beach");
     await clickButton(window, "Send");
@@ -125,7 +126,7 @@ async function main() {
     phase = "request review";
     await clickButton(window, "Request review");
     await waitForText(window, "Review");
-    await expectButtonDisabled(window, "Start Set", true);
+    await expectText(window, "Start Set", false);
     await setFieldByLabel(window, "Final SUD", "2");
     phase = "end session";
     await clickButton(window, "End session");
@@ -156,10 +157,6 @@ async function main() {
     await waitForText(window, "Electron workflow target");
 
     phase = "start imported active session";
-    await clickButton(window, "Start session");
-    await waitForText(window, "Preparation");
-    await clickButton(window, "Approve assessment");
-    await waitForText(window, "Stimulation");
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
 
