@@ -32,9 +32,38 @@ function guideMessageResponse(payload) {
   const normalized = message.toLowerCase();
 
   if (!sessionId) {
+    if (state === "target_selection" && /\b(target|work on)\b/.test(normalized)) {
+      return {
+        messages: ["I can draft a target. Review it before saving."],
+        proposals: [
+          {
+            type: "create_target_draft",
+            workflowState: state,
+            description: message
+          }
+        ]
+      };
+    }
+
     return {
       messages: ["I can help once a session is active. Open Targets to choose what to work on."],
       proposals: []
+    };
+  }
+
+  if (state === "preparation" && /\b(assessment|image|sud|disturbance|cognition)\b/.test(normalized)) {
+    return {
+      messages: ["I can draft assessment updates. Review them before applying."],
+      proposals: [
+        {
+          type: "update_assessment",
+          sessionId,
+          workflowState: state,
+          assessment: {
+            image: message
+          }
+        }
+      ]
     };
   }
 
@@ -48,6 +77,34 @@ function guideMessageResponse(payload) {
           workflowState: state,
           cycleCount: 24,
           observation: message
+        }
+      ]
+    };
+  }
+
+  if (state === "interjection" && /\b(continue|another|resume)\b/.test(normalized)) {
+    return {
+      messages: ["I can propose continuing stimulation. Review it before applying."],
+      proposals: [
+        {
+          type: "advance_session_flow",
+          sessionId,
+          workflowState: state,
+          action: "continue_stimulation"
+        }
+      ]
+    };
+  }
+
+  if (state === "closure" && /\b(review|summary|done|finish)\b/.test(normalized)) {
+    return {
+      messages: ["I can propose moving to review. Review it before applying."],
+      proposals: [
+        {
+          type: "advance_session_flow",
+          sessionId,
+          workflowState: state,
+          action: "request_review"
         }
       ]
     };

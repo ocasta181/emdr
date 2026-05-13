@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { AgentSidecar } from "../../lib/agent/index.js";
 import type {
   GuideActionProposal,
+  GuideAdvanceSessionFlowAction,
   GuideAgentContext,
   GuideAgentPort,
   GuideAgentResponse,
@@ -17,6 +18,12 @@ const guideSessionFlowStates = new Set<GuideSessionFlowState>([
   "closure",
   "review",
   "post_session"
+]);
+const guideAdvanceSessionFlowActions = new Set<GuideAdvanceSessionFlowAction>([
+  "continue_stimulation",
+  "request_grounding",
+  "begin_closure",
+  "request_review"
 ]);
 
 export class GuideAgentSidecarClient implements GuideAgentPort {
@@ -48,8 +55,37 @@ function guideAgentResponseFrom(payload: unknown): GuideAgentResponse {
 function guideActionProposalFrom(payload: unknown): GuideActionProposal {
   const value = recordFrom(payload, "proposal");
   const type = stringFrom(value.type, "proposal.type");
-  const sessionId = stringFrom(value.sessionId, "proposal.sessionId");
   const workflowState = workflowStateFrom(value.workflowState);
+
+  if (type === "create_target_draft") {
+    return {
+      type,
+      workflowState,
+      description: stringFrom(value.description, "proposal.description"),
+      negativeCognition: optionalStringFrom(value.negativeCognition, "proposal.negativeCognition"),
+      positiveCognition: optionalStringFrom(value.positiveCognition, "proposal.positiveCognition")
+    };
+  }
+
+  const sessionId = stringFrom(value.sessionId, "proposal.sessionId");
+
+  if (type === "update_assessment") {
+    return {
+      type,
+      sessionId,
+      workflowState,
+      assessment: assessmentPatchFrom(value.assessment)
+    };
+  }
+
+  if (type === "advance_session_flow") {
+    return {
+      type,
+      sessionId,
+      workflowState,
+      action: advanceSessionFlowActionFrom(value.action)
+    };
+  }
 
   if (type === "log_stimulation_set") {
     return {
@@ -73,6 +109,19 @@ function guideActionProposalFrom(payload: unknown): GuideActionProposal {
   }
 
   throw new Error(`Unknown guide action proposal type: ${type}.`);
+}
+
+function assessmentPatchFrom(payload: unknown) {
+  const value = recordFrom(payload, "proposal.assessment");
+  return {
+    image: optionalStringFrom(value.image, "proposal.assessment.image"),
+    negativeCognition: optionalStringFrom(value.negativeCognition, "proposal.assessment.negativeCognition"),
+    positiveCognition: optionalStringFrom(value.positiveCognition, "proposal.assessment.positiveCognition"),
+    believability: optionalNumberFrom(value.believability, "proposal.assessment.believability"),
+    emotions: optionalStringFrom(value.emotions, "proposal.assessment.emotions"),
+    disturbance: optionalNumberFrom(value.disturbance, "proposal.assessment.disturbance"),
+    bodyLocation: optionalStringFrom(value.bodyLocation, "proposal.assessment.bodyLocation")
+  };
 }
 
 function recordFrom(value: unknown, label: string): Record<string, unknown> {
@@ -119,4 +168,12 @@ function workflowStateFrom(value: unknown): GuideSessionFlowState {
     throw new Error(`Unknown guide workflow state: ${state}.`);
   }
   return state as GuideSessionFlowState;
+}
+
+function advanceSessionFlowActionFrom(value: unknown): GuideAdvanceSessionFlowAction {
+  const action = stringFrom(value, "proposal.action");
+  if (!guideAdvanceSessionFlowActions.has(action as GuideAdvanceSessionFlowAction)) {
+    throw new Error(`Unsupported guide session flow action: ${action}.`);
+  }
+  return action as GuideAdvanceSessionFlowAction;
 }

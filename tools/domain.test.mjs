@@ -85,6 +85,70 @@ test("guide service rejects stale or disallowed action proposals before mutation
 });
 
 test("guide service applies allowed actions through domain service ports", () => {
+  const targetHarness = createGuideHarness("target_selection");
+  const createdTarget = targetHarness.guide.applyAction({
+    type: "create_target_draft",
+    workflowState: "target_selection",
+    description: "Draft target",
+    negativeCognition: "I am stuck",
+    positiveCognition: "I can move"
+  });
+
+  assert.equal(createdTarget.accepted, true);
+  assert.deepEqual(targetHarness.calls, [
+    {
+      type: "target",
+      draft: {
+        description: "Draft target",
+        negativeCognition: "I am stuck",
+        positiveCognition: "I can move"
+      }
+    }
+  ]);
+
+  const assessmentHarness = createGuideHarness("preparation");
+  const updatedAssessment = assessmentHarness.guide.applyAction({
+    type: "update_assessment",
+    sessionId: "ses_test",
+    workflowState: "preparation",
+    assessment: {
+      image: "image draft",
+      disturbance: 4
+    }
+  });
+
+  assert.equal(updatedAssessment.accepted, true);
+  assert.deepEqual(assessmentHarness.calls, [
+    {
+      type: "assessment",
+      sessionId: "ses_test",
+      assessment: {
+        negativeCognition: "old negative",
+        positiveCognition: "old positive",
+        image: "image draft",
+        disturbance: 4
+      }
+    }
+  ]);
+
+  const flowHarness = createGuideHarness("interjection");
+  const advanced = flowHarness.guide.applyAction({
+    type: "advance_session_flow",
+    sessionId: "ses_test",
+    workflowState: "interjection",
+    action: "continue_stimulation"
+  });
+
+  assert.equal(advanced.accepted, true);
+  assert.deepEqual(advanced.workflow, { state: "stimulation", activeSessionId: "ses_test" });
+  assert.deepEqual(flowHarness.calls, [
+    {
+      type: "advance",
+      action: "continue_stimulation",
+      sessionId: "ses_test"
+    }
+  ]);
+
   const stimulationHarness = createGuideHarness("stimulation");
   const logged = stimulationHarness.guide.applyAction({
     type: "log_stimulation_set",
@@ -202,11 +266,15 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
 function createGuideHarness(state, agent) {
   const target = { id: "tar_test", description: "Test target" };
   const calls = [];
-  let workflow = { state, activeSessionId: "ses_test" };
+  let workflow = state === "idle" || state === "target_selection" ? { state } : { state, activeSessionId: "ses_test" };
   const workflowRules = new SessionWorkflowMachine();
 
   const guide = new GuideService(
     {
+      addTarget: (draft) => {
+        calls.push({ type: "target", draft });
+        return { id: "tar_new", ...draft };
+      },
       listCurrentTargets: () => [target],
       listAllTargets: () => [target]
     },
@@ -215,10 +283,24 @@ function createGuideHarness(state, agent) {
         {
           id: "ses_test",
           targetId: target.id,
+          assessment: {
+            negativeCognition: "old negative",
+            positiveCognition: "old positive"
+          },
           stimulationSets: [],
           endedAt: undefined
         }
       ],
+      updateAssessment: (sessionId, assessment) => {
+        calls.push({ type: "assessment", sessionId, assessment });
+        return { id: sessionId, assessment };
+      },
+      advanceSessionFlow: (action, sessionId) => {
+        calls.push({ type: "advance", action, sessionId });
+        const nextState = workflowRules.nextSessionFlowState(workflow.state, action);
+        workflow = nextState === "idle" || nextState === "target_selection" ? { state: nextState } : { state: nextState, activeSessionId: sessionId };
+        return workflow;
+      },
       endSession: (sessionId, patch) => {
         calls.push({ type: "end", sessionId, patch });
         workflow = { state: "post_session", activeSessionId: sessionId };

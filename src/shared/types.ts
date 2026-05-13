@@ -125,6 +125,25 @@ export type SessionEndPatch = {
 
 export type GuideActionProposal =
   | {
+      type: "create_target_draft";
+      workflowState: SessionFlowState;
+      description: string;
+      negativeCognition?: string;
+      positiveCognition?: string;
+    }
+  | {
+      type: "update_assessment";
+      sessionId: string;
+      workflowState: SessionFlowState;
+      assessment: Partial<Assessment>;
+    }
+  | {
+      type: "advance_session_flow";
+      sessionId: string;
+      workflowState: SessionFlowState;
+      action: Extract<SessionFlowAction, "continue_stimulation" | "request_grounding" | "begin_closure" | "request_review">;
+    }
+  | {
       type: "log_stimulation_set";
       sessionId: string;
       workflowState: SessionFlowState;

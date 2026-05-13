@@ -349,13 +349,24 @@ export function AnimatedApp() {
   }
 
   async function applyAgentProposal(proposal: GuideActionProposal) {
+    if (
+      proposal.type === "advance_session_flow" &&
+      stimulationRunning &&
+      activeSession?.id === proposal.sessionId &&
+      sessionWorkflow.state === proposal.workflowState &&
+      (proposal.action === "begin_closure" || proposal.action === "request_grounding")
+    ) {
+      await logStimulationSetIfActive();
+      dispatchRoomEvent({ type: "pause_stimulation" });
+    }
+
     const result = await applyGuideAction(proposal);
     if (!result.accepted) {
       setSessionWorkflow(result.workflow);
       throw new Error(result.reason);
     }
 
-    setGuideProposals((current) => current.filter((item) => item !== proposal));
+    setGuideProposals([]);
 
     if (proposal.type === "end_session") {
       setSessionWorkflow(await advanceSessionFlow("return_to_idle", proposal.sessionId));
@@ -366,14 +377,23 @@ export function AnimatedApp() {
       return;
     }
 
+    if (proposal.type === "create_target_draft") {
+      setSessionWorkflow(result.workflow);
+      await refreshViewData();
+      await refreshGuideView(activeSession?.id);
+      return;
+    }
+
     if (proposal.type === "log_stimulation_set" && stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
     }
 
     setSessionWorkflow(result.workflow);
     const nextViewData = await refreshViewData();
-    setActiveSession(nextViewData.sessions.find((session) => session.id === proposal.sessionId) ?? activeSession);
-    await refreshGuideView(proposal.sessionId);
+    if ("sessionId" in proposal) {
+      setActiveSession(nextViewData.sessions.find((session) => session.id === proposal.sessionId) ?? activeSession);
+      await refreshGuideView(proposal.sessionId);
+    }
   }
 
   async function submitChat(event: FormEvent) {

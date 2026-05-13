@@ -17,9 +17,61 @@ export type GuideSessionFlowState =
   | "review"
   | "post_session";
 
-export type GuideSessionFlowAction = "log_stimulation_set" | "close_session";
+export type GuideSessionFlowAction =
+  | "create_target_draft"
+  | "update_assessment"
+  | "continue_stimulation"
+  | "request_grounding"
+  | "begin_closure"
+  | "request_review"
+  | "log_stimulation_set"
+  | "close_session";
+
+export type GuideAdvanceSessionFlowAction = Extract<
+  GuideSessionFlowAction,
+  "continue_stimulation" | "request_grounding" | "begin_closure" | "request_review"
+>;
+
+export type GuideAssessmentPatch = {
+  image?: string;
+  negativeCognition?: string;
+  positiveCognition?: string;
+  believability?: number;
+  emotions?: string;
+  disturbance?: number;
+  bodyLocation?: string;
+};
+
+export type GuideAssessment = {
+  image?: string;
+  negativeCognition: string;
+  positiveCognition: string;
+  believability?: number;
+  emotions?: string;
+  disturbance?: number;
+  bodyLocation?: string;
+};
 
 export type GuideActionProposal =
+  | {
+      type: "create_target_draft";
+      workflowState: GuideSessionFlowState;
+      description: string;
+      negativeCognition?: string;
+      positiveCognition?: string;
+    }
+  | {
+      type: "update_assessment";
+      sessionId: string;
+      workflowState: GuideSessionFlowState;
+      assessment: GuideAssessmentPatch;
+    }
+  | {
+      type: "advance_session_flow";
+      sessionId: string;
+      workflowState: GuideSessionFlowState;
+      action: GuideAdvanceSessionFlowAction;
+    }
   | {
       type: "log_stimulation_set";
       sessionId: string;
@@ -100,6 +152,7 @@ export type GuideSessionSummary = {
   id: string;
   targetId: string;
   endedAt?: string;
+  assessment: GuideAssessment;
   stimulationSets: unknown[];
 };
 
@@ -108,11 +161,17 @@ export type GuideTargetReader = {
   listAllTargets(): GuideTargetSummary[];
 };
 
+export type GuideTargetMutator = {
+  addTarget(draft: { description: string; negativeCognition: string; positiveCognition: string }): unknown;
+};
+
 export type GuideSessionReader = {
   listSessions(): GuideSessionSummary[];
 };
 
 export type GuideSessionMutator = {
+  updateAssessment(sessionId: string, assessment: GuideAssessment): unknown;
+  advanceSessionFlow(action: GuideAdvanceSessionFlowAction, sessionId?: string): GuideSessionWorkflowSnapshot;
   endSession(sessionId: string, patch?: { finalDisturbance?: number; notes?: string }): unknown;
 };
 

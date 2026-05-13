@@ -133,11 +133,148 @@ function GuideProposalCard({
   proposal: GuideActionProposal;
   onApply: (proposal: GuideActionProposal) => void;
 }) {
+  if (proposal.type === "create_target_draft") {
+    return <CreateTargetProposal proposal={proposal} onApply={onApply} />;
+  }
+
+  if (proposal.type === "update_assessment") {
+    return <UpdateAssessmentProposal proposal={proposal} onApply={onApply} />;
+  }
+
+  if (proposal.type === "advance_session_flow") {
+    return <AdvanceSessionFlowProposal proposal={proposal} onApply={onApply} />;
+  }
+
   if (proposal.type === "log_stimulation_set") {
     return <LogStimulationSetProposal proposal={proposal} onApply={onApply} />;
   }
 
   return <EndSessionProposal proposal={proposal} onApply={onApply} />;
+}
+
+function CreateTargetProposal({
+  proposal,
+  onApply
+}: {
+  proposal: Extract<GuideActionProposal, { type: "create_target_draft" }>;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  const [description, setDescription] = useState(proposal.description);
+  const [negativeCognition, setNegativeCognition] = useState(proposal.negativeCognition ?? "");
+  const [positiveCognition, setPositiveCognition] = useState(proposal.positiveCognition ?? "");
+
+  return (
+    <div className="proposalCard">
+      <h2>Review proposed target</h2>
+      <label>
+        Description
+        <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
+      </label>
+      <label>
+        Negative cognition
+        <input value={negativeCognition} onChange={(event) => setNegativeCognition(event.target.value)} />
+      </label>
+      <label>
+        Positive cognition
+        <input value={positiveCognition} onChange={(event) => setPositiveCognition(event.target.value)} />
+      </label>
+      <button
+        type="button"
+        onClick={() => onApply({ ...proposal, description, negativeCognition, positiveCognition })}
+      >
+        Apply target draft
+      </button>
+    </div>
+  );
+}
+
+function UpdateAssessmentProposal({
+  proposal,
+  onApply
+}: {
+  proposal: Extract<GuideActionProposal, { type: "update_assessment" }>;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  const [assessment, setAssessment] = useState<Partial<Assessment>>(proposal.assessment);
+
+  function set<K extends keyof Assessment>(key: K, value: Assessment[K]) {
+    setAssessment((current) => ({ ...current, [key]: value }));
+  }
+
+  return (
+    <div className="proposalCard">
+      <h2>Review proposed assessment</h2>
+      <label>
+        Image
+        <textarea value={assessment.image ?? ""} onChange={(event) => set("image", event.target.value)} />
+      </label>
+      <label>
+        Negative cognition
+        <input
+          value={assessment.negativeCognition ?? ""}
+          onChange={(event) => set("negativeCognition", event.target.value)}
+        />
+      </label>
+      <label>
+        Positive cognition
+        <input
+          value={assessment.positiveCognition ?? ""}
+          onChange={(event) => set("positiveCognition", event.target.value)}
+        />
+      </label>
+      <div className="twoCol">
+        <label>
+          VOC
+          <input
+            type="number"
+            min="1"
+            max="7"
+            value={assessment.believability ?? ""}
+            onChange={(event) => set("believability", optionalNumber(event.target.value))}
+          />
+        </label>
+        <label>
+          SUD
+          <input
+            type="number"
+            min="0"
+            max="10"
+            value={assessment.disturbance ?? ""}
+            onChange={(event) => set("disturbance", optionalNumber(event.target.value))}
+          />
+        </label>
+      </div>
+      <label>
+        Emotions
+        <input value={assessment.emotions ?? ""} onChange={(event) => set("emotions", event.target.value)} />
+      </label>
+      <label>
+        Body location
+        <input value={assessment.bodyLocation ?? ""} onChange={(event) => set("bodyLocation", event.target.value)} />
+      </label>
+      <button type="button" onClick={() => onApply({ ...proposal, assessment })}>
+        Apply assessment
+      </button>
+    </div>
+  );
+}
+
+function AdvanceSessionFlowProposal({
+  proposal,
+  onApply
+}: {
+  proposal: Extract<GuideActionProposal, { type: "advance_session_flow" }>;
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  return (
+    <div className="proposalCard">
+      <h2>Review proposed next step</h2>
+      <p className="authNotice">{sessionFlowActionLabel(proposal.action)}</p>
+      <button type="button" onClick={() => onApply(proposal)}>
+        Apply next step
+      </button>
+    </div>
+  );
 }
 
 function LogStimulationSetProposal({
@@ -263,4 +400,11 @@ function workflowLabel(state: SessionWorkflowSnapshot["state"]) {
     .split("_")
     .map((part) => part[0]?.toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function sessionFlowActionLabel(action: Extract<GuideActionProposal, { type: "advance_session_flow" }>["action"]) {
+  if (action === "continue_stimulation") return "Continue stimulation";
+  if (action === "request_grounding") return "Request grounding";
+  if (action === "begin_closure") return "Begin closure";
+  return "Request review";
 }

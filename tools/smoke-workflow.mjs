@@ -89,15 +89,17 @@ try {
   await request("vault:create", "passphrase-123");
   assertNoSessionWorkflowColumn(db);
 
-  const target = await request("target:create", {
-    description: "Workflow smoke target",
-    negativeCognition: "I am stuck",
-    positiveCognition: "I can move",
-    status: "active"
-  });
-
   await expectWorkflow(request("session:workflow"), "idle");
   await expectWorkflow(request("session:advance-flow", { action: "start_session" }), "target_selection");
+  const createTargetResult = await request("guide:apply-action", {
+    type: "create_target_draft",
+    workflowState: "target_selection",
+    description: "Workflow smoke target",
+    negativeCognition: "I am stuck",
+    positiveCognition: "I can move"
+  });
+  assertAccepted(createTargetResult, "create target draft");
+  const target = createTargetResult.result;
   const session = await request("session:start", { targetId: target.id });
   await expectWorkflow(request("session:workflow"), "preparation", session.id);
 
@@ -114,14 +116,17 @@ try {
     "ending before review"
   );
 
-  await request("session:update-assessment", {
+  const assessmentResult = await request("guide:apply-action", {
+    type: "update_assessment",
     sessionId: session.id,
+    workflowState: "preparation",
     assessment: {
       negativeCognition: "I am stuck",
       positiveCognition: "I can move",
       disturbance: 5
     }
   });
+  assertAccepted(assessmentResult, "update assessment");
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "approve_assessment" }), "stimulation", session.id);
 
   const logResult = await request("guide:apply-action", {
@@ -141,7 +146,14 @@ try {
   await expectRejects(request("session:list"), "session list while locked");
   await request("vault:unlock-password", "passphrase-123");
   await expectWorkflow(request("session:workflow"), "interjection", session.id);
-  await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "continue_stimulation" }), "stimulation", session.id);
+  const continueResult = await request("guide:apply-action", {
+    type: "advance_session_flow",
+    sessionId: session.id,
+    workflowState: "interjection",
+    action: "continue_stimulation"
+  });
+  assertAccepted(continueResult, "continue stimulation proposal");
+  await expectWorkflow(Promise.resolve(continueResult.workflow), "stimulation", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "pause_stimulation" }), "interjection", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "begin_closure" }), "closure", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "request_review" }), "review", session.id);

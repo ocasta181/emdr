@@ -92,6 +92,11 @@ async function main() {
     await clickButton(window, "Start session");
     await waitForText(window, "Preparation");
     await expectButtonDisabled(window, "Start Set", true);
+    phase = "guide proposal updates assessment";
+    await setFieldByLabel(window, "Note", "assessment image is a beach");
+    await clickButton(window, "Send");
+    await waitForText(window, "Review proposed assessment");
+    await clickButton(window, "Apply assessment");
     phase = "approve assessment";
     await clickButton(window, "Approve assessment");
     await waitForText(window, "Stimulation");

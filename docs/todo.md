@@ -15,7 +15,7 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 
 - [x] Add an explicit Lock action for normal user-initiated vault locking.
 - [x] Add a recovery-key save/copy/confirmation step during setup.
-- [x] Expand guide proposal handling beyond the current scripted log-set/end-session prompts. Existing proposal types now get editable review cards; adding new proposal action types still needs explicit endpoint schema approval.
+- [x] Expand guide proposal handling beyond the current scripted log-set/end-session prompts. Guide proposals now support create target draft, update assessment, advance session flow, log set, and end session as closed action types.
 - [x] Tighten target validation if description, cognitions, or SUD values are intended to be required before starting a session. Description is required; cognitions and SUD remain optional because assessment collects them during session preparation.
 
 ## Verification Coverage
