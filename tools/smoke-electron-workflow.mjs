@@ -108,9 +108,14 @@ async function main() {
     await clickButton(window, "Request review");
     await waitForText(window, "Review");
     await expectButtonDisabled(window, "Start Set", true);
+    await setFieldByLabel(window, "Final SUD", "2");
     phase = "end session";
     await clickButton(window, "End session");
     await waitForText(window, "Pick one to start a session");
+    phase = "review history";
+    await clickButton(window, "Close");
+    await clickRoomHistory(window);
+    await waitForText(window, "SUD end 2");
 
     phase = "export vault";
     const exportPath = path.join(tempDir, "workflow-export.emdr-vault");
@@ -190,14 +195,22 @@ async function clickButton(window, label) {
 }
 
 async function clickRoomSettings(window) {
+  await clickRoomPoint(window, 0.86, 0.6);
+}
+
+async function clickRoomHistory(window) {
+  await clickRoomPoint(window, 0.68, 0.75);
+}
+
+async function clickRoomPoint(window, xFraction, yFraction) {
   const point = await window.webContents.executeJavaScript(
     `(() => {
       const room = document.querySelector(".roomScene");
       if (!(room instanceof HTMLElement)) throw new Error("Room scene not found.");
       const rect = room.getBoundingClientRect();
       return {
-        x: Math.round(rect.left + rect.width * 0.86),
-        y: Math.round(rect.top + rect.height * 0.6)
+        x: Math.round(rect.left + rect.width * ${JSON.stringify(xFraction)}),
+        y: Math.round(rect.top + rect.height * ${JSON.stringify(yFraction)})
       };
     })()`,
     true

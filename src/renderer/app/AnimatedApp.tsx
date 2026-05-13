@@ -218,7 +218,7 @@ export function AnimatedApp() {
     setGuideProposals([]);
   }
 
-  async function endActiveSession() {
+  async function endActiveSession(patch: { finalDisturbance?: number; notes?: string } = {}) {
     if (!activeSession) return;
     if (sessionWorkflow.state !== "review") {
       throw new Error(`Cannot end a session from ${sessionWorkflow.state}.`);
@@ -226,7 +226,9 @@ export function AnimatedApp() {
     const result = await applyGuideAction({
       type: "end_session",
       sessionId: activeSession.id,
-      workflowState: sessionWorkflow.state
+      workflowState: sessionWorkflow.state,
+      finalDisturbance: patch.finalDisturbance,
+      notes: patch.notes
     });
     if (!result.accepted) {
       setSessionWorkflow(result.workflow);

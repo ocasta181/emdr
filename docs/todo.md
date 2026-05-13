@@ -9,7 +9,7 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 - [x] The room Settings hotspot must open settings when stimulation is not running.
 - [x] History session summaries need cleaner wording. The manual pass showed awkward set pluralization.
 - [x] Export/import needs visible success or cancellation feedback.
-- [ ] History needs complete outcome data. Final SUD is only shown when the session already has one; the review/end-session UI does not collect it.
+- [x] History needs complete outcome data. Final SUD is only shown when the session already has one; the review/end-session UI does not collect it.
 
 ## Missing Flows
 

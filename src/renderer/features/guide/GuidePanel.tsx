@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import type {
   Assessment,
   GuideActionProposal,
@@ -6,6 +6,7 @@ import type {
   SessionAggregate,
   SessionWorkflowSnapshot
 } from "../../../shared/types";
+import { optionalNumber } from "../../../../utils";
 import { AssessmentForm } from "../session/AssessmentForm";
 import { WorkflowControls } from "../stimulation-set/WorkflowControls";
 
@@ -59,7 +60,7 @@ export function ActiveSessionChat({
   onRequestGrounding: () => void;
   onBeginClosure: () => void;
   onRequestReview: () => void;
-  onEndSession: () => void;
+  onEndSession: (patch: { finalDisturbance?: number; notes?: string }) => void;
 }) {
   const sessionView = guideView.mode === "session" ? guideView.activeSession : undefined;
   const displayTargetDescription = sessionView?.targetDescription ?? targetDescription ?? "Unknown target";
@@ -117,12 +118,53 @@ export function ActiveSessionChat({
         </div>
       )}
       {workflowState === "review" && (
-        <div className="buttonRow">
-          <button onClick={onEndSession}>End session</button>
-          <button onClick={onBeginClosure}>Return to closure</button>
-        </div>
+        <SessionEndForm session={session} onEndSession={onEndSession} onBeginClosure={onBeginClosure} />
       )}
     </>
+  );
+}
+
+function SessionEndForm({
+  session,
+  onEndSession,
+  onBeginClosure
+}: {
+  session: SessionAggregate;
+  onEndSession: (patch: { finalDisturbance?: number; notes?: string }) => void;
+  onBeginClosure: () => void;
+}) {
+  const [finalDisturbance, setFinalDisturbance] = useState(session.finalDisturbance);
+  const [notes, setNotes] = useState(session.notes ?? "");
+
+  return (
+    <form
+      className="form workflowForm"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onEndSession({ finalDisturbance, notes: notes.trim() || undefined });
+      }}
+    >
+      <label>
+        Final SUD
+        <input
+          type="number"
+          min="0"
+          max="10"
+          value={finalDisturbance ?? ""}
+          onChange={(event) => setFinalDisturbance(optionalNumber(event.target.value))}
+        />
+      </label>
+      <label>
+        Notes
+        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
+      </label>
+      <div className="buttonRow">
+        <button type="submit">End session</button>
+        <button type="button" onClick={onBeginClosure}>
+          Return to closure
+        </button>
+      </div>
+    </form>
   );
 }
 
