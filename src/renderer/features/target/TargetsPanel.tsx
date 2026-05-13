@@ -102,8 +102,12 @@ function TargetForm({
   onCancel: () => void;
 }) {
   const [draft, setDraft] = useState(target);
+  const [error, setError] = useState("");
 
-  useEffect(() => setDraft(target), [target]);
+  useEffect(() => {
+    setDraft(target);
+    setError("");
+  }, [target]);
 
   function set<K extends keyof Target>(key: K, value: Target[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -114,7 +118,13 @@ function TargetForm({
       className="form"
       onSubmit={(event) => {
         event.preventDefault();
-        onSave(draft);
+        const description = draft.description.trim();
+        if (!description) {
+          setError("Enter a target description.");
+          return;
+        }
+        setError("");
+        onSave({ ...draft, description });
       }}
     >
       <label>
@@ -167,6 +177,7 @@ function TargetForm({
         Notes
         <textarea value={draft.notes ?? ""} onChange={(event) => set("notes", event.target.value)} />
       </label>
+      {error && <div className="formError">{error}</div>}
       <div className="buttonRow">
         <button type="submit">Save Version</button>
         <button type="button" onClick={onCancel}>

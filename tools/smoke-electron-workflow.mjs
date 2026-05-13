@@ -79,6 +79,9 @@ async function main() {
     await waitForText(window, "New Target");
     await clickButton(window, "New Target");
     await waitForText(window, "Save Version");
+    await setFieldByLabel(window, "Description", "");
+    await clickButton(window, "Save Version");
+    await waitForText(window, "Enter a target description.");
     await setFieldByLabel(window, "Description", "Electron workflow target");
     await setFieldByLabel(window, "Negative cognition", "I am stuck");
     await setFieldByLabel(window, "Positive cognition", "I can move");

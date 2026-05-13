@@ -56,6 +56,17 @@ test("registered routes persist through migrated SQLite repositories and vault i
   );
   assert.equal(harness.targetService.listAllTargets().length, 0);
 
+  await assert.rejects(
+    () =>
+      request("target:create", {
+        description: " ",
+        negativeCognition: "",
+        positiveCognition: "",
+        status: "active"
+      }),
+    /Target description is required/
+  );
+
   const target = await request("target:create", {
     description: "Integration target",
     negativeCognition: "I am blocked",
