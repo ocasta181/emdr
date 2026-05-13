@@ -14,7 +14,7 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 ## Missing Flows
 
 - [x] Add an explicit Lock action for normal user-initiated vault locking.
-- [ ] Add a recovery-key save/copy/confirmation step during setup.
+- [x] Add a recovery-key save/copy/confirmation step during setup.
 - [ ] Expand guide proposal handling beyond the current scripted log-set/end-session prompts.
 - [ ] Tighten target validation if description, cognitions, or SUD values are intended to be required before starting a session.
 

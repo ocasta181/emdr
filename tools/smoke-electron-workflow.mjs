@@ -68,6 +68,9 @@ async function main() {
     await setControlValue(window, 1, "passphrase-123", "input");
     await clickButton(window, "Set Up");
     await waitForText(window, "Recovery Key");
+    await expectButtonDisabled(window, "Continue", true);
+    await clickCheckbox(window, "I saved this recovery key.");
+    await expectButtonDisabled(window, "Continue", false);
     await clickButton(window, "Continue");
     await waitForText(window, "Open Targets");
 
@@ -231,6 +234,13 @@ async function expectButtonDisabled(window, label, expected) {
   }
 }
 
+async function clickCheckbox(window, label) {
+  await window.webContents.executeJavaScript(
+    `(${domHelpers})().clickCheckbox(${JSON.stringify(label)})`,
+    true
+  );
+}
+
 async function waitForText(window, text, timeoutMs = 5000) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -295,6 +305,17 @@ function domHelpers() {
 
     isButtonDisabled(label) {
       return buttonByLabel(label).disabled;
+    },
+
+    clickCheckbox(label) {
+      const fieldLabel = [...document.querySelectorAll("label")].find((item) =>
+        normalize(item.textContent ?? "") === label
+      );
+      const control = fieldLabel?.querySelector("input");
+      if (!(control instanceof HTMLInputElement) || control.type !== "checkbox") {
+        throw new Error(`Checkbox not found: ${label}`);
+      }
+      control.click();
     },
 
     setControlValue(selector, index, value) {

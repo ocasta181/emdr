@@ -57,6 +57,19 @@ export function VaultSetup({
 }
 
 export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: string; onContinue: () => Promise<void> }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+  const formattedRecoveryCode = formatRecoveryCode(recoveryCode);
+
+  async function copyRecoveryCode() {
+    try {
+      await navigator.clipboard.writeText(formattedRecoveryCode);
+      setCopyMessage("Recovery key copied.");
+    } catch {
+      setCopyMessage("Select and copy the recovery key manually.");
+    }
+  }
+
   return (
     <AuthShell title="Recovery Key">
       <div className="form">
@@ -66,9 +79,25 @@ export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: strin
         </p>
         <label>
           Recovery key
-          <textarea className="recoveryCode" readOnly spellCheck={false} value={formatRecoveryCode(recoveryCode)} />
+          <textarea className="recoveryCode" readOnly spellCheck={false} value={formattedRecoveryCode} />
         </label>
-        <button onClick={() => void onContinue()}>Continue</button>
+        <div className="buttonRow">
+          <button type="button" onClick={() => void copyRecoveryCode()}>
+            Copy
+          </button>
+          <button type="button" disabled={!confirmed} onClick={() => void onContinue()}>
+            Continue
+          </button>
+        </div>
+        <label className="confirmationLabel">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(event) => setConfirmed(event.target.checked)}
+          />
+          <span>I saved this recovery key.</span>
+        </label>
+        {copyMessage && <p className="authNotice">{copyMessage}</p>}
       </div>
     </AuthShell>
   );

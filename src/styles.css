@@ -118,6 +118,15 @@ label {
   padding-top: 18px;
 }
 
+.confirmationLabel {
+  display: flex;
+  align-items: center;
+}
+
+.confirmationLabel input {
+  width: auto;
+}
+
 .app {
   min-height: 100vh;
 }
