@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { BilateralStimulationSettings } from "../../../shared/types";
 
 export function SettingsPanel({
@@ -11,6 +12,20 @@ export function SettingsPanel({
   onExport: () => Promise<string | undefined>;
   onImport: () => Promise<boolean>;
 }) {
+  const [transferMessage, setTransferMessage] = useState("");
+
+  async function exportEncryptedData() {
+    const exportPath = await onExport();
+    setTransferMessage(exportPath ? `Exported encrypted data to ${exportPath}.` : "Export canceled.");
+  }
+
+  async function importEncryptedData() {
+    const imported = await onImport();
+    if (!imported) {
+      setTransferMessage("Import canceled.");
+    }
+  }
+
   return (
     <>
       <h1>Ball Settings</h1>
@@ -51,9 +66,10 @@ export function SettingsPanel({
       </label>
       <h2>Encrypted Data</h2>
       <div className="buttonRow">
-        <button onClick={() => void onExport()}>Export</button>
-        <button onClick={() => void onImport()}>Import</button>
+        <button onClick={() => void exportEncryptedData()}>Export</button>
+        <button onClick={() => void importEncryptedData()}>Import</button>
       </div>
+      {transferMessage && <p className="authNotice">{transferMessage}</p>}
     </>
   );
 }

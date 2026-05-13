@@ -77,11 +77,13 @@ export function RecoveryCode({ recoveryCode, onContinue }: { recoveryCode: strin
 export function VaultUnlock({
   onUnlock,
   onRecoveryUnlock,
-  onImport
+  onImport,
+  notice
 }: {
   onUnlock: (password: string) => Promise<void>;
   onRecoveryUnlock: (recoveryCode: string) => Promise<void>;
   onImport: () => Promise<boolean>;
+  notice?: string;
 }) {
   const [password, setPassword] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -108,6 +110,7 @@ export function VaultUnlock({
 
   return (
     <AuthShell title="Unlock">
+      {notice && <p className="authNotice">{notice}</p>}
       <form className="form" onSubmit={unlockWithCredential}>
         <label>
           Password

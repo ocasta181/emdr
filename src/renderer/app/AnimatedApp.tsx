@@ -89,6 +89,7 @@ export function AnimatedApp() {
   const [guideProposals, setGuideProposals] = useState<GuideActionProposal[]>([]);
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<string[]>([]);
+  const [vaultNotice, setVaultNotice] = useState("");
 
   useEffect(() => {
     getVaultStatus().then((status) => {
@@ -104,10 +105,12 @@ export function AnimatedApp() {
     const [nextViewData, workflow] = await Promise.all([loadViewData(), getSessionWorkflow()]);
     const restoredActiveSession = activeSessionFromWorkflow(nextViewData.sessions, workflow);
     const nextGuideView = await getGuideView(restoredActiveSession?.id);
+    resetTransientRendererState();
     setViewData(nextViewData);
     setActiveSession(restoredActiveSession);
     setSessionWorkflow(workflow);
     setGuideView(nextGuideView);
+    setVaultNotice("");
     setAuthState("ready");
   }
 
@@ -147,13 +150,23 @@ export function AnimatedApp() {
   async function importEncryptedData() {
     const result = await importVault();
     if (result.canceled) return false;
-    setActiveSession(null);
+    resetTransientRendererState();
+    setViewData(emptyViewData);
     setSessionWorkflow({ state: "idle" });
-    setEditingTarget(null);
+    setActiveSession(null);
     setGuideView(null);
-    setGuideProposals([]);
+    setVaultNotice("Encrypted data imported. Unlock to continue.");
     setAuthState("locked");
     return true;
+  }
+
+  function resetTransientRendererState() {
+    dispatchRoomEvent({ type: "reset_room" });
+    setEditingTarget(null);
+    setGuideAnimation({ type: "action", action: "speak" });
+    setGuideProposals([]);
+    setChatDraft("");
+    setChatMessages([]);
   }
 
   async function addTarget() {
@@ -255,8 +268,7 @@ export function AnimatedApp() {
 
   function selectObject(objectId: RoomObjectId) {
     if (objectId === "guide") {
-      dispatchRoomEvent({ type: "select_guide" });
-      setGuideAnimation({ type: "action", action: "speak" });
+      void openGuidePanel();
       return;
     }
     if (objectId === "targets") {
@@ -270,20 +282,32 @@ export function AnimatedApp() {
     dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
+  async function openGuidePanel() {
+    if (stimulationRunning) {
+      await pauseActiveStimulation();
+    }
+    dispatchRoomEvent({ type: "select_guide" });
+    setGuideAnimation({ type: "action", action: "speak" });
+  }
+
   async function toggleStimulation() {
     setGuideProposals([]);
     if (stimulationRunning) {
-      await logStimulationSetIfActive();
-      if (activeSession) {
-        setSessionWorkflow(await advanceSessionFlow("pause_stimulation", activeSession.id));
-      }
-      dispatchRoomEvent({ type: "pause_stimulation" });
+      await pauseActiveStimulation();
     } else {
       if (activeSession) {
         setSessionWorkflow(await advanceSessionForStimulationStart(activeSession.id, sessionWorkflow));
       }
       dispatchRoomEvent({ type: "start_stimulation" });
     }
+  }
+
+  async function pauseActiveStimulation() {
+    await logStimulationSetIfActive();
+    if (activeSession) {
+      setSessionWorkflow(await advanceSessionFlow("pause_stimulation", activeSession.id));
+    }
+    dispatchRoomEvent({ type: "pause_stimulation" });
   }
 
   async function logStimulationSetIfActive() {
@@ -374,6 +398,7 @@ export function AnimatedApp() {
         onUnlock={unlockVault}
         onRecoveryUnlock={unlockVaultWithRecovery}
         onImport={importEncryptedData}
+        notice={vaultNotice}
       />
     );
   }
@@ -417,14 +442,7 @@ export function AnimatedApp() {
           </div>
         </div>
         <div className="buttonRow">
-          <button
-            onClick={() => {
-              dispatchRoomEvent({ type: "select_guide" });
-              setGuideAnimation({ type: "action", action: "speak" });
-            }}
-          >
-            Guide
-          </button>
+          <button onClick={() => void openGuidePanel()}>Guide</button>
           <button onClick={toggleStimulation} disabled={!canToggleStimulation}>
             {stimulationButtonLabel(sessionWorkflow, stimulationRunning)}
           </button>

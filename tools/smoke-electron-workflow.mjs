@@ -94,8 +94,8 @@ async function main() {
     phase = "start stimulation";
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
-    phase = "pause stimulation";
-    await clickButton(window, "Pause Set");
+    phase = "guide pauses stimulation";
+    await clickButton(window, "Guide");
     await waitForText(window, "1 set logged");
     await waitForText(window, "Begin closure");
     phase = "begin closure";
@@ -128,6 +128,34 @@ async function main() {
     await waitForText(window, "Open Targets");
     await clickButton(window, "Open Targets");
     await waitForText(window, "Electron workflow target");
+
+    phase = "start imported active session";
+    await clickButton(window, "Start session");
+    await waitForText(window, "Preparation");
+    await clickButton(window, "Approve assessment");
+    await waitForText(window, "Stimulation");
+    await clickButton(window, "Start Set");
+    await waitForText(window, "Pause Set");
+
+    phase = "export active vault";
+    const activeExportPath = path.join(tempDir, "active-workflow-export.emdr-vault");
+    installVaultDialogStubs(activeExportPath);
+    await clickButton(window, "Ball settings");
+    await waitForText(window, "Ball Settings");
+    await clickButton(window, "Export");
+    await waitForFile(activeExportPath);
+
+    phase = "import active vault";
+    await clickButton(window, "Import");
+    await waitForText(window, "Unlock");
+
+    phase = "unlock active import";
+    await setControlValue(window, 0, "passphrase-123", "input");
+    await clickButton(window, "Unlock");
+    await waitForText(window, "Session in progress");
+    await waitForText(window, "Preparation");
+    await expectText(window, "Pause Set", false);
+    await expectText(window, "Ball Settings", false);
 
     process.stdout.write("Electron workflow smoke passed.\n");
   } finally {
@@ -208,6 +236,16 @@ async function waitForText(window, text, timeoutMs = 5000) {
 
   const body = await window.webContents.executeJavaScript("document.body.innerText", true);
   throw new Error(`Timed out waiting for text "${text}". Body text: ${body}`);
+}
+
+async function expectText(window, text, expected) {
+  const found = await window.webContents.executeJavaScript(
+    `document.body.innerText.includes(${JSON.stringify(text)})`,
+    true
+  );
+  if (found !== expected) {
+    throw new Error(`Expected text "${text}" present=${expected}, got ${found}.`);
+  }
 }
 
 async function waitForFile(filePath, timeoutMs = 5000) {

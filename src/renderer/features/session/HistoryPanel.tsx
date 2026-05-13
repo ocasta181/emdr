@@ -15,22 +15,15 @@ export function HistoryPanel({
         {sessions.map((session) => {
           const target = targetById.get(session.targetId);
           const startedAt = new Date(session.startedAt).toLocaleString();
-          const endedAt = session.endedAt ? new Date(session.endedAt).toLocaleString() : "ongoing";
+          const endedAt = session.endedAt ? new Date(session.endedAt).toLocaleString() : "Ongoing";
+          const setCount = session.stimulationSets.length;
           return (
             <article className="targetRow" key={session.id}>
               <div>
                 <h2>{target?.description ?? "Unknown target"}</h2>
-                <p>
-                  Started {startedAt} · {endedAt}
-                </p>
-                <p>
-                  {session.stimulationSets.length} set
-                  {session.stimulationSets.length === 1 ? "" : "s"}
-                  {session.assessment.disturbance !== undefined
-                    ? ` · SUD start ${session.assessment.disturbance}`
-                    : ""}
-                  {session.finalDisturbance !== undefined ? ` · SUD end ${session.finalDisturbance}` : ""}
-                </p>
+                <p>Started {startedAt}</p>
+                <p>{session.endedAt ? `Ended ${endedAt}` : endedAt}</p>
+                <p>{formatSessionSummary(setCount, session.assessment.disturbance, session.finalDisturbance)}</p>
               </div>
             </article>
           );
@@ -38,4 +31,11 @@ export function HistoryPanel({
       </div>
     </>
   );
+}
+
+function formatSessionSummary(setCount: number, initialSud: number | undefined, finalSud: number | undefined) {
+  const parts = [`${setCount} ${setCount === 1 ? "set" : "sets"}`];
+  if (initialSud !== undefined) parts.push(`SUD start ${initialSud}`);
+  if (finalSud !== undefined) parts.push(`SUD end ${finalSud}`);
+  return parts.join(" · ");
 }
