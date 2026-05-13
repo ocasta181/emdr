@@ -269,7 +269,7 @@ h2 {
 }
 
 .historyRow {
-  grid-template-columns: 220px minmax(0, 1fr) 90px;
+  grid-template-columns: minmax(0, 1fr);
   color: #cfc7b8;
 }
 
@@ -402,6 +402,7 @@ h2 {
   right: 24px;
   bottom: 24px;
   display: grid;
+  align-content: start;
   gap: 14px;
   width: min(390px, calc(100vw - 48px));
   max-height: calc(100vh - 130px);
@@ -419,6 +420,12 @@ h2 {
   bottom: 24px;
 }
 
+.animatedPanel-chat:has(.workflowForm),
+.animatedPanel-chat:has(.proposalCard) {
+  top: 96px;
+  max-height: none;
+}
+
 .animatedPanel-targets {
   left: 34px;
   right: auto;
@@ -426,10 +433,16 @@ h2 {
   bottom: auto;
 }
 
+.animatedPanel-targets:has(.form) {
+  bottom: 24px;
+  max-height: none;
+}
+
 .animatedPanel-history {
   left: 50%;
   right: auto;
   bottom: 60px;
+  width: min(520px, calc(100vw - 48px));
   transform: translateX(-50%);
 }
 

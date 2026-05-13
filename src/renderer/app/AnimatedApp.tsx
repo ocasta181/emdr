@@ -319,7 +319,9 @@ export function AnimatedApp() {
   async function pauseActiveStimulation() {
     await logStimulationSetIfActive();
     if (activeSession) {
-      setSessionWorkflow(await advanceSessionFlow("pause_stimulation", activeSession.id));
+      const workflow = await advanceSessionFlow("pause_stimulation", activeSession.id);
+      setSessionWorkflow(workflow);
+      await refreshGuideView(activeSession.id);
     }
     dispatchRoomEvent({ type: "pause_stimulation" });
   }

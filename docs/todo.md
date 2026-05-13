@@ -23,3 +23,9 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 - [x] Add or extend UI smoke coverage for guide-click-during-stimulation behavior.
 - [x] Add or extend UI smoke coverage for settings hotspot behavior while idle.
 - [x] Add or extend UI smoke coverage for import/unlock after exporting during an active session.
+
+## Manual UI Follow-Up
+
+- [x] Keep animated target and guide forms inside the viewport with scrollable panels.
+- [x] Refresh the Guide panel workflow label after pausing active stimulation.
+- [x] Let History rows use the full panel width instead of the target-list column layout.

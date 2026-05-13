@@ -18,7 +18,7 @@ export function HistoryPanel({
           const endedAt = session.endedAt ? new Date(session.endedAt).toLocaleString() : "Ongoing";
           const setCount = session.stimulationSets.length;
           return (
-            <article className="targetRow" key={session.id}>
+            <article className="historyRow" key={session.id}>
               <div>
                 <h2>{target?.description ?? "Unknown target"}</h2>
                 <p>Started {startedAt}</p>
