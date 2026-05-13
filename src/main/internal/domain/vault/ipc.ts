@@ -12,6 +12,7 @@ export function registerVaultIpc(registry: ApiRegistry, service: VaultIpcService
   registry.handle("vault:unlock-recovery", async (payload) =>
     service.unlockWithRecoveryCode(nonEmptyStringFrom(payload, "recoveryCode"))
   );
+  registry.handle("vault:lock", async () => service.lock());
   registry.handle("vault:export", async () => {
     const destinationPath = await vaultDialogs.chooseExportPath(service.defaultExportName());
     if (!destinationPath) return { canceled: true } as const;

@@ -15,6 +15,7 @@ import {
   listAllTargets,
   listSessions,
   listTargets,
+  lockVault,
   reviseTarget as reviseTargetRecord,
   sendGuideMessage,
   startSession as startSessionRecord,
@@ -158,6 +159,17 @@ export function AnimatedApp() {
     setVaultNotice("Encrypted data imported. Unlock to continue.");
     setAuthState("locked");
     return true;
+  }
+
+  async function lockEncryptedData() {
+    await lockVault();
+    resetTransientRendererState();
+    setViewData(emptyViewData);
+    setSessionWorkflow({ state: "idle" });
+    setActiveSession(null);
+    setGuideView(null);
+    setVaultNotice("Encrypted data locked.");
+    setAuthState("locked");
   }
 
   function resetTransientRendererState() {
@@ -520,6 +532,7 @@ export function AnimatedApp() {
               onChange={updateSettings}
               onExport={exportEncryptedData}
               onImport={importEncryptedData}
+              onLock={lockEncryptedData}
             />
           )}
         </aside>

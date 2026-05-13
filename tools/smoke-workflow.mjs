@@ -137,6 +137,10 @@ try {
   sessionWorkflow.reset();
   await request("vault:unlock-password", "passphrase-123");
   await expectWorkflow(request("session:workflow"), "interjection", session.id);
+  await request("vault:lock");
+  await expectRejects(request("session:list"), "session list while locked");
+  await request("vault:unlock-password", "passphrase-123");
+  await expectWorkflow(request("session:workflow"), "interjection", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "continue_stimulation" }), "stimulation", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "pause_stimulation" }), "interjection", session.id);
   await expectWorkflow(request("session:advance-flow", { sessionId: session.id, action: "begin_closure" }), "closure", session.id);

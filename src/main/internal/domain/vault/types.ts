@@ -10,6 +10,7 @@ export type VaultIpcService = {
   create(password: string): { recoveryCode: string } | Promise<{ recoveryCode: string }>;
   unlockWithPassword(password: string): { ok: true } | Promise<{ ok: true }>;
   unlockWithRecoveryCode(recoveryCode: string): { ok: true } | Promise<{ ok: true }>;
+  lock(): { ok: true } | Promise<{ ok: true }>;
   defaultExportName(): string;
   exportVault(destinationPath: string): void | Promise<void>;
   importVault(sourcePath: string): void | Promise<void>;

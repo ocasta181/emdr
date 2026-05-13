@@ -30,6 +30,10 @@ export async function unlockWithRecoveryCode(recoveryCode: string) {
   await emdr().request("vault:unlock-recovery", recoveryCode);
 }
 
+export async function lockVault() {
+  await emdr().request("vault:lock");
+}
+
 export async function exportVault() {
   return emdr().request<{ canceled: true } | { canceled: false; path: string }>("vault:export");
 }

@@ -5,12 +5,14 @@ export function SettingsPanel({
   settings,
   onChange,
   onExport,
-  onImport
+  onImport,
+  onLock
 }: {
   settings: BilateralStimulationSettings;
   onChange: (patch: Partial<BilateralStimulationSettings>) => void;
   onExport: () => Promise<string | undefined>;
   onImport: () => Promise<boolean>;
+  onLock: () => Promise<void>;
 }) {
   const [transferMessage, setTransferMessage] = useState("");
 
@@ -68,6 +70,7 @@ export function SettingsPanel({
       <div className="buttonRow">
         <button onClick={() => void exportEncryptedData()}>Export</button>
         <button onClick={() => void importEncryptedData()}>Import</button>
+        <button onClick={() => void onLock()}>Lock</button>
       </div>
       {transferMessage && <p className="authNotice">{transferMessage}</p>}
     </>

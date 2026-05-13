@@ -89,6 +89,10 @@ test("registered routes persist through migrated SQLite repositories and vault i
     restoredTargets.map((item) => item.description),
     ["Integration target"]
   );
+  assert.deepEqual(await request("vault:lock"), { ok: true });
+  assert.equal(await request("vault:status"), "locked");
+  await assert.rejects(() => request("target:list-all"), /Encrypted data is locked/);
+  await request("vault:unlock-password", "passphrase-123");
 
   await request("session:advance-flow", { action: "start_session" });
   const session = await request("session:start", { targetId: target.id });

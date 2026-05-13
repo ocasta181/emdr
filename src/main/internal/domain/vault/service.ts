@@ -29,6 +29,11 @@ export class VaultService {
     return { ok: true } as const;
   }
 
+  lock() {
+    this.store.lock();
+    return { ok: true } as const;
+  }
+
   defaultExportName() {
     return this.vaultFiles.defaultExportName();
   }

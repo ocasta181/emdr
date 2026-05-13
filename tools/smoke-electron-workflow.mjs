@@ -157,6 +157,14 @@ async function main() {
     await expectText(window, "Pause Set", false);
     await expectText(window, "Ball Settings", false);
 
+    phase = "lock from settings";
+    await clickButton(window, "Close");
+    await clickRoomSettings(window);
+    await waitForText(window, "Ball Settings");
+    await clickButton(window, "Lock");
+    await waitForText(window, "Unlock");
+    await waitForText(window, "Encrypted data locked.");
+
     process.stdout.write("Electron workflow smoke passed.\n");
   } finally {
     clearTimeout(smokeTimeout);
