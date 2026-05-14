@@ -145,6 +145,13 @@
         height: auto;
       }
 
+      .runtime-diagram {
+        display: block;
+        min-width: 1180px;
+        width: 100%;
+        height: auto;
+      }
+
       .participant {
         fill: #fff;
         stroke: var(--line-strong);
@@ -345,6 +352,38 @@
         marker-end: url(#componentDataArrow);
       }
 
+      .connector.blocked {
+        stroke: #a3483f;
+        stroke-dasharray: 9 7;
+        marker-end: none;
+      }
+
+      .boundary-step {
+        fill: #17211f;
+        font-size: 11px;
+        font-weight: 850;
+        text-anchor: middle;
+      }
+
+      .badge {
+        fill: #fff;
+        stroke: var(--line-strong);
+        stroke-width: 1;
+      }
+
+      .forbidden {
+        fill: #fff;
+        stroke: #a3483f;
+        stroke-width: 2;
+      }
+
+      .forbidden-text {
+        fill: #a3483f;
+        font-size: 13px;
+        font-weight: 850;
+        text-anchor: middle;
+      }
+
       .port {
         fill: #fff;
         stroke: var(--ink);
@@ -377,14 +416,14 @@
           <h1>Architecture Diagram Proofs</h1>
           <p class="lead">
             One data piece at a time, using the diagram type that actually
-            fits the information. The first proof is a real sequence diagram;
-            this pass adds one real runtime component/deployment diagram.
+            fits the information. This page documents the ideal architecture
+            state only, with diagrams as the primary source of explanation.
           </p>
         </div>
         <aside class="scope" aria-label="Diagram scope">
           <h2>Scope</h2>
           <ul>
-            <li>One new data piece per pass.</li>
+            <li>One architecture concern per diagram.</li>
             <li>No markdown links, scripts, generated diagrams, or card grids.</li>
             <li>Markdown architecture files remain untouched.</li>
           </ul>
@@ -482,29 +521,25 @@
           <rect x="124" y="190" width="112" height="20" class="label-bg" />
           <text x="132" y="205" class="message-text">1. submit password</text>
 
-          <path d="M276 240 H338 V260 H276" class="message" />
-          <rect x="286" y="221" width="122" height="20" class="label-bg" />
-          <text x="292" y="236" class="message-text">2. validate locally</text>
-
           <line x1="276" y1="280" x2="428" y2="280" class="message" />
-          <rect x="295" y="260" width="115" height="20" class="label-bg" />
-          <text x="302" y="275" class="message-text">3. createVault()</text>
+          <rect x="284" y="260" width="156" height="20" class="label-bg" />
+          <text x="290" y="275" class="message-text">2. [valid] createVault()</text>
 
           <line x1="446" y1="310" x2="598" y2="310" class="message" />
           <rect x="468" y="290" width="110" height="20" class="label-bg" />
-          <text x="474" y="305" class="message-text">4. request route</text>
+          <text x="474" y="305" class="message-text">3. request route</text>
 
           <line x1="616" y1="360" x2="768" y2="360" class="message" />
           <rect x="644" y="340" width="102" height="20" class="label-bg" />
-          <text x="650" y="355" class="message-text">5. IPC invoke</text>
+          <text x="650" y="355" class="message-text">4. IPC invoke</text>
 
           <line x1="786" y1="410" x2="938" y2="410" class="message" />
           <rect x="808" y="390" width="116" height="20" class="label-bg" />
-          <text x="814" y="405" class="message-text">6. vault:create</text>
+          <text x="814" y="405" class="message-text">5. vault:create</text>
 
           <line x1="956" y1="462" x2="1108" y2="462" class="message" />
           <rect x="976" y="442" width="118" height="20" class="label-bg" />
-          <text x="982" y="457" class="message-text">7. create store</text>
+          <text x="982" y="457" class="message-text">6. create store</text>
 
           <line x1="1108" y1="512" x2="956" y2="512" class="return" />
           <rect x="994" y="492" width="88" height="20" class="label-bg" />
@@ -512,7 +547,7 @@
 
           <line x1="956" y1="558" x2="1251" y2="558" class="message" />
           <rect x="1035" y="538" width="145" height="20" class="label-bg" />
-          <text x="1041" y="553" class="message-text">8. encrypt and save</text>
+          <text x="1041" y="553" class="message-text">7. encrypt and save</text>
 
           <line x1="1251" y1="606" x2="956" y2="606" class="return" />
           <rect x="1064" y="586" width="88" height="20" class="label-bg" />
@@ -546,19 +581,20 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Runtime component deployment diagram" style="margin-top: 24px">
+      <section class="diagram-shell" aria-label="Runtime boundary diagram" style="margin-top: 24px">
         <svg
-          class="component-diagram"
-          viewBox="0 0 1320 820"
+          class="runtime-diagram"
+          viewBox="0 0 1320 760"
           role="img"
           aria-labelledby="runtime-title runtime-desc"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <title id="runtime-title">Runtime component deployment diagram</title>
+          <title id="runtime-title">Runtime boundary diagram</title>
           <desc id="runtime-desc">
-            UML-style component and deployment diagram showing ideal Electron
-            renderer, preload bridge, main Core Engine, guide agent sidecar,
-            and encrypted local persistence boundaries.
+            C4-style runtime boundary diagram showing the renderer process,
+            preload bridge, main core engine, guide agent sidecar, and local
+            persistence as separate execution boundaries with allowed and
+            forbidden connections.
           </desc>
 
           <defs>
@@ -575,128 +611,123 @@
 
           <text x="40" y="42" class="title">Runtime process boundary model</text>
           <text x="40" y="66" class="subtitle">
-            Correct diagram type: component/deployment diagram with runtime nodes, contained components, ports, and typed connectors.
+            Correct diagram type: C4 container / deployment boundary. Boxes are execution boundaries; arrows are the only allowed communication paths.
           </text>
 
-          <!-- Deployment nodes -->
-          <rect x="42" y="110" width="338" height="430" rx="8" class="node-frame" />
-          <text x="64" y="138" class="boundary-title">NODE: ELECTRON RENDERER PROCESS</text>
+          <!-- Execution boundaries -->
+          <rect x="48" y="118" width="244" height="464" rx="8" class="node-frame" />
+          <text x="68" y="146" class="boundary-title">ELECTRON RENDERER</text>
 
-          <rect x="470" y="110" width="424" height="430" rx="8" class="node-frame main" />
-          <text x="492" y="138" class="boundary-title">NODE: ELECTRON MAIN PROCESS / CORE ENGINE</text>
+          <rect x="340" y="118" width="154" height="464" rx="8" class="node-frame" />
+          <text x="362" y="146" class="boundary-title">PRELOAD</text>
 
-          <rect x="984" y="110" width="292" height="220" rx="8" class="node-frame agent" />
-          <text x="1006" y="138" class="boundary-title">NODE: LOCAL GUIDE AGENT PROCESS</text>
+          <rect x="542" y="118" width="284" height="464" rx="8" class="node-frame main" />
+          <text x="564" y="146" class="boundary-title">MAIN CORE ENGINE</text>
 
-          <rect x="984" y="410" width="292" height="238" rx="8" class="node-frame data" />
-          <text x="1006" y="438" class="boundary-title">NODE: LOCAL PERSISTENCE</text>
+          <rect x="880" y="118" width="356" height="184" rx="8" class="node-frame agent" />
+          <text x="902" y="146" class="boundary-title">LOCAL GUIDE AGENT</text>
 
-          <!-- Renderer components -->
-          <rect x="86" y="174" width="238" height="76" rx="6" class="component" />
-          <rect x="100" y="164" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="108" y="172" width="34" height="20" rx="3" class="component-tab" />
-          <text x="205" y="204" class="component-text">React Feature UI</text>
-          <text x="205" y="226" class="component-subtext">display state, forms, animation</text>
+          <rect x="880" y="398" width="356" height="184" rx="8" class="node-frame data" />
+          <text x="902" y="426" class="boundary-title">LOCAL PERSISTENCE</text>
 
-          <rect x="86" y="314" width="238" height="76" rx="6" class="component" />
-          <rect x="100" y="304" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="108" y="312" width="34" height="20" rx="3" class="component-tab" />
-          <text x="205" y="344" class="component-text">Renderer API Client</text>
-          <text x="205" y="366" class="component-subtext">route names and view models</text>
+          <!-- Boundary internals -->
+          <rect x="78" y="188" width="184" height="74" rx="6" class="component" />
+          <text x="170" y="218" class="component-text">Feature Views</text>
+          <text x="170" y="240" class="component-subtext">presentation only</text>
 
-          <rect x="86" y="444" width="238" height="76" rx="6" class="component" />
-          <rect x="100" y="434" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="108" y="442" width="34" height="20" rx="3" class="component-tab" />
-          <text x="205" y="474" class="component-text">Preload Bridge</text>
-          <text x="205" y="496" class="component-subtext">generic request/subscribe</text>
+          <rect x="78" y="346" width="184" height="74" rx="6" class="component" />
+          <text x="170" y="376" class="component-text">Renderer Client</text>
+          <text x="170" y="398" class="component-subtext">typed app commands</text>
 
-          <!-- Main components -->
-          <rect x="522" y="174" width="296" height="76" rx="6" class="component main" />
-          <rect x="536" y="164" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="544" y="172" width="34" height="20" rx="3" class="component-tab" />
-          <text x="670" y="204" class="component-text">Main API Registry</text>
-          <text x="670" y="226" class="component-subtext">registered IPC routes and events</text>
+          <rect x="370" y="276" width="94" height="94" rx="6" class="component" />
+          <text x="417" y="314" class="component-text">Bridge</text>
+          <text x="417" y="338" class="component-subtext">single IPC</text>
 
-          <rect x="522" y="314" width="296" height="76" rx="6" class="component main" />
-          <rect x="536" y="304" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="544" y="312" width="34" height="20" rx="3" class="component-tab" />
-          <text x="670" y="344" class="component-text">Domain Services</text>
-          <text x="670" y="366" class="component-subtext">vault, target, session, guide</text>
+          <rect x="586" y="174" width="196" height="72" rx="6" class="component main" />
+          <text x="684" y="203" class="component-text">API Registry</text>
+          <text x="684" y="225" class="component-subtext">validate and dispatch</text>
 
-          <rect x="522" y="444" width="296" height="76" rx="6" class="component main" />
-          <rect x="536" y="434" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="544" y="442" width="34" height="20" rx="3" class="component-tab" />
-          <text x="670" y="474" class="component-text">Domain Repositories</text>
-          <text x="670" y="496" class="component-subtext">only domain SQL owners</text>
+          <rect x="586" y="304" width="196" height="72" rx="6" class="component main" />
+          <text x="684" y="333" class="component-text">Domain Services</text>
+          <text x="684" y="355" class="component-subtext">authoritative workflow</text>
 
-          <!-- Agent and persistence components -->
-          <rect x="1022" y="174" width="214" height="76" rx="6" class="component agent" />
-          <rect x="1036" y="164" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="1044" y="172" width="34" height="20" rx="3" class="component-tab" />
-          <text x="1129" y="204" class="component-text">Model Runtime</text>
-          <text x="1129" y="226" class="component-subtext">structured proposals only</text>
+          <rect x="586" y="434" width="196" height="72" rx="6" class="component main" />
+          <text x="684" y="463" class="component-text">Repositories</text>
+          <text x="684" y="485" class="component-subtext">only SQL owners</text>
 
-          <rect x="1022" y="474" width="214" height="76" rx="6" class="component data" />
-          <rect x="1036" y="464" width="34" height="20" rx="3" class="component-tab" />
-          <rect x="1044" y="472" width="34" height="20" rx="3" class="component-tab" />
-          <text x="1129" y="504" class="component-text">SQLite Store</text>
-          <text x="1129" y="526" class="component-subtext">durable tables</text>
+          <rect x="924" y="184" width="268" height="72" rx="6" class="component agent" />
+          <text x="1058" y="213" class="component-text">Model Runtime</text>
+          <text x="1058" y="235" class="component-subtext">returns structured proposals</text>
 
-          <rect x="1022" y="568" width="214" height="56" rx="6" class="component data" />
-          <text x="1129" y="602" class="component-text">Encrypted Vault File</text>
+          <rect x="924" y="464" width="268" height="72" rx="6" class="component data" />
+          <text x="1058" y="493" class="component-text">Encrypted SQLite</text>
+          <text x="1058" y="515" class="component-subtext">durable local tables</text>
 
-          <!-- Ports and sockets -->
-          <circle cx="380" cy="482" r="8" class="port" />
-          <path d="M470,482 a8,8 0 0 0 0,16" class="socket" />
-          <circle cx="894" cy="212" r="8" class="port" />
-          <path d="M984,212 a8,8 0 0 0 0,16" class="socket" />
-          <circle cx="894" cy="482" r="8" class="port" />
-          <path d="M984,512 a8,8 0 0 0 0,16" class="socket" />
+          <!-- Allowed command path -->
+          <path d="M170 262 V346" class="connector" />
+          <rect x="184" y="292" width="58" height="22" rx="11" class="badge" />
+          <text x="213" y="308" class="boundary-step">calls</text>
 
-          <!-- Internal connectors -->
-          <path d="M205 250 L205 314" class="connector" />
-          <text x="220" y="286" class="message-text">calls</text>
-          <path d="M205 390 L205 444" class="connector" />
-          <text x="220" y="421" class="message-text">delegates</text>
-          <path d="M670 250 L670 314" class="connector" />
-          <text x="685" y="286" class="message-text">dispatches</text>
-          <path d="M670 390 L670 444" class="connector data" />
-          <text x="685" y="421" class="message-text">uses repositories</text>
-          <path d="M1129 550 L1129 568" class="connector data" />
+          <path d="M262 383 H370" class="connector" />
+          <rect x="294" y="354" width="64" height="22" rx="11" class="badge" />
+          <text x="326" y="370" class="boundary-step">request</text>
 
-          <!-- Cross-boundary connectors -->
-          <path d="M388 482 C420 482, 430 490, 462 490" class="connector" />
-          <rect x="396" y="450" width="126" height="20" class="label-bg" />
-          <text x="402" y="465" class="message-text">Electron IPC request</text>
+          <path d="M464 323 H542 V210 H586" class="connector" />
+          <rect x="488" y="292" width="78" height="22" rx="11" class="badge" />
+          <text x="527" y="308" class="boundary-step">IPC invoke</text>
 
-          <path d="M462 510 C430 510, 420 506, 388 506" class="connector event" />
-          <rect x="390" y="516" width="134" height="20" class="label-bg" />
-          <text x="396" y="531" class="return-text">main event / response</text>
+          <path d="M684 246 V304" class="connector" />
+          <rect x="700" y="265" width="72" height="22" rx="11" class="badge" />
+          <text x="736" y="281" class="boundary-step">dispatch</text>
 
-          <path d="M902 212 C936 212, 946 220, 976 220" class="connector" />
-          <rect x="910" y="152" width="146" height="20" class="label-bg" />
-          <text x="916" y="167" class="message-text">private agent protocol</text>
+          <path d="M684 376 V434" class="connector data" />
+          <rect x="700" y="395" width="96" height="22" rx="11" class="badge" />
+          <text x="748" y="411" class="boundary-step">repository</text>
 
-          <path d="M976 244 C946 244, 936 238, 902 238" class="connector event" />
-          <rect x="904" y="270" width="132" height="20" class="label-bg" />
-          <text x="910" y="285" class="return-text">structured proposal</text>
+          <path d="M782 470 H924" class="connector data" />
+          <rect x="824" y="441" width="80" height="22" rx="11" class="badge" />
+          <text x="864" y="457" class="boundary-step">SQL only</text>
 
-          <path d="M902 482 C936 482, 946 512, 976 512" class="connector data" />
-          <rect x="908" y="440" width="112" height="20" class="label-bg" />
-          <text x="914" y="455" class="message-text">repository calls</text>
+          <path d="M782 340 H858 V220 H924" class="connector" />
+          <rect x="808" y="276" width="132" height="22" rx="11" class="badge" />
+          <text x="874" y="292" class="boundary-step">sidecar request</text>
 
-          <!-- Invariant notes -->
-          <rect x="42" y="600" width="402" height="112" rx="6" class="note" />
-          <text x="64" y="624" class="note-text">Renderer cannot import main internals, repositories,</text>
-          <text x="64" y="646" class="note-text">vault primitives, or agent runtime.</text>
-          <text x="64" y="668" class="note-text">Preload exposes transport only; it does not know routes.</text>
-          <text x="64" y="690" class="note-text">The only app process path is the explicit IPC connector.</text>
+          <path d="M924 242 H844 V354 H782" class="connector event" />
+          <rect x="805" y="322" width="142" height="22" rx="11" class="badge" />
+          <text x="876" y="338" class="boundary-step">proposal response</text>
 
-          <rect x="470" y="600" width="424" height="112" rx="6" class="note" />
-          <text x="492" y="624" class="note-text">Main owns authoritative state, workflows, vault lifecycle,</text>
-          <text x="492" y="646" class="note-text">agent coordination, and route registration.</text>
-          <text x="492" y="668" class="note-text">Services call repositories for persistence and service</text>
-          <text x="492" y="690" class="note-text">interfaces for cross-domain behavior.</text>
+          <path d="M586 222 H530 V346 H464" class="connector event" />
+          <rect x="498" y="358" width="68" height="22" rx="11" class="badge" />
+          <text x="532" y="374" class="boundary-step">result</text>
+
+          <path d="M370 346 H262" class="connector event" />
+          <rect x="292" y="318" width="62" height="22" rx="11" class="badge" />
+          <text x="323" y="334" class="boundary-step">event</text>
+
+          <!-- Boundary constraints -->
+          <rect x="48" y="612" width="286" height="70" rx="6" class="note" />
+          <line x1="76" y1="632" x2="104" y2="660" class="forbidden" />
+          <line x1="104" y1="632" x2="76" y2="660" class="forbidden" />
+          <text x="214" y="643" class="forbidden-text">no renderer imports</text>
+          <text x="214" y="664" class="forbidden-text">of main, SQL, or agent</text>
+
+          <rect x="880" y="612" width="356" height="70" rx="6" class="note" />
+          <line x1="910" y1="632" x2="938" y2="660" class="forbidden" />
+          <line x1="938" y1="632" x2="910" y2="660" class="forbidden" />
+          <text x="1084" y="643" class="forbidden-text">agent produces proposals only</text>
+          <text x="1084" y="664" class="forbidden-text">main applies all decisions</text>
+
+          <!-- Legend -->
+          <rect x="392" y="612" width="430" height="70" rx="6" class="note" />
+          <path d="M420 636 H478" class="connector" />
+          <text x="496" y="641" class="note-text">command</text>
+          <path d="M420 666 H478" class="connector event" />
+          <text x="496" y="671" class="note-text">response/event</text>
+          <path d="M624 636 H682" class="connector data" />
+          <text x="700" y="641" class="note-text">persistence</text>
+          <line x1="624" y1="654" x2="648" y2="678" class="forbidden" />
+          <line x1="648" y1="654" x2="624" y2="678" class="forbidden" />
+          <text x="700" y="671" class="note-text">blocked dependency</text>
         </svg>
       </section>
     </main>
