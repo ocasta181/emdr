@@ -152,6 +152,13 @@
         height: auto;
       }
 
+      .er-diagram {
+        display: block;
+        min-width: 1180px;
+        width: 100%;
+        height: auto;
+      }
+
       .participant {
         fill: #fff;
         stroke: var(--line-strong);
@@ -382,6 +389,97 @@
         font-size: 13px;
         font-weight: 850;
         text-anchor: middle;
+      }
+
+      .table-box {
+        fill: #fff;
+        stroke: var(--line-strong);
+        stroke-width: 1.5;
+      }
+
+      .table-box.domain {
+        fill: #f5fbf8;
+        stroke: var(--green);
+      }
+
+      .table-box.data {
+        fill: #fffaf0;
+        stroke: var(--gold);
+      }
+
+      .table-header {
+        fill: #f0ede5;
+        stroke: var(--line-strong);
+        stroke-width: 1.2;
+      }
+
+      .table-header.domain {
+        fill: var(--green-soft);
+        stroke: var(--green);
+      }
+
+      .table-header.data {
+        fill: var(--gold-soft);
+        stroke: var(--gold);
+      }
+
+      .table-title {
+        fill: var(--ink);
+        font-size: 15px;
+        font-weight: 850;
+      }
+
+      .field-text {
+        fill: var(--ink);
+        font-size: 12px;
+        font-weight: 680;
+      }
+
+      .field-muted {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 680;
+      }
+
+      .key-tag {
+        fill: #fff;
+        stroke: var(--line-strong);
+        stroke-width: 1;
+      }
+
+      .key-text {
+        fill: var(--green);
+        font-size: 10px;
+        font-weight: 900;
+        text-anchor: middle;
+      }
+
+      .relation {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 1.7;
+      }
+
+      .relation.data {
+        stroke: var(--gold);
+      }
+
+      .crow-foot {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 1.7;
+      }
+
+      .cardinality {
+        fill: var(--ink);
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .relation-label {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 760;
       }
 
       .port {
@@ -728,6 +826,140 @@
           <line x1="624" y1="654" x2="648" y2="678" class="forbidden" />
           <line x1="648" y1="654" x2="624" y2="678" class="forbidden" />
           <text x="700" y="671" class="note-text">blocked dependency</text>
+        </svg>
+      </section>
+
+      <section class="diagram-shell" aria-label="Persistence ER diagram" style="margin-top: 24px">
+        <svg
+          class="er-diagram"
+          viewBox="0 0 1320 780"
+          role="img"
+          aria-labelledby="er-title er-desc"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title id="er-title">Persistence ER diagram</title>
+          <desc id="er-desc">
+            Entity relationship diagram for the ideal encrypted SQLite schema:
+            target, session, stimulation_set, and setting tables with primary
+            keys, foreign keys, cardinality, self reference, and unique indexes.
+          </desc>
+
+          <text x="40" y="42" class="title">Durable store entity relationships</text>
+          <text x="40" y="66" class="subtitle">
+            Correct diagram type: ER/table diagram. Tables own columns; connectors show cardinality, foreign keys, and cascade behavior.
+          </text>
+
+          <rect x="34" y="96" width="1252" height="610" rx="10" class="node-frame data" />
+          <text x="58" y="124" class="boundary-title">ENCRYPTED LOCAL SQLITE STORE</text>
+
+          <!-- target table -->
+          <rect x="76" y="164" width="286" height="398" rx="8" class="table-box domain" />
+          <rect x="76" y="164" width="286" height="52" rx="8" class="table-header domain" />
+          <text x="98" y="196" class="table-title">target</text>
+          <rect x="278" y="178" width="50" height="22" rx="11" class="key-tag" />
+          <text x="303" y="193" class="key-text">domain</text>
+
+          <rect x="98" y="240" width="30" height="18" rx="9" class="key-tag" />
+          <text x="113" y="253" class="key-text">PK</text>
+          <text x="138" y="253" class="field-text">id: TEXT</text>
+
+          <rect x="98" y="270" width="30" height="18" rx="9" class="key-tag" />
+          <text x="113" y="283" class="key-text">FK</text>
+          <text x="138" y="283" class="field-text">parent_id -> target.id</text>
+          <text x="138" y="306" class="field-muted">is_current, status</text>
+          <text x="138" y="330" class="field-muted">created_at, updated_at</text>
+          <text x="138" y="354" class="field-muted">description</text>
+          <text x="138" y="378" class="field-muted">negative_cognition</text>
+          <text x="138" y="402" class="field-muted">positive_cognition</text>
+          <text x="138" y="426" class="field-muted">cluster_tag, notes</text>
+          <text x="138" y="450" class="field-muted">initial_disturbance</text>
+          <text x="138" y="474" class="field-muted">current_disturbance</text>
+          <text x="98" y="522" class="field-muted">indexes: parent_id; current/status/disturbance</text>
+
+          <!-- session table -->
+          <rect x="518" y="164" width="304" height="398" rx="8" class="table-box domain" />
+          <rect x="518" y="164" width="304" height="52" rx="8" class="table-header domain" />
+          <text x="540" y="196" class="table-title">session</text>
+          <rect x="738" y="178" width="50" height="22" rx="11" class="key-tag" />
+          <text x="763" y="193" class="key-text">domain</text>
+
+          <rect x="540" y="240" width="30" height="18" rx="9" class="key-tag" />
+          <text x="555" y="253" class="key-text">PK</text>
+          <text x="580" y="253" class="field-text">id: TEXT</text>
+
+          <rect x="540" y="270" width="30" height="18" rx="9" class="key-tag" />
+          <text x="555" y="283" class="key-text">FK</text>
+          <text x="580" y="283" class="field-text">target_id -> target.id</text>
+          <text x="580" y="306" class="field-muted">started_at, ended_at</text>
+          <text x="580" y="330" class="field-muted">assessment_image</text>
+          <text x="580" y="354" class="field-muted">assessment_negative_cognition</text>
+          <text x="580" y="378" class="field-muted">assessment_positive_cognition</text>
+          <text x="580" y="402" class="field-muted">assessment_believability</text>
+          <text x="580" y="426" class="field-muted">assessment_emotions</text>
+          <text x="580" y="450" class="field-muted">assessment_disturbance</text>
+          <text x="580" y="474" class="field-muted">assessment_body_location</text>
+          <text x="580" y="498" class="field-muted">final_disturbance, notes</text>
+          <text x="540" y="522" class="field-muted">indexes: target_id/started_at; started_at</text>
+
+          <!-- stimulation set table -->
+          <rect x="966" y="164" width="286" height="398" rx="8" class="table-box domain" />
+          <rect x="966" y="164" width="286" height="52" rx="8" class="table-header domain" />
+          <text x="988" y="196" class="table-title">stimulation_set</text>
+          <rect x="1168" y="178" width="50" height="22" rx="11" class="key-tag" />
+          <text x="1193" y="193" class="key-text">domain</text>
+
+          <rect x="988" y="240" width="30" height="18" rx="9" class="key-tag" />
+          <text x="1003" y="253" class="key-text">PK</text>
+          <text x="1028" y="253" class="field-text">id: TEXT</text>
+
+          <rect x="988" y="270" width="30" height="18" rx="9" class="key-tag" />
+          <text x="1003" y="283" class="key-text">FK</text>
+          <text x="1028" y="283" class="field-text">session_id -> session.id</text>
+          <text x="1028" y="306" class="field-muted">set_number</text>
+          <text x="1028" y="330" class="field-muted">created_at</text>
+          <text x="1028" y="354" class="field-muted">cycle_count</text>
+          <text x="1028" y="378" class="field-muted">observation</text>
+          <text x="1028" y="402" class="field-muted">disturbance</text>
+          <text x="988" y="450" class="field-muted">unique: session_id + set_number</text>
+          <text x="988" y="474" class="field-muted">index: session_id + set_number</text>
+          <text x="988" y="522" class="field-muted">delete: cascades with parent session</text>
+
+          <!-- settings table -->
+          <rect x="518" y="604" width="304" height="74" rx="8" class="table-box data" />
+          <rect x="518" y="604" width="104" height="74" rx="8" class="table-header data" />
+          <text x="540" y="638" class="table-title">setting</text>
+          <rect x="646" y="622" width="30" height="18" rx="9" class="key-tag" />
+          <text x="661" y="635" class="key-text">PK</text>
+          <text x="686" y="635" class="field-text">key: TEXT</text>
+          <text x="686" y="660" class="field-muted">value_json: TEXT</text>
+
+          <!-- Relationships -->
+          <path d="M362 344 H518" class="relation" />
+          <text x="386" y="332" class="cardinality">1</text>
+          <path d="M492 330 L518 344 L492 358" class="crow-foot" />
+          <text x="474" y="332" class="cardinality">0..n</text>
+          <rect x="402" y="358" width="78" height="22" rx="11" class="badge" />
+          <text x="441" y="374" class="boundary-step">target_id</text>
+
+          <path d="M822 344 H966" class="relation" />
+          <text x="844" y="332" class="cardinality">1</text>
+          <path d="M940 330 L966 344 L940 358" class="crow-foot" />
+          <text x="922" y="332" class="cardinality">0..n</text>
+          <rect x="858" y="358" width="88" height="22" rx="11" class="badge" />
+          <text x="902" y="374" class="boundary-step">session_id</text>
+          <text x="858" y="402" class="relation-label">ON DELETE CASCADE</text>
+
+          <path d="M218 164 V144 H394 V238 H362" class="relation" />
+          <path d="M336 224 L362 238 L336 252" class="crow-foot" />
+          <text x="238" y="156" class="relation-label">parent target version chain</text>
+          <text x="196" y="152" class="cardinality">1</text>
+          <text x="320" y="222" class="cardinality">0..n</text>
+
+          <!-- Non-persistent workflow marker -->
+          <rect x="60" y="634" width="324" height="44" rx="6" class="note" />
+          <text x="80" y="660" class="note-text">Session workflow state is not a table column.</text>
+          <rect x="932" y="634" width="310" height="44" rx="6" class="note" />
+          <text x="952" y="660" class="note-text">Repositories own SQL; renderer sees view models.</text>
         </svg>
       </section>
     </main>
