@@ -1518,90 +1518,88 @@
             Correct diagram type: package/dependency diagram. Folders are ownership boundaries; arrows are allowed dependency direction.
           </text>
 
-          <!-- Runtime package path -->
-          <rect x="54" y="158" width="236" height="280" rx="10" class="package-box renderer" />
-          <text x="80" y="190" class="package-title">src/renderer</text>
-          <text x="80" y="214" class="package-path">presentation package</text>
-          <rect x="84" y="246" width="176" height="42" rx="6" class="component agent" />
-          <text x="172" y="272" class="component-text">app + features</text>
-          <rect x="84" y="316" width="176" height="42" rx="6" class="component agent" />
-          <text x="172" y="342" class="component-text">api client</text>
-          <text x="80" y="398" class="field-muted">owns UI state, views, animation</text>
-          <text x="80" y="422" class="field-muted">imports no main internals</text>
+          <!-- Package ownership layers -->
+          <rect x="42" y="112" width="1236" height="214" rx="12" class="state-region" />
+          <text x="68" y="142" class="fragment-label">runtime-facing packages</text>
 
-          <rect x="370" y="204" width="180" height="150" rx="10" class="package-box" />
-          <text x="394" y="236" class="package-title">electron/preload.cts</text>
-          <text x="394" y="260" class="package-path">security bridge</text>
-          <text x="394" y="300" class="field-muted">request()</text>
-          <text x="394" y="326" class="field-muted">subscribe()</text>
+          <rect x="62" y="172" width="260" height="126" rx="10" class="package-box renderer" />
+          <text x="88" y="204" class="package-title">src/renderer</text>
+          <text x="88" y="228" class="package-path">presentation package</text>
+          <text x="88" y="260" class="field-text">app + features</text>
+          <text x="88" y="284" class="field-muted">owns UI state; imports no main internals</text>
 
-          <rect x="630" y="98" width="246" height="84" rx="8" class="package-box" />
-          <text x="654" y="132" class="package-title">electron/main.ts</text>
-          <text x="654" y="156" class="package-path">entrypoint only</text>
+          <rect x="372" y="172" width="210" height="126" rx="10" class="package-box" />
+          <text x="398" y="204" class="package-title">electron/preload.cts</text>
+          <text x="398" y="228" class="package-path">security bridge</text>
+          <text x="398" y="260" class="field-text">request() / subscribe()</text>
 
-          <rect x="630" y="230" width="246" height="208" rx="10" class="package-box main" />
-          <text x="656" y="262" class="package-title">src/main/api</text>
-          <text x="656" y="286" class="package-path">composition root</text>
-          <text x="656" y="326" class="field-text">app.ts starts lifecycle</text>
-          <text x="656" y="352" class="field-text">registry.ts dispatches IPC</text>
-          <text x="656" y="378" class="field-text">modules.ts wires domains</text>
-          <text x="656" y="404" class="field-muted">only package that sees every domain</text>
+          <rect x="652" y="112" width="250" height="80" rx="8" class="package-box" />
+          <text x="678" y="146" class="package-title">electron/main.ts</text>
+          <text x="678" y="170" class="package-path">entrypoint only</text>
 
-          <rect x="970" y="126" width="276" height="210" rx="10" class="package-box main" />
-          <text x="996" y="158" class="package-title">src/main/internal/domain</text>
-          <text x="996" y="182" class="package-path">bounded contexts</text>
-          <text x="996" y="222" class="field-text">vault / target / session</text>
-          <text x="996" y="248" class="field-text">stimulation-set / setting / guide</text>
-          <text x="996" y="286" class="field-muted">module -> ipc -> service -> repository</text>
-          <text x="996" y="312" class="field-muted">cross-domain calls are service -> service</text>
+          <rect x="652" y="232" width="250" height="142" rx="10" class="package-box main" />
+          <text x="678" y="264" class="package-title">src/main/api</text>
+          <text x="678" y="288" class="package-path">composition root</text>
+          <text x="678" y="320" class="field-text">registry dispatches IPC</text>
+          <text x="678" y="344" class="field-muted">only package that sees every domain</text>
 
-          <rect x="970" y="424" width="276" height="150" rx="10" class="package-box main" />
-          <text x="996" y="456" class="package-title">src/main/internal/lib</text>
-          <text x="996" y="480" class="package-path">generic infrastructure</text>
-          <text x="996" y="520" class="field-text">ipc / store / vault / agent</text>
-          <text x="996" y="546" class="field-muted">no domain SQL mappings or UI code</text>
+          <rect x="972" y="172" width="278" height="154" rx="10" class="package-box main" />
+          <text x="998" y="204" class="package-title">src/main/internal/domain</text>
+          <text x="998" y="228" class="package-path">bounded contexts</text>
+          <text x="998" y="260" class="field-text">vault / target / session / guide</text>
+          <text x="998" y="284" class="field-muted">module -> ipc -> service -> repository</text>
+          <text x="998" y="308" class="field-muted">cross-domain calls are service -> service</text>
 
-          <rect x="370" y="592" width="506" height="92" rx="10" class="package-box shared" />
-          <text x="396" y="624" class="package-title">src/shared</text>
-          <text x="396" y="648" class="package-path">serializable contracts only</text>
-          <text x="396" y="672" class="field-muted">view models, transport envelopes, constants; no domain behavior</text>
+          <rect x="42" y="418" width="1236" height="204" rx="12" class="state-region" />
+          <text x="68" y="448" class="fragment-label">shared contracts and infrastructure</text>
+
+          <rect x="372" y="520" width="548" height="90" rx="10" class="package-box shared" />
+          <text x="398" y="552" class="package-title">src/shared</text>
+          <text x="398" y="576" class="package-path">serializable contracts only</text>
+          <text x="398" y="600" class="field-muted">view models, transport envelopes, constants; no domain behavior</text>
+
+          <rect x="972" y="448" width="278" height="122" rx="10" class="package-box main" />
+          <text x="998" y="480" class="package-title">src/main/internal/lib</text>
+          <text x="998" y="504" class="package-path">generic infrastructure</text>
+          <text x="998" y="536" class="field-text">ipc / store / vault / agent</text>
+          <text x="998" y="560" class="field-muted">no domain SQL mappings or UI code</text>
 
           <!-- Dependency arrows -->
-          <path d="M260 337 H370" class="dependency-edge" />
-          <rect x="292" y="308" width="68" height="22" rx="11" class="badge" />
-          <text x="326" y="324" class="boundary-step">window API</text>
+          <path d="M322 235 H366" class="dependency-edge" />
+          <rect x="316" y="204" width="68" height="22" rx="11" class="badge" />
+          <text x="350" y="220" class="boundary-step">window API</text>
 
-          <path d="M550 279 H630" class="dependency-edge event" />
-          <rect x="566" y="250" width="72" height="22" rx="11" class="badge" />
-          <text x="602" y="266" class="boundary-step">generic IPC</text>
+          <path d="M582 260 H646" class="dependency-edge event" />
+          <rect x="590" y="276" width="76" height="22" rx="11" class="badge" />
+          <text x="628" y="292" class="boundary-step">generic IPC</text>
 
-          <path d="M753 182 V230" class="dependency-edge" />
-          <rect x="770" y="194" width="58" height="22" rx="11" class="badge" />
-          <text x="799" y="210" class="boundary-step">Start()</text>
+          <path d="M777 192 V226" class="dependency-edge" />
+          <rect x="794" y="203" width="58" height="22" rx="11" class="badge" />
+          <text x="823" y="219" class="boundary-step">Start()</text>
 
-          <path d="M876 310 H970" class="dependency-edge" />
-          <rect x="900" y="282" width="72" height="22" rx="11" class="badge" />
-          <text x="936" y="298" class="boundary-step">construct</text>
+          <path d="M902 282 H966" class="dependency-edge" />
+          <rect x="914" y="252" width="72" height="22" rx="11" class="badge" />
+          <text x="950" y="268" class="boundary-step">construct</text>
 
-          <path d="M1108 336 V424" class="dependency-edge data" />
-          <rect x="1124" y="370" width="62" height="22" rx="11" class="badge" />
-          <text x="1155" y="386" class="boundary-step">uses lib</text>
+          <path d="M1111 326 V442" class="dependency-edge data" />
+          <rect x="1128" y="378" width="62" height="22" rx="11" class="badge" />
+          <text x="1159" y="394" class="boundary-step">uses lib</text>
 
-          <path d="M876 402 C920 428, 936 486, 970 500" class="dependency-edge data" />
-          <rect x="892" y="452" width="76" height="22" rx="11" class="badge" />
-          <text x="930" y="468" class="boundary-step">lifecycle</text>
+          <path d="M902 348 H952 V509 H966" class="dependency-edge data" />
+          <rect x="918" y="470" width="76" height="22" rx="11" class="badge" />
+          <text x="956" y="486" class="boundary-step">lifecycle</text>
 
-          <path d="M172 438 V638 H370" class="dependency-edge data" />
-          <rect x="190" y="610" width="88" height="22" rx="11" class="badge" />
-          <text x="234" y="626" class="boundary-step">view shapes</text>
+          <path d="M192 298 V386 H340 V565 H366" class="dependency-edge data" />
+          <rect x="220" y="536" width="88" height="22" rx="11" class="badge" />
+          <text x="264" y="552" class="boundary-step">view shapes</text>
 
-          <path d="M753 438 V592" class="dependency-edge data" />
-          <rect x="770" y="508" width="84" height="22" rx="11" class="badge" />
-          <text x="812" y="524" class="boundary-step">contracts</text>
+          <path d="M777 374 V514" class="dependency-edge data" />
+          <rect x="794" y="430" width="84" height="22" rx="11" class="badge" />
+          <text x="836" y="446" class="boundary-step">contracts</text>
 
-          <path d="M970 222 C932 258, 906 574, 876 638" class="dependency-edge data" />
-          <rect x="900" y="584" width="86" height="22" rx="11" class="badge" />
-          <text x="943" y="600" class="boundary-step">type shapes</text>
+          <path d="M972 246 H930 V565 H926" class="dependency-edge data" />
+          <rect x="886" y="536" width="86" height="22" rx="11" class="badge" />
+          <text x="929" y="552" class="boundary-step">type shapes</text>
 
           <!-- Forbidden dependencies -->
           <rect x="52" y="708" width="1218" height="58" rx="8" class="note" />
