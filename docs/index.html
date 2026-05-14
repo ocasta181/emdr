@@ -180,6 +180,13 @@
         height: auto;
       }
 
+      .journey-diagram {
+        display: block;
+        min-width: 1180px;
+        width: 100%;
+        height: auto;
+      }
+
       .participant {
         fill: #fff;
         stroke: var(--line-strong);
@@ -673,6 +680,55 @@
         stroke: var(--blue);
         stroke-dasharray: 7 5;
         marker-end: url(#packageReturnArrow);
+      }
+
+      .journey-stage {
+        fill: #f0ede5;
+        stroke: var(--line-strong);
+        stroke-width: 1.1;
+      }
+
+      .journey-lane {
+        fill: rgba(255, 255, 255, 0.76);
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+
+      .journey-cell {
+        fill: #fff;
+        stroke: #d8d1c4;
+        stroke-width: 1;
+      }
+
+      .journey-cell.main {
+        fill: var(--green-soft);
+        stroke: #9fcbbb;
+      }
+
+      .journey-cell.data {
+        fill: var(--gold-soft);
+        stroke: #d7c386;
+      }
+
+      .journey-heading {
+        fill: var(--ink);
+        font-size: 12px;
+        font-weight: 850;
+        text-anchor: middle;
+      }
+
+      .journey-text {
+        fill: var(--ink);
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+
+      .journey-muted {
+        fill: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        text-anchor: middle;
       }
 
       .port {
@@ -1692,6 +1748,181 @@
           <line x1="234" y1="902" x2="93" y2="902" class="return" style="marker-end: url(#agentSeqReturnArrow)" />
           <rect x="116" y="882" width="106" height="20" class="label-bg" />
           <text x="122" y="897" class="return-text">show outcome</text>
+        </svg>
+      </section>
+
+      <section class="diagram-shell" aria-label="Session user journey blueprint" style="margin-top: 24px">
+        <svg
+          class="journey-diagram"
+          viewBox="0 0 1320 760"
+          role="img"
+          aria-labelledby="journey-title journey-desc"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title id="journey-title">Session user journey blueprint</title>
+          <desc id="journey-desc">
+            User journey and service blueprint for the ideal end-to-end session:
+            target selection, preparation, stimulation, interjection, closure,
+            review, and post-session, with UI, main workflow, and persistence lanes.
+          </desc>
+
+          <defs>
+            <marker id="journeyArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#17211f" />
+            </marker>
+          </defs>
+
+          <text x="40" y="42" class="title">Session user journey and service blueprint</text>
+          <text x="40" y="66" class="subtitle">
+            Correct diagram type: user journey map with technical service lanes. Each stage maps user intent to UI, main workflow state, and durable writes.
+          </text>
+
+          <rect x="36" y="112" width="1248" height="566" rx="10" class="node-frame" />
+
+          <!-- Stage headings -->
+          <text x="108" y="140" class="boundary-title">LANE</text>
+          <g>
+            <rect x="180" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="248" y="154" class="journey-heading">Select</text>
+            <rect x="316" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="384" y="154" class="journey-heading">Prepare</text>
+            <rect x="452" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="520" y="154" class="journey-heading">Approve</text>
+            <rect x="588" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="656" y="154" class="journey-heading">Stimulate</text>
+            <rect x="724" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="792" y="154" class="journey-heading">Reflect</text>
+            <rect x="860" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="928" y="154" class="journey-heading">Close</text>
+            <rect x="996" y="124" width="136" height="50" rx="6" class="journey-stage" />
+            <text x="1064" y="154" class="journey-heading">Review</text>
+            <rect x="1132" y="124" width="112" height="50" rx="6" class="journey-stage" />
+            <text x="1188" y="154" class="journey-heading">After</text>
+          </g>
+
+          <!-- Lane labels -->
+          <rect x="56" y="194" width="104" height="76" rx="6" class="journey-lane" />
+          <text x="108" y="226" class="journey-heading">User intent</text>
+          <text x="108" y="248" class="journey-muted">human goal</text>
+
+          <rect x="56" y="294" width="104" height="76" rx="6" class="journey-lane" />
+          <text x="108" y="326" class="journey-heading">Renderer</text>
+          <text x="108" y="348" class="journey-muted">presentation</text>
+
+          <rect x="56" y="394" width="104" height="76" rx="6" class="journey-lane" />
+          <text x="108" y="426" class="journey-heading">Main</text>
+          <text x="108" y="448" class="journey-muted">authority</text>
+
+          <rect x="56" y="494" width="104" height="76" rx="6" class="journey-lane" />
+          <text x="108" y="526" class="journey-heading">Store</text>
+          <text x="108" y="548" class="journey-muted">durable facts</text>
+
+          <!-- User lane -->
+          <rect x="180" y="194" width="136" height="76" class="journey-cell" />
+          <text x="248" y="224" class="journey-text">choose work</text>
+          <text x="248" y="246" class="journey-muted">existing or draft</text>
+          <rect x="316" y="194" width="136" height="76" class="journey-cell" />
+          <text x="384" y="224" class="journey-text">name material</text>
+          <text x="384" y="246" class="journey-muted">assessment fields</text>
+          <rect x="452" y="194" width="136" height="76" class="journey-cell" />
+          <text x="520" y="224" class="journey-text">confirm ready</text>
+          <text x="520" y="246" class="journey-muted">explicit approval</text>
+          <rect x="588" y="194" width="136" height="76" class="journey-cell" />
+          <text x="656" y="224" class="journey-text">process set</text>
+          <text x="656" y="246" class="journey-muted">can pause anytime</text>
+          <rect x="724" y="194" width="136" height="76" class="journey-cell" />
+          <text x="792" y="224" class="journey-text">notice change</text>
+          <text x="792" y="246" class="journey-muted">continue or ground</text>
+          <rect x="860" y="194" width="136" height="76" class="journey-cell" />
+          <text x="928" y="224" class="journey-text">finish session</text>
+          <text x="928" y="246" class="journey-muted">final disturbance</text>
+          <rect x="996" y="194" width="136" height="76" class="journey-cell" />
+          <text x="1064" y="224" class="journey-text">review record</text>
+          <text x="1064" y="246" class="journey-muted">approve close</text>
+          <rect x="1132" y="194" width="112" height="76" class="journey-cell" />
+          <text x="1188" y="224" class="journey-text">leave room</text>
+          <text x="1188" y="246" class="journey-muted">history visible</text>
+
+          <!-- Renderer lane -->
+          <rect x="180" y="294" width="136" height="76" class="journey-cell" />
+          <text x="248" y="324" class="journey-text">Targets panel</text>
+          <text x="248" y="346" class="journey-muted">draft/edit UI</text>
+          <rect x="316" y="294" width="136" height="76" class="journey-cell" />
+          <text x="384" y="324" class="journey-text">Assessment form</text>
+          <text x="384" y="346" class="journey-muted">view data only</text>
+          <rect x="452" y="294" width="136" height="76" class="journey-cell" />
+          <text x="520" y="324" class="journey-text">Start Set</text>
+          <text x="520" y="346" class="journey-muted">workflow command</text>
+          <rect x="588" y="294" width="136" height="76" class="journey-cell" />
+          <text x="656" y="324" class="journey-text">Room scene</text>
+          <text x="656" y="346" class="journey-muted">animation only</text>
+          <rect x="724" y="294" width="136" height="76" class="journey-cell" />
+          <text x="792" y="324" class="journey-text">Guide panel</text>
+          <text x="792" y="346" class="journey-muted">proposal UI</text>
+          <rect x="860" y="294" width="136" height="76" class="journey-cell" />
+          <text x="928" y="324" class="journey-text">Closure form</text>
+          <text x="928" y="346" class="journey-muted">final notes</text>
+          <rect x="996" y="294" width="136" height="76" class="journey-cell" />
+          <text x="1064" y="324" class="journey-text">Review screen</text>
+          <text x="1064" y="346" class="journey-muted">no auto-save</text>
+          <rect x="1132" y="294" width="112" height="76" class="journey-cell" />
+          <text x="1188" y="324" class="journey-text">History</text>
+          <text x="1188" y="346" class="journey-muted">read-only view</text>
+
+          <!-- Main lane -->
+          <rect x="180" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="248" y="424" class="journey-text">target_selection</text>
+          <text x="248" y="446" class="journey-muted">choose candidate</text>
+          <rect x="316" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="384" y="424" class="journey-text">preparation</text>
+          <text x="384" y="446" class="journey-muted">update_assessment</text>
+          <rect x="452" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="520" y="424" class="journey-text">stimulation</text>
+          <text x="520" y="446" class="journey-muted">approve_assessment</text>
+          <rect x="588" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="656" y="424" class="journey-text">stimulation</text>
+          <text x="656" y="446" class="journey-muted">start/log/pause</text>
+          <rect x="724" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="792" y="424" class="journey-text">interjection</text>
+          <text x="792" y="446" class="journey-muted">continue or close</text>
+          <rect x="860" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="928" y="424" class="journey-text">closure</text>
+          <text x="928" y="446" class="journey-muted">request_review</text>
+          <rect x="996" y="394" width="136" height="76" class="journey-cell main" />
+          <text x="1064" y="424" class="journey-text">review</text>
+          <text x="1064" y="446" class="journey-muted">close_session</text>
+          <rect x="1132" y="394" width="112" height="76" class="journey-cell main" />
+          <text x="1188" y="424" class="journey-text">post_session</text>
+          <text x="1188" y="446" class="journey-muted">return_idle</text>
+
+          <!-- Store lane -->
+          <rect x="180" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="248" y="524" class="journey-text">target row</text>
+          <text x="248" y="546" class="journey-muted">only after save</text>
+          <rect x="316" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="384" y="524" class="journey-text">session row</text>
+          <text x="384" y="546" class="journey-muted">assessment fields</text>
+          <rect x="452" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="520" y="524" class="journey-text">no graph column</text>
+          <text x="520" y="546" class="journey-muted">memory only</text>
+          <rect x="588" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="656" y="524" class="journey-text">stimulation_set</text>
+          <text x="656" y="546" class="journey-muted">per logged set</text>
+          <rect x="724" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="792" y="524" class="journey-text">optional set row</text>
+          <text x="792" y="546" class="journey-muted">if logged</text>
+          <rect x="860" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="928" y="524" class="journey-text">session patch</text>
+          <text x="928" y="546" class="journey-muted">final fields</text>
+          <rect x="996" y="494" width="136" height="76" class="journey-cell data" />
+          <text x="1064" y="524" class="journey-text">ended_at</text>
+          <text x="1064" y="546" class="journey-muted">on approval</text>
+          <rect x="1132" y="494" width="112" height="76" class="journey-cell data" />
+          <text x="1188" y="524" class="journey-text">history read</text>
+          <text x="1188" y="546" class="journey-muted">view model</text>
+
+          <path d="M180 604 H1244" class="dependency-edge" style="marker-end: url(#journeyArrow)" />
+          <text x="662" y="632" class="relation-label">Journey invariant: user-facing movement is always mediated by graph-validated main-domain commands.</text>
         </svg>
       </section>
     </main>
