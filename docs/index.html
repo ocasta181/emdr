@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EMDR Local Architecture Diagram Proofs</title>
+    <title>EMDR Local Ideal Architecture</title>
     <style>
       :root {
         color-scheme: light;
@@ -120,6 +120,39 @@
         padding-left: 18px;
         color: var(--muted);
         line-height: 1.5;
+      }
+
+      .tabs {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        overflow-x: auto;
+        margin: 0 0 24px;
+        padding: 10px 0;
+        background: rgba(251, 250, 246, 0.94);
+        border-bottom: 1px solid rgba(216, 209, 196, 0.8);
+        backdrop-filter: blur(10px);
+      }
+
+      .tabs a {
+        flex: 0 0 auto;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        background: #fff;
+        font-size: 0.78rem;
+        font-weight: 850;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .tabs a:focus-visible {
+        outline: 2px solid var(--green);
+        outline-offset: 2px;
       }
 
       .diagram-shell {
@@ -759,25 +792,37 @@
     <main>
       <header>
         <div>
-          <div class="eyebrow">Diagram quality proof</div>
-          <h1>Architecture Diagram Proofs</h1>
+          <div class="eyebrow">Ideal architecture</div>
+          <h1>EMDR Local Architecture</h1>
           <p class="lead">
-            One data piece at a time, using the diagram type that actually
-            fits the information. This page documents the ideal architecture
-            state only, with diagrams as the primary source of explanation.
+            Single-page technical architecture document for the ideal state.
+            Diagrams are the primary source of explanation; text labels clarify
+            the diagram grammar rather than replacing it.
           </p>
         </div>
         <aside class="scope" aria-label="Diagram scope">
           <h2>Scope</h2>
           <ul>
-            <li>One architecture concern per diagram.</li>
-            <li>No markdown links, scripts, generated diagrams, or card grids.</li>
-            <li>Markdown architecture files remain untouched.</li>
+            <li>Ideal architecture only; migration status is intentionally out of band.</li>
+            <li>Runtime, source, vault, workflow, agent, journey, and persistence views.</li>
+            <li>Inline HTML, SVG, and CSS only; no markdown document links.</li>
           </ul>
         </aside>
       </header>
 
-      <section class="diagram-shell" aria-label="Vault creation sequence diagram">
+      <nav class="tabs" aria-label="Architecture views">
+        <a href="#vault-create">Vault Create</a>
+        <a href="#runtime">Runtime</a>
+        <a href="#er">Store ER</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#recovery">Recovery</a>
+        <a href="#packages">Packages</a>
+        <a href="#agent">Agent</a>
+        <a href="#journey">Journey</a>
+        <a href="#vault-life">Vault Life</a>
+      </nav>
+
+      <section id="vault-create" class="diagram-shell" aria-label="Vault creation sequence diagram">
         <svg
           class="sequence-diagram"
           viewBox="0 0 1320 900"
@@ -928,7 +973,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Runtime boundary diagram" style="margin-top: 24px">
+      <section id="runtime" class="diagram-shell" aria-label="Runtime boundary diagram" style="margin-top: 24px">
         <svg
           class="runtime-diagram"
           viewBox="0 0 1320 760"
@@ -1078,7 +1123,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Persistence ER diagram" style="margin-top: 24px">
+      <section id="er" class="diagram-shell" aria-label="Persistence ER diagram" style="margin-top: 24px">
         <svg
           class="er-diagram"
           viewBox="0 0 1320 780"
@@ -1212,7 +1257,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Session state machine diagram" style="margin-top: 24px">
+      <section id="workflow" class="diagram-shell" aria-label="Session state machine diagram" style="margin-top: 24px">
         <svg
           class="state-diagram"
           viewBox="0 0 1320 780"
@@ -1372,7 +1417,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Workflow recovery flowchart" style="margin-top: 24px">
+      <section id="recovery" class="diagram-shell" aria-label="Workflow recovery flowchart" style="margin-top: 24px">
         <svg
           class="flow-diagram"
           viewBox="0 0 1320 700"
@@ -1460,7 +1505,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Source package dependency diagram" style="margin-top: 24px">
+      <section id="packages" class="diagram-shell" aria-label="Source package dependency diagram" style="margin-top: 24px">
         <svg
           class="package-diagram"
           viewBox="0 0 1320 820"
@@ -1586,7 +1631,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Guide proposal validation sequence diagram" style="margin-top: 24px">
+      <section id="agent" class="diagram-shell" aria-label="Guide proposal validation sequence diagram" style="margin-top: 24px">
         <svg
           class="sequence-diagram"
           viewBox="0 0 1320 920"
@@ -1751,7 +1796,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Session user journey blueprint" style="margin-top: 24px">
+      <section id="journey" class="diagram-shell" aria-label="Session user journey blueprint" style="margin-top: 24px">
         <svg
           class="journey-diagram"
           viewBox="0 0 1320 760"
@@ -1926,7 +1971,7 @@
         </svg>
       </section>
 
-      <section class="diagram-shell" aria-label="Vault lifecycle sequence diagram" style="margin-top: 24px">
+      <section id="vault-life" class="diagram-shell" aria-label="Vault lifecycle sequence diagram" style="margin-top: 24px">
         <svg
           class="sequence-diagram"
           viewBox="0 0 1320 940"
