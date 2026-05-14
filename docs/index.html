@@ -240,6 +240,24 @@
         font-weight: 700;
       }
 
+      .interaction-tab {
+        fill: #f6f4ee;
+        stroke: #bdb4a8;
+        stroke-width: 1.2;
+      }
+
+      .fragment {
+        fill: rgba(224, 240, 233, 0.38);
+        stroke: #9fcbbb;
+        stroke-width: 1.1;
+      }
+
+      .fragment-label {
+        fill: var(--green);
+        font-size: 12px;
+        font-weight: 850;
+      }
+
       .node-frame {
         fill: #fff;
         stroke: var(--line-strong);
@@ -445,9 +463,14 @@
           <line x1="1117" y1="158" x2="1117" y2="850" class="lifeline" />
           <line x1="1260" y1="158" x2="1260" y2="850" class="lifeline" />
 
+          <!-- Combined fragment: persistence is the critical section -->
+          <rect x="878" y="438" width="400" height="188" rx="4" class="fragment" />
+          <path d="M878 438 H946 L960 462 H878 Z" class="interaction-tab" />
+          <text x="892" y="456" class="fragment-label">critical</text>
+
           <!-- Activations -->
-          <rect x="258" y="200" width="18" height="610" rx="3" class="activation" />
-          <rect x="428" y="250" width="18" height="510" rx="3" class="activation" />
+          <rect x="258" y="200" width="18" height="640" rx="3" class="activation" />
+          <rect x="428" y="270" width="18" height="500" rx="3" class="activation" />
           <rect x="598" y="300" width="18" height="410" rx="3" class="activation" />
           <rect x="768" y="350" width="18" height="310" rx="3" class="activation" />
           <rect x="938" y="400" width="18" height="210" rx="3" class="activation" />
@@ -459,25 +482,29 @@
           <rect x="124" y="190" width="112" height="20" class="label-bg" />
           <text x="132" y="205" class="message-text">1. submit password</text>
 
-          <line x1="276" y1="260" x2="428" y2="260" class="message" />
-          <rect x="295" y="240" width="115" height="20" class="label-bg" />
-          <text x="302" y="255" class="message-text">2. createVault()</text>
+          <path d="M276 240 H338 V260 H276" class="message" />
+          <rect x="286" y="221" width="122" height="20" class="label-bg" />
+          <text x="292" y="236" class="message-text">2. validate locally</text>
+
+          <line x1="276" y1="280" x2="428" y2="280" class="message" />
+          <rect x="295" y="260" width="115" height="20" class="label-bg" />
+          <text x="302" y="275" class="message-text">3. createVault()</text>
 
           <line x1="446" y1="310" x2="598" y2="310" class="message" />
           <rect x="468" y="290" width="110" height="20" class="label-bg" />
-          <text x="474" y="305" class="message-text">3. request route</text>
+          <text x="474" y="305" class="message-text">4. request route</text>
 
           <line x1="616" y1="360" x2="768" y2="360" class="message" />
           <rect x="644" y="340" width="102" height="20" class="label-bg" />
-          <text x="650" y="355" class="message-text">4. IPC invoke</text>
+          <text x="650" y="355" class="message-text">5. IPC invoke</text>
 
           <line x1="786" y1="410" x2="938" y2="410" class="message" />
           <rect x="808" y="390" width="116" height="20" class="label-bg" />
-          <text x="814" y="405" class="message-text">5. vault:create</text>
+          <text x="814" y="405" class="message-text">6. vault:create</text>
 
           <line x1="956" y1="462" x2="1108" y2="462" class="message" />
           <rect x="976" y="442" width="118" height="20" class="label-bg" />
-          <text x="982" y="457" class="message-text">6. create store</text>
+          <text x="982" y="457" class="message-text">7. create store</text>
 
           <line x1="1108" y1="512" x2="956" y2="512" class="return" />
           <rect x="994" y="492" width="88" height="20" class="label-bg" />
@@ -485,7 +512,7 @@
 
           <line x1="956" y1="558" x2="1251" y2="558" class="message" />
           <rect x="1035" y="538" width="145" height="20" class="label-bg" />
-          <text x="1041" y="553" class="message-text">7. encrypt and save</text>
+          <text x="1041" y="553" class="message-text">8. encrypt and save</text>
 
           <line x1="1251" y1="606" x2="956" y2="606" class="return" />
           <rect x="1064" y="586" width="88" height="20" class="label-bg" />
@@ -647,16 +674,16 @@
           <text x="396" y="531" class="return-text">main event / response</text>
 
           <path d="M902 212 C936 212, 946 220, 976 220" class="connector" />
-          <rect x="914" y="176" width="136" height="20" class="label-bg" />
-          <text x="920" y="191" class="message-text">private agent protocol</text>
+          <rect x="910" y="152" width="146" height="20" class="label-bg" />
+          <text x="916" y="167" class="message-text">private agent protocol</text>
 
           <path d="M976 244 C946 244, 936 238, 902 238" class="connector event" />
-          <rect x="914" y="252" width="126" height="20" class="label-bg" />
-          <text x="920" y="267" class="return-text">structured proposal</text>
+          <rect x="904" y="270" width="132" height="20" class="label-bg" />
+          <text x="910" y="285" class="return-text">structured proposal</text>
 
           <path d="M902 482 C936 482, 946 512, 976 512" class="connector data" />
-          <rect x="910" y="454" width="104" height="20" class="label-bg" />
-          <text x="916" y="469" class="message-text">repository calls</text>
+          <rect x="908" y="440" width="112" height="20" class="label-bg" />
+          <text x="914" y="455" class="message-text">repository calls</text>
 
           <!-- Invariant notes -->
           <rect x="42" y="600" width="402" height="112" rx="6" class="note" />
