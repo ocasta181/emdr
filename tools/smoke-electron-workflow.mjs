@@ -79,6 +79,7 @@ async function main() {
     await waitForText(window, "New Target");
     await clickButton(window, "New Target");
     await waitForText(window, "Save Version");
+    await expectButtonPresent(window, "Start Set", false);
     await setFieldByLabel(window, "Description", "");
     await clickButton(window, "Save Version");
     await waitForText(window, "Enter a target description.");
@@ -88,6 +89,12 @@ async function main() {
     await clickButton(window, "Save Version");
     await waitForText(window, "Start session");
     await expectButtonPresent(window, "Start Set", true);
+    await clickButton(window, "New Target");
+    await waitForText(window, "Save Version");
+    await setFieldByLabel(window, "Description", "Second workflow target");
+    await clickButton(window, "Save Version");
+    await waitForText(window, "Second workflow target");
+    await expectButtonPresent(window, "Start Set", false);
 
     phase = "start session";
     await clickButton(window, "Start session");
@@ -157,7 +164,7 @@ async function main() {
     await waitForText(window, "Electron workflow target");
 
     phase = "start imported active session";
-    await clickButton(window, "Start Set");
+    await clickButton(window, "Start session");
     await waitForText(window, "Pause Set");
 
     phase = "export active vault";

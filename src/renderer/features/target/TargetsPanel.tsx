@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import type { GuideAction } from "../../animation/guideAnimationModel";
-import type { Target, TargetStatus } from "../../../shared/types";
+import type { Target, TargetDraft, TargetStatus } from "../../../shared/types";
 import { optionalNumber } from "../../../../utils";
+
+export type TargetEditorState =
+  | { kind: "new"; draft: TargetDraft }
+  | { kind: "existing"; target: Target };
 
 export function TargetsPanel({
   targets,
@@ -16,12 +20,12 @@ export function TargetsPanel({
   isAnimating
 }: {
   targets: Target[];
-  editing: Target | null;
+  editing: TargetEditorState | null;
   activeSessionTargetId: string | undefined;
   onAdd: () => void;
   onEdit: (target: Target) => void;
   onCancelEdit: () => void;
-  onSave: (target: Target) => void;
+  onSave: (target: TargetEditorState) => void;
   onStartSession: (target: Target) => void;
   onAnimate: (action: GuideAction) => void;
   isAnimating: (action: GuideAction) => boolean;
@@ -35,7 +39,7 @@ export function TargetsPanel({
 
       {editing ? (
         <TargetForm
-          target={editing}
+          editing={editing}
           onSave={(target) => {
             onAnimate("write_in_book");
             onSave(target);
@@ -92,23 +96,23 @@ export function TargetsPanel({
 }
 
 function TargetForm({
-  target,
+  editing,
   onSave,
   onCancel
 }: {
-  target: Target;
-  onSave: (target: Target) => void;
+  editing: TargetEditorState;
+  onSave: (target: TargetEditorState) => void;
   onCancel: () => void;
 }) {
-  const [draft, setDraft] = useState(target);
+  const [draft, setDraft] = useState<TargetDraft>(editableTargetDraft(editing));
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setDraft(target);
+    setDraft(editableTargetDraft(editing));
     setError("");
-  }, [target]);
+  }, [editing]);
 
-  function set<K extends keyof Target>(key: K, value: Target[K]) {
+  function set<K extends keyof TargetDraft>(key: K, value: TargetDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
   }
 
@@ -123,7 +127,14 @@ function TargetForm({
           return;
         }
         setError("");
-        onSave({ ...draft, description });
+        if (editing.kind === "new") {
+          onSave({ kind: "new", draft: { ...draft, description, status: draft.status ?? "active" } });
+          return;
+        }
+        onSave({
+          kind: "existing",
+          target: { ...editing.target, ...draft, description, status: draft.status ?? editing.target.status }
+        });
       }}
     >
       <label>
@@ -185,4 +196,20 @@ function TargetForm({
       </div>
     </form>
   );
+}
+
+function editableTargetDraft(editing: TargetEditorState): TargetDraft {
+  if (editing.kind === "new") {
+    return editing.draft;
+  }
+  return {
+    description: editing.target.description,
+    negativeCognition: editing.target.negativeCognition,
+    positiveCognition: editing.target.positiveCognition,
+    clusterTag: editing.target.clusterTag,
+    initialDisturbance: editing.target.initialDisturbance,
+    currentDisturbance: editing.target.currentDisturbance,
+    status: editing.target.status,
+    notes: editing.target.notes
+  };
 }

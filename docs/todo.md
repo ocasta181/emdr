@@ -32,3 +32,5 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 - [x] Make the topbar Start Set action available whenever an active target exists.
 - [x] Replace visible History and Settings hotspot overlays with integrated room props.
 - [x] Expose active session next-step controls in the Guide panel without disabled buttons.
+- [x] New Target should create an unsaved draft, not immediately persist an active target.
+- [x] Topbar Start Set should not appear when multiple active targets require explicit target selection.

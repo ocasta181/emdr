@@ -45,7 +45,7 @@ import {
 import { ActiveSessionChat, IdleGuideChat } from "../features/guide/GuidePanel";
 import { HistoryPanel } from "../features/session/HistoryPanel";
 import { SettingsPanel } from "../features/setting/SettingsPanel";
-import { TargetsPanel } from "../features/target/TargetsPanel";
+import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
 import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAccess";
 
 type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
@@ -83,7 +83,7 @@ export function AnimatedApp() {
   const [viewData, setViewData] = useState<AppViewData>(emptyViewData);
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
   const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
-  const [editingTarget, setEditingTarget] = useState<Target | null>(null);
+  const [editingTarget, setEditingTarget] = useState<TargetEditorState | null>(null);
   const [activeSession, setActiveSession] = useState<SessionAggregate | null>(null);
   const [sessionWorkflow, setSessionWorkflow] = useState<SessionWorkflowSnapshot>({ state: "idle" });
   const [guideView, setGuideView] = useState<GuideView | null>(null);
@@ -181,21 +181,24 @@ export function AnimatedApp() {
     setChatMessages([]);
   }
 
-  async function addTarget() {
-    const target = await createTargetRecord({
-      description: "New target",
-      negativeCognition: "",
-      positiveCognition: "",
-      status: "active"
+  function addTarget() {
+    setEditingTarget({
+      kind: "new",
+      draft: {
+        description: "",
+        negativeCognition: "",
+        positiveCognition: "",
+        status: "active"
+      }
     });
-    await refreshViewData();
-    await refreshGuideView(activeSession?.id);
-    setEditingTarget(target);
   }
 
-  async function saveTarget(target: Target) {
-    if (!editingTarget) return;
-    await reviseTargetRecord(editingTarget.id, targetPatchFrom(target));
+  async function saveTarget(target: TargetEditorState) {
+    if (target.kind === "new") {
+      await createTargetRecord(target.draft);
+    } else {
+      await reviseTargetRecord(target.target.id, targetPatchFrom(target.target));
+    }
     await refreshViewData();
     await refreshGuideView(activeSession?.id);
     setEditingTarget(null);
@@ -319,7 +322,7 @@ export function AnimatedApp() {
       let session = activeSession;
       let workflow = sessionWorkflow;
       if (!session) {
-        const target = targets[0];
+        const target = targets.length === 1 ? targets[0] : undefined;
         if (!target) return;
         const started = await beginSession(target);
         session = started.session;
@@ -472,7 +475,7 @@ export function AnimatedApp() {
   const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const allTargets = viewData.allTargets;
   const canStartSetFromTarget = Boolean(
-    !activeSession && targets.length > 0 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
+    !activeSession && targets.length === 1 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
   );
   const canToggleStimulation = Boolean(
     canStartSetFromTarget ||
@@ -558,7 +561,7 @@ export function AnimatedApp() {
               editing={editingTarget}
               activeSessionTargetId={activeSession?.targetId}
               onAdd={addTarget}
-              onEdit={setEditingTarget}
+              onEdit={(target) => setEditingTarget({ kind: "existing", target })}
               onCancelEdit={() => setEditingTarget(null)}
               onSave={saveTarget}
               onStartSession={startSession}
