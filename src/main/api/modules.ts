@@ -28,7 +28,10 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const userDataPath = options.getUserDataPath;
 
   const vaultFileService = new VaultFileService(userDataPath());
-  const db = new AppStoreDatabase((dataKey, plaintext) => vaultFileService.saveSync(dataKey, plaintext));
+  const db = new AppStoreDatabase(
+    (dataKey, plaintext) => vaultFileService.saveSync(dataKey, plaintext),
+    options.config.sqliteTemplatePath
+  );
 
   const targetRepository = newTargetRepository(db);
   const sessionRepository = newSessionRepository(db);
@@ -59,7 +62,7 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const guideService = new GuideService(targetService, sessionService, stimulationSetService, guideAgent);
   const vaultService = new VaultService(vaultFileService, {
     isUnlocked: () => db.isUnlocked(),
-    createPlaintext: () => db.createPlaintextFromTemplate(),
+    createPlaintext: () => db.createPlaintext(),
     unlock: async (unlocked) => {
       await db.unlock(unlocked);
       sessionService.recoverSessionWorkflowFromDurableState();

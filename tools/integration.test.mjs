@@ -149,11 +149,10 @@ async function createHarness(t) {
   const templateDb = await createSqliteDatabase();
   initialSchema(templateDb);
   await writeFile(templatePath, exportSqliteDatabase(templateDb));
-  process.env.EMDR_SQLITE_TEMPLATE_PATH = templatePath;
 
   const routes = createApiRegistry();
   const vaultFiles = new VaultFileService(path.join(tempDir, "user-data"));
-  const db = new AppStoreDatabase((dataKey, plaintext) => vaultFiles.saveSync(dataKey, plaintext));
+  const db = new AppStoreDatabase((dataKey, plaintext) => vaultFiles.saveSync(dataKey, plaintext), templatePath);
   const sessionWorkflow = new SessionWorkflowMachine();
 
   const targetRepository = newTargetRepository(db);
@@ -173,7 +172,7 @@ async function createHarness(t) {
   const guideService = new GuideService(targetService, sessionService, stimulationSetService);
   const vaultService = new VaultService(vaultFiles, {
     isUnlocked: () => db.isUnlocked(),
-    createPlaintext: () => db.createPlaintextFromTemplate(),
+    createPlaintext: () => db.createPlaintext(),
     unlock: async (unlocked) => {
       await db.unlock(unlocked);
       sessionService.recoverSessionWorkflowFromDurableState();

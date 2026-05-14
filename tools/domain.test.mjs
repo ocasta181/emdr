@@ -5,12 +5,46 @@ import { fileURLToPath } from "node:url";
 import { GuideAgentSidecarClient } from "../dist-electron/src/main/internal/domain/guide/agent-client.js";
 import { GuideService } from "../dist-electron/src/main/internal/domain/guide/service.js";
 import { AgentSidecar, JsonLineAgentTransport } from "../dist-electron/src/main/internal/lib/agent/index.js";
+import { loadAppConfig } from "../dist-electron/src/main/internal/lib/config/app-config.js";
 import {
   nextSessionFlowState,
   SessionWorkflowMachine
 } from "../dist-electron/src/main/internal/domain/session/service.js";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+test("app config uses defaults and rejects invalid configured files", () => {
+  const defaultTemplatePath = path.join(repoRoot, "package.json");
+
+  assert.deepEqual(loadAppConfig({}, [], { sqliteTemplatePath: defaultTemplatePath }), {
+    sqliteTemplatePath: defaultTemplatePath,
+    devServerUrl: undefined,
+    userDataPath: undefined,
+    useAnimatedUi: false
+  });
+  assert.equal(loadAppConfig({ EMDR_LOCAL_UI: "animated" }, [], { sqliteTemplatePath: defaultTemplatePath }).useAnimatedUi, true);
+  assert.equal(
+    loadAppConfig(
+      { EMDR_SQLITE_TEMPLATE_PATH: path.join(repoRoot, "README.md") },
+      [],
+      { sqliteTemplatePath: defaultTemplatePath }
+    ).sqliteTemplatePath,
+    path.join(repoRoot, "README.md")
+  );
+  assert.throws(
+    () =>
+      loadAppConfig(
+        { EMDR_SQLITE_TEMPLATE_PATH: path.join(repoRoot, "missing.sqlite") },
+        [],
+        { sqliteTemplatePath: defaultTemplatePath }
+      ),
+    /EMDR_SQLITE_TEMPLATE_PATH must point to an existing file/
+  );
+  assert.throws(
+    () => loadAppConfig({}, [], { sqliteTemplatePath: path.join(repoRoot, "missing-default.sqlite") }),
+    /EMDR_SQLITE_TEMPLATE_PATH must point to an existing file/
+  );
+});
 
 test("session state graph permits only defined workflow edges", () => {
   assert.equal(nextSessionFlowState("idle", "start_session"), "target_selection");

@@ -1,3 +1,5 @@
+import type { AppConfig } from "../internal/lib/config/app-config.js";
+
 export type ApiRouteHandler<Request = unknown, Response = unknown> = (
   request: Request
 ) => Response | Promise<Response>;
@@ -17,5 +19,6 @@ export type MainModule = {
 
 export type InitializeOptions = {
   routes: ApiRegistry;
+  config: Pick<AppConfig, "sqliteTemplatePath">;
   getUserDataPath: () => string;
 };

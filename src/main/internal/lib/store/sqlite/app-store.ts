@@ -8,19 +8,17 @@ export class AppStoreDatabase implements SqliteDatabase {
   private transactionDepth = 0;
   private transactionDirty = false;
 
-  constructor(private readonly saveUnlockedStore: (dataKey: Buffer, plaintext: Buffer) => void) {}
+  constructor(
+    private readonly saveUnlockedStore: (dataKey: Buffer, plaintext: Buffer) => void,
+    private readonly sqliteTemplatePath: string
+  ) {}
 
   isUnlocked() {
     return Boolean(this.db && this.dataKey);
   }
 
-  async createPlaintextFromTemplate() {
-    const templatePath = process.env.EMDR_SQLITE_TEMPLATE_PATH;
-    if (!templatePath) {
-      throw new Error("EMDR_SQLITE_TEMPLATE_PATH must point to a migrated SQLite database template.");
-    }
-
-    const db = await createSqliteDatabase(await readFile(templatePath));
+  async createPlaintext() {
+    const db = await createSqliteDatabase(await readFile(this.sqliteTemplatePath));
     return exportSqliteDatabase(db);
   }
 

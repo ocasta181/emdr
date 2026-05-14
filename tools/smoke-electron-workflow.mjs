@@ -36,14 +36,17 @@ async function main() {
     const templateDb = await createSqliteDatabase();
     initialSchema(templateDb);
     await writeFile(templatePath, exportSqliteDatabase(templateDb));
-    process.env.EMDR_SQLITE_TEMPLATE_PATH = templatePath;
 
     phase = "app ready";
     await app.whenReady();
 
     phase = "register routes";
     const routes = createApiRegistry();
-    await Initialize({ routes, getUserDataPath: () => path.join(tempDir, "user-data") });
+    await Initialize({
+      routes,
+      config: { sqliteTemplatePath: templatePath },
+      getUserDataPath: () => path.join(tempDir, "user-data")
+    });
     registerIpcRoutes(ipcMain, routes);
 
     phase = "create window";
