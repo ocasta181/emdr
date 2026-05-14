@@ -1007,94 +1007,86 @@
           </text>
 
           <!-- Execution boundaries -->
-          <rect x="48" y="118" width="244" height="464" rx="8" class="node-frame" />
+          <rect x="48" y="118" width="252" height="456" rx="8" class="node-frame" />
           <text x="68" y="146" class="boundary-title">ELECTRON RENDERER</text>
 
-          <rect x="340" y="118" width="154" height="464" rx="8" class="node-frame" />
-          <text x="362" y="146" class="boundary-title">PRELOAD</text>
+          <rect x="352" y="118" width="158" height="456" rx="8" class="node-frame" />
+          <text x="374" y="146" class="boundary-title">PRELOAD</text>
 
-          <rect x="542" y="118" width="284" height="464" rx="8" class="node-frame main" />
-          <text x="564" y="146" class="boundary-title">MAIN CORE ENGINE</text>
+          <rect x="562" y="118" width="288" height="456" rx="8" class="node-frame main" />
+          <text x="584" y="146" class="boundary-title">MAIN CORE ENGINE</text>
 
-          <rect x="880" y="118" width="356" height="184" rx="8" class="node-frame agent" />
-          <text x="902" y="146" class="boundary-title">LOCAL GUIDE AGENT</text>
+          <rect x="904" y="118" width="332" height="184" rx="8" class="node-frame agent" />
+          <text x="926" y="146" class="boundary-title">LOCAL GUIDE AGENT</text>
 
-          <rect x="880" y="398" width="356" height="184" rx="8" class="node-frame data" />
-          <text x="902" y="426" class="boundary-title">LOCAL PERSISTENCE</text>
+          <rect x="904" y="390" width="332" height="184" rx="8" class="node-frame data" />
+          <text x="926" y="418" class="boundary-title">LOCAL PERSISTENCE</text>
 
           <!-- Boundary internals -->
-          <rect x="78" y="188" width="184" height="74" rx="6" class="component" />
-          <text x="170" y="218" class="component-text">Feature Views</text>
-          <text x="170" y="240" class="component-subtext">presentation only</text>
+          <rect x="78" y="188" width="192" height="76" rx="6" class="component" />
+          <text x="174" y="219" class="component-text">Feature Views</text>
+          <text x="174" y="242" class="component-subtext">presentation only</text>
 
-          <rect x="78" y="346" width="184" height="74" rx="6" class="component" />
-          <text x="170" y="376" class="component-text">Renderer Client</text>
-          <text x="170" y="398" class="component-subtext">typed app commands</text>
+          <rect x="78" y="382" width="192" height="76" rx="6" class="component" />
+          <text x="174" y="413" class="component-text">Renderer Client</text>
+          <text x="174" y="436" class="component-subtext">typed app commands</text>
 
-          <rect x="370" y="276" width="94" height="94" rx="6" class="component" />
-          <text x="417" y="314" class="component-text">Bridge</text>
-          <text x="417" y="338" class="component-subtext">single IPC</text>
+          <rect x="382" y="306" width="98" height="98" rx="6" class="component" />
+          <text x="431" y="345" class="component-text">Bridge</text>
+          <text x="431" y="370" class="component-subtext">single IPC</text>
 
-          <rect x="586" y="174" width="196" height="72" rx="6" class="component main" />
-          <text x="684" y="203" class="component-text">API Registry</text>
-          <text x="684" y="225" class="component-subtext">validate and dispatch</text>
+          <rect x="606" y="174" width="200" height="76" rx="6" class="component main" />
+          <text x="706" y="205" class="component-text">API Registry</text>
+          <text x="706" y="228" class="component-subtext">validate and dispatch</text>
 
-          <rect x="586" y="304" width="196" height="72" rx="6" class="component main" />
-          <text x="684" y="333" class="component-text">Domain Services</text>
-          <text x="684" y="355" class="component-subtext">authoritative workflow</text>
+          <rect x="606" y="306" width="200" height="76" rx="6" class="component main" />
+          <text x="706" y="337" class="component-text">Domain Services</text>
+          <text x="706" y="360" class="component-subtext">authoritative workflow</text>
 
-          <rect x="586" y="434" width="196" height="72" rx="6" class="component main" />
-          <text x="684" y="463" class="component-text">Repositories</text>
-          <text x="684" y="485" class="component-subtext">only SQL owners</text>
+          <rect x="606" y="438" width="200" height="76" rx="6" class="component main" />
+          <text x="706" y="469" class="component-text">Repositories</text>
+          <text x="706" y="492" class="component-subtext">only SQL owners</text>
 
-          <rect x="924" y="184" width="268" height="72" rx="6" class="component agent" />
-          <text x="1058" y="213" class="component-text">Model Runtime</text>
-          <text x="1058" y="235" class="component-subtext">returns structured proposals</text>
+          <rect x="946" y="184" width="248" height="76" rx="6" class="component agent" />
+          <text x="1070" y="215" class="component-text">Model Runtime</text>
+          <text x="1070" y="238" class="component-subtext">proposes, never commits</text>
 
-          <rect x="924" y="464" width="268" height="72" rx="6" class="component data" />
-          <text x="1058" y="493" class="component-text">Encrypted SQLite</text>
-          <text x="1058" y="515" class="component-subtext">durable local tables</text>
+          <rect x="946" y="456" width="248" height="76" rx="6" class="component data" />
+          <text x="1070" y="487" class="component-text">Encrypted SQLite</text>
+          <text x="1070" y="510" class="component-subtext">durable local tables</text>
 
-          <!-- Allowed command path -->
-          <path d="M170 262 V346" class="connector" />
-          <rect x="184" y="292" width="58" height="22" rx="11" class="badge" />
-          <text x="213" y="308" class="boundary-step">calls</text>
+          <!-- Allowed communication paths -->
+          <path d="M174 264 V382" class="connector" />
+          <rect x="188" y="314" width="58" height="22" rx="11" class="badge" />
+          <text x="217" y="330" class="boundary-step">calls</text>
 
-          <path d="M262 383 H370" class="connector" />
-          <rect x="294" y="354" width="64" height="22" rx="11" class="badge" />
-          <text x="326" y="370" class="boundary-step">request</text>
+          <path d="M270 420 H382" class="connector" />
+          <rect x="294" y="388" width="82" height="22" rx="11" class="badge" />
+          <text x="335" y="404" class="boundary-step">request/event</text>
 
-          <path d="M464 323 H542 V210 H586" class="connector" />
-          <rect x="488" y="292" width="78" height="22" rx="11" class="badge" />
-          <text x="527" y="308" class="boundary-step">IPC invoke</text>
+          <path d="M480 355 H562 V212 H606" class="connector" />
+          <rect x="500" y="274" width="80" height="22" rx="11" class="badge" />
+          <text x="540" y="290" class="boundary-step">IPC invoke</text>
 
-          <path d="M684 246 V304" class="connector" />
-          <rect x="700" y="265" width="72" height="22" rx="11" class="badge" />
-          <text x="736" y="281" class="boundary-step">dispatch</text>
+          <path d="M706 250 V306" class="connector" />
+          <rect x="722" y="268" width="72" height="22" rx="11" class="badge" />
+          <text x="758" y="284" class="boundary-step">dispatch</text>
 
-          <path d="M684 376 V434" class="connector data" />
-          <rect x="700" y="395" width="96" height="22" rx="11" class="badge" />
-          <text x="748" y="411" class="boundary-step">repository</text>
+          <path d="M706 382 V438" class="connector data" />
+          <rect x="722" y="400" width="96" height="22" rx="11" class="badge" />
+          <text x="770" y="416" class="boundary-step">repository</text>
 
-          <path d="M782 470 H924" class="connector data" />
-          <rect x="824" y="441" width="80" height="22" rx="11" class="badge" />
-          <text x="864" y="457" class="boundary-step">SQL only</text>
+          <path d="M806 476 H946" class="connector data" />
+          <rect x="848" y="446" width="80" height="22" rx="11" class="badge" />
+          <text x="888" y="462" class="boundary-step">SQL only</text>
 
-          <path d="M782 340 H858 V220 H924" class="connector" />
-          <rect x="808" y="276" width="132" height="22" rx="11" class="badge" />
-          <text x="874" y="292" class="boundary-step">sidecar request</text>
+          <path d="M806 334 H876 V222 H946" class="connector" />
+          <rect x="828" y="276" width="124" height="22" rx="11" class="badge" />
+          <text x="890" y="292" class="boundary-step">sidecar request</text>
 
-          <path d="M924 242 H844 V354 H782" class="connector event" />
-          <rect x="805" y="322" width="142" height="22" rx="11" class="badge" />
-          <text x="876" y="338" class="boundary-step">proposal response</text>
-
-          <path d="M586 222 H530 V346 H464" class="connector event" />
-          <rect x="498" y="358" width="68" height="22" rx="11" class="badge" />
-          <text x="532" y="374" class="boundary-step">result</text>
-
-          <path d="M370 346 H262" class="connector event" />
-          <rect x="292" y="318" width="62" height="22" rx="11" class="badge" />
-          <text x="323" y="334" class="boundary-step">event</text>
+          <path d="M946 246 H884 V360 H806" class="connector event" />
+          <rect x="822" y="326" width="136" height="22" rx="11" class="badge" />
+          <text x="890" y="342" class="boundary-step">proposal response</text>
 
           <!-- Boundary constraints -->
           <rect x="48" y="612" width="286" height="70" rx="6" class="note" />
