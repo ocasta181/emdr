@@ -76,7 +76,7 @@ The application uses a hub-and-spoke architecture with four components:
 
 Layering: `SqliteDatabase → Repository → Service → IPC → UI`. No layer may skip a level.
 
-See [docs/architecture.md](docs/architecture.md) for the full specification including data flow diagrams, layering rules, and IPC conventions.
+See [docs/index.html](docs/index.html) for the full target architecture specification including stack diagrams, sequence diagrams, state logic, persistence diagrams, layering rules, and IPC conventions.
 
 ## Session State Machine
 
