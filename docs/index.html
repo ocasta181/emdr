@@ -166,6 +166,13 @@
         height: auto;
       }
 
+      .flow-diagram {
+        display: block;
+        min-width: 1180px;
+        width: 100%;
+        height: auto;
+      }
+
       .participant {
         fill: #fff;
         stroke: var(--line-strong);
@@ -555,6 +562,59 @@
 
       .transition-label.data {
         fill: var(--gold);
+      }
+
+      .flow-node {
+        fill: #fff;
+        stroke: var(--line-strong);
+        stroke-width: 1.5;
+      }
+
+      .flow-node.main {
+        fill: var(--green-soft);
+        stroke: var(--green);
+      }
+
+      .flow-node.data {
+        fill: var(--gold-soft);
+        stroke: var(--gold);
+      }
+
+      .decision-node {
+        fill: #fff;
+        stroke: var(--blue);
+        stroke-width: 1.6;
+      }
+
+      .flow-text {
+        fill: var(--ink);
+        font-size: 13px;
+        font-weight: 850;
+        text-anchor: middle;
+      }
+
+      .flow-subtext {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 720;
+        text-anchor: middle;
+      }
+
+      .flow-edge {
+        fill: none;
+        stroke: var(--ink);
+        stroke-width: 1.65;
+        marker-end: url(#flowArrow);
+      }
+
+      .flow-edge.data {
+        stroke: var(--gold);
+        marker-end: url(#flowDataArrow);
+      }
+
+      .flow-edge.alt {
+        stroke: var(--blue);
+        marker-end: url(#flowReturnArrow);
       }
 
       .port {
@@ -1195,6 +1255,94 @@
           <rect x="842" y="636" width="358" height="70" rx="6" class="note" />
           <text x="862" y="660" class="note-text">State resets on lock/unlock and recovers from</text>
           <text x="862" y="684" class="note-text">durable session facts; it is not stored in SQLite.</text>
+        </svg>
+      </section>
+
+      <section class="diagram-shell" aria-label="Workflow recovery flowchart" style="margin-top: 24px">
+        <svg
+          class="flow-diagram"
+          viewBox="0 0 1320 700"
+          role="img"
+          aria-labelledby="recovery-title recovery-desc"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title id="recovery-title">Workflow recovery decision flowchart</title>
+          <desc id="recovery-desc">
+            Decision flowchart for reconstructing conservative in-memory
+            workflow state from durable session rows on vault unlock.
+          </desc>
+
+          <defs>
+            <marker id="flowArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#17211f" />
+            </marker>
+            <marker id="flowReturnArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#315f85" />
+            </marker>
+            <marker id="flowDataArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#80621f" />
+            </marker>
+          </defs>
+
+          <text x="40" y="42" class="title">Vault unlock workflow recovery</text>
+          <text x="40" y="66" class="subtitle">
+            Correct diagram type: logical decision flowchart. Durable facts select a conservative memory-only state.
+          </text>
+
+          <rect x="54" y="120" width="260" height="76" rx="8" class="flow-node main" />
+          <text x="184" y="151" class="flow-text">vault unlocked</text>
+          <text x="184" y="174" class="flow-subtext">store connection is live</text>
+
+          <rect x="398" y="120" width="260" height="76" rx="8" class="flow-node data" />
+          <text x="528" y="151" class="flow-text">read durable facts</text>
+          <text x="528" y="174" class="flow-subtext">unfinished sessions sorted newest first</text>
+
+          <polygon points="528,264 664,344 528,424 392,344" class="decision-node" />
+          <text x="528" y="334" class="flow-text">unfinished</text>
+          <text x="528" y="356" class="flow-text">session?</text>
+
+          <polygon points="888,264 1024,344 888,424 752,344" class="decision-node" />
+          <text x="888" y="334" class="flow-text">any stimulation</text>
+          <text x="888" y="356" class="flow-text">sets logged?</text>
+
+          <rect x="134" y="510" width="260" height="76" rx="8" class="flow-node" />
+          <text x="264" y="541" class="flow-text">recover idle</text>
+          <text x="264" y="564" class="flow-subtext">no active workflow session</text>
+
+          <rect x="550" y="510" width="260" height="76" rx="8" class="flow-node main" />
+          <text x="680" y="541" class="flow-text">recover preparation</text>
+          <text x="680" y="564" class="flow-subtext">same active session id</text>
+
+          <rect x="966" y="510" width="260" height="76" rx="8" class="flow-node main" />
+          <text x="1096" y="541" class="flow-text">recover interjection</text>
+          <text x="1096" y="564" class="flow-subtext">resume paused after prior set</text>
+
+          <path d="M314 158 H398" class="flow-edge data" />
+          <rect x="326" y="130" width="58" height="22" rx="11" class="badge" />
+          <text x="355" y="146" class="boundary-step">query</text>
+
+          <path d="M528 196 V264" class="flow-edge data" />
+          <rect x="544" y="220" width="72" height="22" rx="11" class="badge" />
+          <text x="580" y="236" class="boundary-step">facts only</text>
+
+          <path d="M392 344 H264 V510" class="flow-edge alt" />
+          <rect x="300" y="316" width="48" height="22" rx="11" class="badge" />
+          <text x="324" y="332" class="boundary-step">no</text>
+
+          <path d="M664 344 H752" class="flow-edge" />
+          <rect x="688" y="316" width="52" height="22" rx="11" class="badge" />
+          <text x="714" y="332" class="boundary-step">yes</text>
+
+          <path d="M888 424 V466 H680 V510" class="flow-edge alt" />
+          <rect x="902" y="438" width="48" height="22" rx="11" class="badge" />
+          <text x="926" y="454" class="boundary-step">no</text>
+
+          <path d="M1024 344 H1096 V510" class="flow-edge" />
+          <rect x="1044" y="316" width="52" height="22" rx="11" class="badge" />
+          <text x="1070" y="332" class="boundary-step">yes</text>
+
+          <rect x="70" y="620" width="1180" height="40" rx="6" class="note" />
+          <text x="90" y="645" class="note-text">No workflow column is read or written. Recovery is deterministic from session ended_at plus stimulation_set count.</text>
         </svg>
       </section>
     </main>
