@@ -44,7 +44,7 @@ export function SettingsPanel({
       </label>
       <div className="speedReadout">{settings.speed.toFixed(1)}x</div>
       <label>
-        Dot color
+        Ball color
         <select
           value={settings.dotColor}
           onChange={(event) => onChange({ dotColor: event.target.value as BilateralStimulationSettings["dotColor"] })}
@@ -56,7 +56,7 @@ export function SettingsPanel({
         </select>
       </label>
       <label>
-        Dot size
+        Ball size
         <select
           value={settings.dotSize}
           onChange={(event) => onChange({ dotSize: event.target.value as BilateralStimulationSettings["dotSize"] })}

@@ -58,10 +58,10 @@ type AppViewData = {
 };
 
 const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
-  green: "#6dd07a",
-  blue: "#6ec1e4",
-  white: "#f3f3f3",
-  orange: "#ff9b50"
+  green: "#96ff8f",
+  blue: "#8fe5ff",
+  white: "#ffffff",
+  orange: "#ffb45f"
 };
 
 const emptyViewData: AppViewData = {
@@ -482,6 +482,7 @@ export function AnimatedApp() {
         guideAnimation={guideAnimation}
         stimulationRunning={stimulationRunning}
         stimulationColor={dotColorHex[settings.dotColor]}
+        stimulationDotSize={settings.dotSize}
         stimulationSpeed={settings.speed}
         onObjectSelected={selectObject}
         onGuideActionComplete={handleGuideActionComplete}

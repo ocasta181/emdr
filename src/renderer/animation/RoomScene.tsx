@@ -13,6 +13,7 @@ export function RoomScene({
   guideAnimation,
   stimulationRunning,
   stimulationColor,
+  stimulationDotSize,
   stimulationSpeed,
   onObjectSelected,
   onGuideActionComplete
@@ -21,6 +22,7 @@ export function RoomScene({
   guideAnimation: GuideAnimationIntent;
   stimulationRunning: boolean;
   stimulationColor: string;
+  stimulationDotSize: "small" | "medium" | "large";
   stimulationSpeed: number;
   onObjectSelected: (objectId: RoomObjectId) => void;
   onGuideActionComplete: (action: GuideAction) => void;
@@ -28,10 +30,10 @@ export function RoomScene({
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
-  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed });
+  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationDotSize, stimulationSpeed });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
-  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed };
+  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationDotSize, stimulationSpeed };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -68,6 +70,7 @@ export function RoomScene({
         onActionComplete: (action) => actionCompleteRef.current(action)
       });
       const orb = new Sprite(orbTexture);
+      const orbHalo = new Graphics();
       const dimmer = new Graphics();
       const fireflies = Array.from({ length: 18 }, (_, index) => ({
         xSeed: Math.random() * 1000,
@@ -83,7 +86,7 @@ export function RoomScene({
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
-      stage.addChild(dimmer, orb);
+      stage.addChild(dimmer, orbHalo, orb);
 
       const hotspots: Array<{ id: RoomObjectId; label: string; draw: Graphics }> = [
         { id: "guide", label: "Guide", draw: new Graphics() },
@@ -116,14 +119,14 @@ export function RoomScene({
         const settingsY = height * 0.56;
 
         background.clear();
-        background.rect(0, 0, width, height).fill("#171614");
-        background.rect(0, 0, width, height * 0.62).fill("#23353a");
-        background.rect(0, height * 0.44, width, height * 0.56).fill("#2a2a23");
-        background.rect(0, height * 0.64, width, height * 0.36).fill("#1d1b18");
+        background.rect(0, 0, width, height).fill("#0b0b0a");
+        background.rect(0, 0, width, height * 0.62).fill("#111b1d");
+        background.rect(0, height * 0.44, width, height * 0.56).fill("#171713");
+        background.rect(0, height * 0.64, width, height * 0.36).fill("#100f0d");
 
         moon.clear();
         moon.circle(width * 0.78, height * 0.19, Math.max(38, width * 0.038)).fill({ color: "#e7dfc9", alpha: 0.82 });
-        moon.circle(width * 0.765, height * 0.18, Math.max(42, width * 0.043)).fill({ color: "#23353a", alpha: 0.38 });
+        moon.circle(width * 0.765, height * 0.18, Math.max(42, width * 0.043)).fill({ color: "#111b1d", alpha: 0.52 });
 
         hill.clear();
         hill.ellipse(width * 0.5, floorY + 40, width * 0.42, height * 0.15).fill("#302f28");
@@ -176,11 +179,15 @@ export function RoomScene({
           lastHeight = height;
         }
 
-        guideCharacter.sync(runtime.guideAnimation);
-        guideCharacter.syncTargetBookVisibility();
-        guideCharacter.setFrame({
-          alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
-        });
+        if (runtime.stimulationRunning) {
+          guideCharacter.holdStill({ alpha: 0.08 });
+        } else {
+          guideCharacter.sync(runtime.guideAnimation);
+          guideCharacter.syncTargetBookVisibility();
+          guideCharacter.setFrame({
+            alpha: runtime.mode === "idle" ? 0.92 : 1
+          });
+        }
         hotspots.find((item) => item.id === "targets")!.draw.visible = guideCharacter.getTargetBookBounds().visible;
 
         for (const firefly of fireflies) {
@@ -188,12 +195,13 @@ export function RoomScene({
           const y = height * 0.22 + (Math.cos(elapsed * firefly.speed + firefly.ySeed) * 0.5 + 0.5) * height * 0.42;
           firefly.dot.clear();
           firefly.dot.circle(x, y, 1.5 + (firefly.index % 3)).fill({ color: "#d8c692", alpha: 0.16 });
-          firefly.dot.alpha = runtime.stimulationRunning ? 0.25 : 1;
+          firefly.dot.alpha = runtime.stimulationRunning ? 0.05 : 1;
         }
 
         dimmer.clear();
+        orbHalo.clear();
         if (runtime.stimulationRunning) {
-          dimmer.rect(0, 0, width, height).fill({ color: 0x050505, alpha: 0.58 });
+          dimmer.rect(0, 0, width, height).fill({ color: 0x000000, alpha: 0.72 });
         }
 
         orb.visible = runtime.stimulationRunning;
@@ -201,10 +209,14 @@ export function RoomScene({
           const travel = width * 0.64;
           const centerX = width * 0.5;
           const x = centerX + Math.sin(elapsed * 1.55 * runtime.stimulationSpeed) * travel * 0.5;
+          const size = stimulationDotPixelSize(runtime.stimulationDotSize);
           orb.position.set(x, height * 0.36);
-          orb.width = 70;
-          orb.height = 70;
+          orb.width = size;
+          orb.height = size;
           orb.tint = runtime.stimulationColor;
+          orb.alpha = 1;
+          orbHalo.circle(x, height * 0.36, size * 0.74).fill({ color: runtime.stimulationColor, alpha: 0.24 });
+          orbHalo.circle(x, height * 0.36, size * 0.42).fill({ color: 0xffffff, alpha: 0.14 });
         }
       });
     }
@@ -218,4 +230,10 @@ export function RoomScene({
   }, []);
 
   return <div ref={hostRef} className="roomScene" />;
+}
+
+function stimulationDotPixelSize(size: "small" | "medium" | "large") {
+  if (size === "small") return 58;
+  if (size === "large") return 112;
+  return 82;
 }

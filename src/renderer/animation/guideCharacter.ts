@@ -103,6 +103,19 @@ export class GuideCharacter {
     this.guide.alpha = alpha;
   }
 
+  holdStill({ alpha }: { alpha: number }) {
+    if (this.activeStep) {
+      this.activeStep = null;
+      this.completedIntentKey = null;
+      this.guide.onComplete = undefined;
+    }
+    this.playIdle(this.currentBookState);
+    this.guide.gotoAndStop(0);
+    this.targetBook.visible = false;
+    this.targetBookBounds = { ...this.targetBookBounds, visible: false };
+    this.setFrame({ alpha });
+  }
+
   sync(intent: GuideAnimationIntent) {
     const intentKey = guideAnimationIntentKey(intent);
     if (this.lastIntentKey !== intentKey) {
@@ -157,7 +170,12 @@ export class GuideCharacter {
 
   private playIdle(state: BookState) {
     const clipKey = `idle:${state}:loop`;
-    if (clipKey === this.activeClipKey) return;
+    if (clipKey === this.activeClipKey) {
+      if (!this.guide.playing) {
+        this.guide.play();
+      }
+      return;
+    }
 
     this.activeClipKey = clipKey;
     this.guide.textures = this.guideSheet.idleClips[state];
