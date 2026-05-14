@@ -3,26 +3,22 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EMDR Local Target Architecture</title>
+    <title>EMDR Local Sequence Diagram Proof</title>
     <style>
       :root {
         color-scheme: light;
-        --ink: #15211f;
-        --muted: #5d6c68;
+        --ink: #17211f;
+        --muted: #5d6b67;
         --paper: #fbfaf6;
         --panel: #ffffff;
-        --subtle: #f1eee6;
         --line: #d8d1c4;
-        --line-strong: #928777;
+        --line-strong: #8d8375;
         --green: #2f735f;
-        --green-soft: #dfefe8;
+        --green-soft: #e0f0e9;
         --blue: #315f85;
-        --blue-soft: #dfeaf3;
+        --blue-soft: #e1ebf3;
         --gold: #80621f;
-        --gold-soft: #f0e5c7;
-        --red: #8e4440;
-        --red-soft: #efdcd9;
-        --shadow: 0 18px 48px rgba(26, 31, 29, 0.08);
+        --gold-soft: #f1e6c9;
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
@@ -32,13 +28,8 @@
         box-sizing: border-box;
       }
 
-      html {
-        scroll-behavior: smooth;
-      }
-
       body {
         margin: 0;
-        min-width: 320px;
         color: var(--ink);
         background:
           linear-gradient(180deg, rgba(241, 238, 230, 0.78), rgba(251, 250, 246, 0.96)),
@@ -52,49 +43,23 @@
         content: "";
         pointer-events: none;
         background-image:
-          linear-gradient(rgba(21, 33, 31, 0.045) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(21, 33, 31, 0.045) 1px, transparent 1px);
+          linear-gradient(rgba(23, 33, 31, 0.045) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(23, 33, 31, 0.045) 1px, transparent 1px);
         background-size: 44px 44px;
-        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 82%);
       }
 
-      a {
-        color: inherit;
-      }
-
-      code,
-      .mono {
-        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      }
-
-      h1,
-      h2,
-      h3,
-      p {
-        margin-top: 0;
-      }
-
-      .app {
-        width: min(1220px, calc(100% - 32px));
+      main {
+        width: min(1240px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 28px 0 58px;
+        padding: 42px 0 64px;
       }
 
-      .tab-input {
-        position: fixed;
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .hero {
-        min-height: 42vh;
+      header {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(360px, 0.86fr);
+        grid-template-columns: minmax(0, 0.9fr) minmax(320px, 0.55fr);
         gap: 32px;
-        align-items: center;
-        padding: 28px 0 24px;
+        align-items: end;
+        margin-bottom: 24px;
       }
 
       .eyebrow {
@@ -116,1312 +81,338 @@
         background: var(--green);
       }
 
+      h1,
+      h2,
+      p {
+        margin-top: 0;
+      }
+
       h1 {
         max-width: 860px;
         margin-bottom: 16px;
-        font-size: clamp(2.65rem, 7vw, 6.2rem);
+        font-size: clamp(2.6rem, 6vw, 5.8rem);
         line-height: 0.95;
         letter-spacing: 0;
       }
 
       .lead {
-        max-width: 780px;
-        margin-bottom: 22px;
-        color: #384945;
-        font-size: clamp(1rem, 2vw, 1.22rem);
-        line-height: 1.62;
+        max-width: 760px;
+        margin-bottom: 0;
+        color: #394845;
+        font-size: clamp(1rem, 1.8vw, 1.2rem);
+        line-height: 1.6;
       }
 
-      .doc-map {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .map-node,
-      .tag,
-      .chip {
-        min-height: 32px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 7px 10px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: var(--panel);
-        color: var(--muted);
-        font-size: 0.78rem;
-        font-weight: 800;
-        text-align: center;
-      }
-
-      .hero-visual {
-        display: grid;
-        gap: 14px;
+      .scope {
         padding: 18px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.78);
-        box-shadow: var(--shadow);
+        background: rgba(255, 255, 255, 0.82);
       }
 
-      .hero-visual-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        color: var(--muted);
-        font-size: 0.76rem;
-        font-weight: 850;
-        text-transform: uppercase;
-      }
-
-      .topology {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr auto 1fr;
-        gap: 9px;
-        align-items: center;
-      }
-
-      .node {
-        min-height: 64px;
-        display: grid;
-        place-items: center;
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        color: var(--ink);
-        text-align: center;
-        font-size: 0.9rem;
-        font-weight: 850;
-      }
-
-      .node.main {
-        color: #fff;
-        border-color: var(--green);
-        background: var(--green);
-      }
-
-      .node.data {
-        background: var(--green-soft);
-        border-color: #9dcbbb;
-      }
-
-      .node.agent {
-        background: var(--blue-soft);
-        border-color: #9bb9cf;
-      }
-
-      .node.warn {
-        background: var(--gold-soft);
-        border-color: #d5bf7d;
-      }
-
-      .arrow {
-        color: var(--line-strong);
-        font-weight: 900;
-      }
-
-      .store-line {
-        width: 2px;
-        height: 28px;
-        margin: 0 auto;
-        background: var(--line-strong);
-      }
-
-      .nav {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        display: grid;
-        grid-template-columns: repeat(8, minmax(0, 1fr));
-        gap: 8px;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: rgba(251, 250, 246, 0.96);
-        box-shadow: 0 12px 24px rgba(26, 31, 29, 0.08);
-        backdrop-filter: blur(14px);
-      }
-
-      .nav label {
-        min-height: 42px;
-        display: grid;
-        place-items: center;
-        padding: 8px 10px;
-        border-radius: 6px;
-        color: var(--muted);
-        cursor: pointer;
-        font-size: 0.82rem;
-        font-weight: 850;
-        text-align: center;
-      }
-
-      .nav label:hover {
-        color: var(--ink);
-        background: var(--subtle);
-      }
-
-      #tab-index:checked ~ .nav label[for="tab-index"],
-      #tab-stack:checked ~ .nav label[for="tab-stack"],
-      #tab-domains:checked ~ .nav label[for="tab-domains"],
-      #tab-state:checked ~ .nav label[for="tab-state"],
-      #tab-data:checked ~ .nav label[for="tab-data"],
-      #tab-journeys:checked ~ .nav label[for="tab-journeys"],
-      #tab-sequences:checked ~ .nav label[for="tab-sequences"],
-      #tab-progress:checked ~ .nav label[for="tab-progress"] {
-        color: #fff;
-        background: var(--ink);
-      }
-
-      .view {
-        display: none;
-        padding-top: 34px;
-      }
-
-      #tab-index:checked ~ .views #index,
-      #tab-stack:checked ~ .views #stack,
-      #tab-domains:checked ~ .views #domains,
-      #tab-state:checked ~ .views #state,
-      #tab-data:checked ~ .views #data,
-      #tab-journeys:checked ~ .views #journeys,
-      #tab-sequences:checked ~ .views #sequences,
-      #tab-progress:checked ~ .views #progress {
-        display: block;
-      }
-
-      .section-head {
-        display: grid;
-        grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1fr);
-        gap: 24px;
-        align-items: end;
-        margin-bottom: 20px;
-      }
-
-      .section-head h2 {
-        margin-bottom: 0;
-        font-size: clamp(1.8rem, 4vw, 3.25rem);
-        line-height: 1;
-        letter-spacing: 0;
-      }
-
-      .section-head p {
-        margin-bottom: 0;
-        color: var(--muted);
-        line-height: 1.55;
-      }
-
-      .grid {
-        display: grid;
-        gap: 16px;
-      }
-
-      .grid.two {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .grid.three {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .grid.four {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .card {
-        min-width: 0;
-        padding: 18px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        box-shadow: 0 10px 28px rgba(26, 31, 29, 0.045);
-      }
-
-      .card h3 {
+      .scope h2 {
         margin-bottom: 10px;
-        font-size: 1.02rem;
-      }
-
-      .card p,
-      .card li {
-        color: var(--muted);
-        line-height: 1.52;
-      }
-
-      .card ul {
-        margin: 0;
-        padding-left: 18px;
-      }
-
-      .legend {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .legend-item {
-        min-height: 68px;
-        display: grid;
-        align-content: center;
-        gap: 5px;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .legend-item strong {
-        font-size: 0.82rem;
-      }
-
-      .legend-item span {
-        color: var(--muted);
-        font-size: 0.74rem;
-        line-height: 1.3;
-      }
-
-      .stack-map {
-        display: grid;
-        gap: 10px;
-      }
-
-      .stack-row {
-        display: grid;
-        grid-template-columns: 160px repeat(7, minmax(105px, 1fr));
-        gap: 8px;
-        align-items: stretch;
-        overflow-x: auto;
-      }
-
-      .stack-label {
-        display: grid;
-        align-items: center;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--subtle);
-        font-weight: 900;
-      }
-
-      .mini {
-        min-height: 74px;
-        display: grid;
-        align-content: center;
-        gap: 4px;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        text-align: center;
-        font-size: 0.78rem;
-        font-weight: 850;
-      }
-
-      .mini small {
-        color: var(--muted);
-        font-weight: 700;
-        line-height: 1.25;
-      }
-
-      .swimlane {
-        overflow-x: auto;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .lane-head,
-      .lane-row {
-        min-width: 780px;
-        display: grid;
-        grid-template-columns: repeat(8, minmax(92px, 1fr));
-      }
-
-      .lane-head > div {
-        padding: 10px 8px;
-        border-right: 1px solid var(--line);
-        background: var(--ink);
-        color: #fff;
-        font-size: 0.72rem;
-        font-weight: 850;
-        text-align: center;
-        text-transform: uppercase;
-      }
-
-      .lane-head > div:last-child,
-      .lane-row > div:last-child {
-        border-right: 0;
-      }
-
-      .lane-row > div {
-        min-height: 88px;
-        position: relative;
-        padding: 12px 7px;
-        border-top: 1px solid var(--line);
-        border-right: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.75rem;
-        line-height: 1.28;
-        text-align: center;
-      }
-
-      .lane-row strong {
-        display: inline-flex;
-        min-height: 26px;
-        align-items: center;
-        justify-content: center;
-        padding: 5px 7px;
-        border-radius: 6px;
-        background: var(--green-soft);
-        color: var(--ink);
-        font-size: 0.72rem;
-      }
-
-      .lane-row .event {
-        background: var(--blue-soft);
-      }
-
-      .lane-row .persist {
-        background: var(--gold-soft);
-      }
-
-      .sequence-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .sequence-card {
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .sequence-card h3 {
-        margin-bottom: 10px;
-        font-size: 0.94rem;
-      }
-
-      .sequence {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        gap: 5px;
-      }
-
-      .seq-step {
-        min-height: 70px;
-        display: grid;
-        align-content: center;
-        gap: 4px;
-        padding: 8px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: var(--subtle);
-        font-size: 0.68rem;
-        font-weight: 800;
-        text-align: center;
-      }
-
-      .seq-step small {
-        color: var(--muted);
-        font-weight: 700;
-        line-height: 1.22;
-      }
-
-      .journey-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-      }
-
-      .journey {
-        padding: 16px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .journey h3 {
-        margin-bottom: 12px;
-      }
-
-      .journey-steps {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 6px;
-      }
-
-      .journey-step {
-        min-height: 76px;
-        display: grid;
-        align-content: center;
-        gap: 4px;
-        padding: 8px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--subtle);
-        font-size: 0.72rem;
-        font-weight: 850;
-        text-align: center;
-      }
-
-      .journey-step small {
-        color: var(--muted);
-        font-weight: 700;
-        line-height: 1.25;
-      }
-
-      .flowchart {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        gap: 10px;
-        align-items: center;
-      }
-
-      .flow-box,
-      .decision {
-        min-height: 82px;
-        display: grid;
-        place-items: center;
-        padding: 10px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        text-align: center;
-        font-size: 0.78rem;
-        font-weight: 850;
-      }
-
-      .flow-box {
-        border-radius: 8px;
-      }
-
-      .decision {
-        width: min(120px, 100%);
-        aspect-ratio: 1;
-        justify-self: center;
-        transform: rotate(45deg);
-        background: var(--gold-soft);
-      }
-
-      .decision span {
-        transform: rotate(-45deg);
-      }
-
-      .state-rail {
-        display: grid;
-        grid-template-columns: repeat(8, minmax(118px, 1fr));
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-      }
-
-      .state-node {
-        position: relative;
-        min-height: 124px;
-        padding: 13px;
-        border: 2px solid var(--green);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .state-node::after {
-        position: absolute;
-        top: 50%;
-        right: -16px;
-        width: 18px;
-        height: 2px;
-        content: "";
-        background: var(--green);
-      }
-
-      .state-node:last-child::after {
-        display: none;
-      }
-
-      .state-node strong {
-        display: block;
-        margin-bottom: 8px;
-      }
-
-      .state-node span {
-        display: block;
-        color: var(--muted);
-        font-size: 0.76rem;
-        line-height: 1.35;
-      }
-
-      .edge-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-
-      .edge-card {
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-      }
-
-      .chip {
-        justify-content: flex-start;
-        min-height: 28px;
-        background: var(--subtle);
-      }
-
-      .schema-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 16px;
-      }
-
-      .table-card {
-        overflow: hidden;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .table-card header {
-        display: flex;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 14px 16px;
-        background: var(--ink);
-        color: #fff;
-      }
-
-      .table-card h3 {
-        margin: 0;
         font-size: 1rem;
       }
 
-      .table-card header span {
-        font-size: 0.72rem;
-        font-weight: 850;
-        text-transform: uppercase;
-      }
-
-      .field {
-        display: grid;
-        grid-template-columns: 0.9fr 1fr 1fr;
-        gap: 10px;
-        padding: 10px 16px;
-        border-top: 1px solid var(--line);
+      .scope ul {
+        margin: 0;
+        padding-left: 18px;
         color: var(--muted);
-        font-size: 0.82rem;
+        line-height: 1.5;
       }
 
-      .field strong {
-        color: var(--ink);
-      }
-
-      .er {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      .er-card {
-        min-height: 92px;
-        display: grid;
-        place-items: center;
-        padding: 12px;
-        border: 2px solid var(--green);
+      .diagram-shell {
+        overflow-x: auto;
+        padding: 18px;
+        border: 1px solid var(--line);
         border-radius: 8px;
         background: var(--panel);
-        text-align: center;
-        font-weight: 900;
+        box-shadow: 0 18px 48px rgba(26, 31, 29, 0.08);
       }
 
-      .er-card small {
+      .sequence-diagram {
         display: block;
-        margin-top: 6px;
-        color: var(--muted);
+        min-width: 1180px;
+        width: 100%;
+        height: auto;
+      }
+
+      .participant {
+        fill: #fff;
+        stroke: var(--line-strong);
+        stroke-width: 1.5;
+      }
+
+      .participant.main {
+        fill: var(--green-soft);
+        stroke: var(--green);
+      }
+
+      .participant.data {
+        fill: var(--gold-soft);
+        stroke: var(--gold);
+      }
+
+      .lifeline {
+        stroke: #9f978c;
+        stroke-width: 1.2;
+        stroke-dasharray: 7 7;
+      }
+
+      .activation {
+        fill: #ffffff;
+        stroke: var(--green);
+        stroke-width: 1.4;
+      }
+
+      .message {
+        stroke: var(--ink);
+        stroke-width: 1.65;
+        marker-end: url(#arrow);
+      }
+
+      .return {
+        stroke: var(--blue);
+        stroke-width: 1.45;
+        stroke-dasharray: 7 5;
+        marker-end: url(#returnArrow);
+      }
+
+      .note {
+        fill: #fff;
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+
+      .label-bg {
+        fill: var(--panel);
+      }
+
+      .title {
+        fill: var(--ink);
+        font-size: 24px;
+        font-weight: 850;
+      }
+
+      .subtitle {
+        fill: var(--muted);
+        font-size: 14px;
+        font-weight: 650;
+      }
+
+      .participant-text {
+        fill: var(--ink);
+        font-size: 13px;
+        font-weight: 850;
+        text-anchor: middle;
+      }
+
+      .participant-subtext {
+        fill: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-anchor: middle;
+      }
+
+      .message-text {
+        fill: var(--ink);
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .return-text {
+        fill: var(--blue);
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      .note-text {
+        fill: var(--muted);
+        font-size: 12px;
         font-weight: 700;
       }
 
-      .tree {
-        margin: 0;
-        padding: 18px;
-        overflow-x: auto;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #1b2321;
-        color: #edf3ef;
-        font-size: 0.9rem;
-        line-height: 1.62;
-      }
-
-      .matrix {
-        width: 100%;
-        border-collapse: collapse;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .matrix th,
-      .matrix td {
-        padding: 10px;
-        border: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.82rem;
-        text-align: left;
-        vertical-align: top;
-      }
-
-      .matrix th {
-        background: var(--ink);
-        color: #fff;
-        font-size: 0.76rem;
-        text-transform: uppercase;
-      }
-
-      .progress-list {
-        display: grid;
-        gap: 12px;
-      }
-
-      .progress-item {
-        display: grid;
-        grid-template-columns: minmax(150px, 0.8fr) minmax(200px, 1.4fr) 70px;
-        gap: 14px;
-        align-items: center;
-        padding: 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-
-      .bar {
-        height: 12px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--subtle);
-      }
-
-      .bar span {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--green), #6a8f4a);
-      }
-
-      .callout {
-        padding: 18px;
-        border: 1px solid var(--line);
-        border-left: 6px solid var(--gold);
-        border-radius: 8px;
-        background: var(--gold-soft);
-      }
-
-      .callout strong {
-        display: block;
-        margin-bottom: 6px;
-      }
-
-      .callout p {
-        margin-bottom: 0;
-        color: #574313;
-        line-height: 1.55;
-      }
-
-      .footer {
-        margin-top: 42px;
-        padding-top: 22px;
-        border-top: 1px solid var(--line);
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-
-      @media (max-width: 1060px) {
-        .hero,
-        .section-head,
-        .grid.two,
-        .grid.three,
-        .grid.four,
-        .schema-grid,
-        .journey-grid,
-        .sequence-grid,
-        .edge-grid {
-          grid-template-columns: 1fr;
+      @media (max-width: 820px) {
+        main {
+          width: min(100% - 20px, 1240px);
+          padding-top: 24px;
         }
 
-        .nav {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .legend,
-        .doc-map,
-        .er {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-      }
-
-      @media (max-width: 680px) {
-        .app {
-          width: min(100% - 20px, 1220px);
-          padding-top: 14px;
-        }
-
-        .hero {
-          padding-top: 18px;
-        }
-
-        .hero-visual {
-          padding: 14px;
-        }
-
-        .topology,
-        .legend,
-        .doc-map,
-        .er,
-        .flowchart,
-        .progress-item {
-          grid-template-columns: 1fr;
-        }
-
-        .arrow {
-          transform: rotate(90deg);
-          text-align: center;
-        }
-
-        .nav {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .field {
-          grid-template-columns: 1fr;
-          gap: 3px;
-        }
-
-        .journey-steps,
-        .sequence {
+        header {
           grid-template-columns: 1fr;
         }
       }
     </style>
   </head>
   <body>
-    <main class="app">
-      <input class="tab-input" id="tab-index" name="view" type="radio" checked />
-      <input class="tab-input" id="tab-stack" name="view" type="radio" />
-      <input class="tab-input" id="tab-domains" name="view" type="radio" />
-      <input class="tab-input" id="tab-state" name="view" type="radio" />
-      <input class="tab-input" id="tab-data" name="view" type="radio" />
-      <input class="tab-input" id="tab-journeys" name="view" type="radio" />
-      <input class="tab-input" id="tab-sequences" name="view" type="radio" />
-      <input class="tab-input" id="tab-progress" name="view" type="radio" />
-
-      <section class="hero" aria-labelledby="page-title">
+    <main>
+      <header>
         <div>
-          <div class="eyebrow">Target architecture specification</div>
-          <h1 id="page-title">EMDR Local</h1>
+          <div class="eyebrow">Sequence diagram proof</div>
+          <h1>Vault Creation</h1>
           <p class="lead">
-            Ideal-state technical architecture for a local-first Electron EMDR
-            app. Diagrams are the primary contract: every process boundary,
-            user flow, state transition, and persistent relationship is shown as
-            a visual model.
+            A single proper sequence diagram for first-run vault setup. The
+            diagram shows participants, lifelines, activation bars, ordered
+            calls, synchronous returns, and the point where encrypted local
+            persistence is created.
           </p>
-          <div class="doc-map" aria-label="Document index map">
-            <div class="map-node">Stack topology</div>
-            <div class="map-node">Domain ownership</div>
-            <div class="map-node">State machine</div>
-            <div class="map-node">Persistence model</div>
-            <div class="map-node">User journeys</div>
-            <div class="map-node">Sequences</div>
-            <div class="map-node">Branching logic</div>
-            <div class="map-node">Progress tracker</div>
-          </div>
         </div>
-
-        <aside class="hero-visual" aria-label="Ideal runtime topology">
-          <div class="hero-visual-title">
-            <span>Ideal runtime</span>
-            <span>local-only</span>
-          </div>
-          <div class="topology">
-            <div class="node">Renderer<br />presentation</div>
-            <div class="arrow">&rarr;</div>
-            <div class="node main">Main<br />Core Engine</div>
-            <div class="arrow">&larr;</div>
-            <div class="node agent">Guide<br />agent</div>
-          </div>
-          <div class="store-line" aria-hidden="true"></div>
-          <div class="node data">SQLite store sealed inside encrypted vault</div>
+        <aside class="scope" aria-label="Diagram scope">
+          <h2>Scope</h2>
+          <ul>
+            <li>Exactly one sequence diagram.</li>
+            <li>No markdown links, scripts, generated diagrams, or card grids.</li>
+            <li>Markdown architecture files remain untouched.</li>
+          </ul>
         </aside>
+      </header>
+
+      <section class="diagram-shell" aria-label="Vault creation sequence diagram">
+        <svg
+          class="sequence-diagram"
+          viewBox="0 0 1320 900"
+          role="img"
+          aria-labelledby="diagram-title diagram-desc"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title id="diagram-title">Vault creation sequence diagram</title>
+          <desc id="diagram-desc">
+            Sequence diagram showing user setup, renderer API call, preload
+            transport, main registry dispatch, vault domain creation, encrypted
+            vault persistence, and recovery code return.
+          </desc>
+
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#17211f" />
+            </marker>
+            <marker id="returnArrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#315f85" />
+            </marker>
+          </defs>
+
+          <text x="40" y="42" class="title">First-run vault creation</text>
+          <text x="40" y="66" class="subtitle">
+            The renderer asks; main validates and owns vault creation; persistence is sealed locally before the recovery code returns.
+          </text>
+
+          <!-- Participants -->
+          <rect x="38" y="96" width="118" height="62" rx="6" class="participant" />
+          <text x="97" y="122" class="participant-text">User</text>
+          <text x="97" y="142" class="participant-subtext">person</text>
+
+          <rect x="208" y="96" width="118" height="62" rx="6" class="participant" />
+          <text x="267" y="122" class="participant-text">VaultSetup</text>
+          <text x="267" y="142" class="participant-subtext">renderer UI</text>
+
+          <rect x="378" y="96" width="118" height="62" rx="6" class="participant" />
+          <text x="437" y="122" class="participant-text">Renderer API</text>
+          <text x="437" y="142" class="participant-subtext">client</text>
+
+          <rect x="548" y="96" width="118" height="62" rx="6" class="participant" />
+          <text x="607" y="122" class="participant-text">Preload</text>
+          <text x="607" y="142" class="participant-subtext">bridge</text>
+
+          <rect x="718" y="96" width="118" height="62" rx="6" class="participant main" />
+          <text x="777" y="122" class="participant-text">Main Registry</text>
+          <text x="777" y="142" class="participant-subtext">IPC dispatch</text>
+
+          <rect x="888" y="96" width="118" height="62" rx="6" class="participant main" />
+          <text x="947" y="122" class="participant-text">Vault Domain</text>
+          <text x="947" y="142" class="participant-subtext">service</text>
+
+          <rect x="1058" y="96" width="118" height="62" rx="6" class="participant data" />
+          <text x="1117" y="122" class="participant-text">Store</text>
+          <text x="1117" y="142" class="participant-subtext">SQLite bytes</text>
+
+          <rect x="1228" y="96" width="64" height="62" rx="6" class="participant data" />
+          <text x="1260" y="122" class="participant-text">Vault</text>
+          <text x="1260" y="142" class="participant-subtext">file</text>
+
+          <!-- Lifelines -->
+          <line x1="97" y1="158" x2="97" y2="850" class="lifeline" />
+          <line x1="267" y1="158" x2="267" y2="850" class="lifeline" />
+          <line x1="437" y1="158" x2="437" y2="850" class="lifeline" />
+          <line x1="607" y1="158" x2="607" y2="850" class="lifeline" />
+          <line x1="777" y1="158" x2="777" y2="850" class="lifeline" />
+          <line x1="947" y1="158" x2="947" y2="850" class="lifeline" />
+          <line x1="1117" y1="158" x2="1117" y2="850" class="lifeline" />
+          <line x1="1260" y1="158" x2="1260" y2="850" class="lifeline" />
+
+          <!-- Activations -->
+          <rect x="258" y="200" width="18" height="610" rx="3" class="activation" />
+          <rect x="428" y="250" width="18" height="510" rx="3" class="activation" />
+          <rect x="598" y="300" width="18" height="410" rx="3" class="activation" />
+          <rect x="768" y="350" width="18" height="310" rx="3" class="activation" />
+          <rect x="938" y="400" width="18" height="210" rx="3" class="activation" />
+          <rect x="1108" y="452" width="18" height="64" rx="3" class="activation" />
+          <rect x="1251" y="548" width="18" height="62" rx="3" class="activation" />
+
+          <!-- Messages -->
+          <line x1="97" y1="210" x2="258" y2="210" class="message" />
+          <rect x="124" y="190" width="112" height="20" class="label-bg" />
+          <text x="132" y="205" class="message-text">1. submit password</text>
+
+          <line x1="276" y1="260" x2="428" y2="260" class="message" />
+          <rect x="295" y="240" width="115" height="20" class="label-bg" />
+          <text x="302" y="255" class="message-text">2. createVault()</text>
+
+          <line x1="446" y1="310" x2="598" y2="310" class="message" />
+          <rect x="468" y="290" width="110" height="20" class="label-bg" />
+          <text x="474" y="305" class="message-text">3. request route</text>
+
+          <line x1="616" y1="360" x2="768" y2="360" class="message" />
+          <rect x="644" y="340" width="102" height="20" class="label-bg" />
+          <text x="650" y="355" class="message-text">4. IPC invoke</text>
+
+          <line x1="786" y1="410" x2="938" y2="410" class="message" />
+          <rect x="808" y="390" width="116" height="20" class="label-bg" />
+          <text x="814" y="405" class="message-text">5. vault:create</text>
+
+          <line x1="956" y1="462" x2="1108" y2="462" class="message" />
+          <rect x="976" y="442" width="118" height="20" class="label-bg" />
+          <text x="982" y="457" class="message-text">6. create store</text>
+
+          <line x1="1108" y1="512" x2="956" y2="512" class="return" />
+          <rect x="994" y="492" width="88" height="20" class="label-bg" />
+          <text x="1000" y="507" class="return-text">store ready</text>
+
+          <line x1="956" y1="558" x2="1251" y2="558" class="message" />
+          <rect x="1035" y="538" width="145" height="20" class="label-bg" />
+          <text x="1041" y="553" class="message-text">7. encrypt and save</text>
+
+          <line x1="1251" y1="606" x2="956" y2="606" class="return" />
+          <rect x="1064" y="586" width="88" height="20" class="label-bg" />
+          <text x="1070" y="601" class="return-text">save ok</text>
+
+          <line x1="938" y1="650" x2="786" y2="650" class="return" />
+          <rect x="798" y="630" width="130" height="20" class="label-bg" />
+          <text x="804" y="645" class="return-text">recovery code</text>
+
+          <line x1="768" y1="700" x2="616" y2="700" class="return" />
+          <rect x="642" y="680" width="100" height="20" class="label-bg" />
+          <text x="648" y="695" class="return-text">response</text>
+
+          <line x1="598" y1="750" x2="446" y2="750" class="return" />
+          <rect x="470" y="730" width="104" height="20" class="label-bg" />
+          <text x="476" y="745" class="return-text">resolve</text>
+
+          <line x1="428" y1="800" x2="276" y2="800" class="return" />
+          <rect x="292" y="780" width="124" height="20" class="label-bg" />
+          <text x="298" y="795" class="return-text">recovery code</text>
+
+          <line x1="258" y1="836" x2="97" y2="836" class="return" />
+          <rect x="120" y="816" width="116" height="20" class="label-bg" />
+          <text x="126" y="831" class="return-text">show key</text>
+
+          <!-- Notes -->
+          <rect x="888" y="700" width="360" height="86" rx="6" class="note" />
+          <text x="908" y="726" class="note-text">Invariant: the renderer never opens the store.</text>
+          <text x="908" y="750" class="note-text">The main process owns vault creation and returns only</text>
+          <text x="908" y="774" class="note-text">transport-safe setup data to the presentation layer.</text>
+        </svg>
       </section>
-
-      <nav class="nav" aria-label="Technical architecture views">
-        <label for="tab-index">Index</label>
-        <label for="tab-stack">Stack</label>
-        <label for="tab-domains">Domains</label>
-        <label for="tab-state">State</label>
-        <label for="tab-data">Data</label>
-        <label for="tab-journeys">Journeys</label>
-        <label for="tab-sequences">Sequences</label>
-        <label for="tab-progress">Progress</label>
-      </nav>
-
-      <div class="views">
-        <section class="view" id="index">
-          <div class="section-head">
-            <h2>Document Model</h2>
-            <p>
-              This document describes the target architecture only. Progress
-              toward the target is tracked separately from the architecture
-              contract.
-            </p>
-          </div>
-
-          <div class="legend" aria-label="Diagram legend">
-            <div class="legend-item"><strong>Command</strong><span>Renderer intent routed through main IPC.</span></div>
-            <div class="legend-item"><strong>Event</strong><span>Main-originated notification to renderer.</span></div>
-            <div class="legend-item"><strong>Repository</strong><span>Only repositories issue table-specific SQL.</span></div>
-            <div class="legend-item"><strong>Persistence</strong><span>SQLite bytes sealed into the encrypted vault.</span></div>
-            <div class="legend-item"><strong>Validation</strong><span>Domain IPC and services reject invalid actions.</span></div>
-            <div class="legend-item"><strong>Proposal</strong><span>Agent output is advisory until main accepts it.</span></div>
-          </div>
-
-          <div class="grid two" style="margin-top: 16px">
-            <article class="card">
-              <h3>Technical Scope Diagram</h3>
-              <div class="flowchart" aria-label="Architecture document scope">
-                <div class="flow-box">Target process model</div>
-                <div class="flow-box">Target domain model</div>
-                <div class="decision"><span>Runtime rule?</span></div>
-                <div class="flow-box">Document as invariant</div>
-                <div class="flow-box">Verify with checks</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Progress Separation Diagram</h3>
-              <div class="flowchart" aria-label="Progress is separate from target state">
-                <div class="flow-box">Ideal target</div>
-                <div class="flow-box">Migration phases</div>
-                <div class="decision"><span>Complete?</span></div>
-                <div class="flow-box">Mark progress</div>
-                <div class="flow-box">Do not redefine ideal</div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view" id="stack">
-          <div class="section-head">
-            <h2>Full Stack Topology</h2>
-            <p>
-              User intent travels inward to the Core Engine; durable changes
-              travel through domain services and repositories; advisory guide
-              output returns as validated proposals.
-            </p>
-          </div>
-
-          <div class="stack-map" aria-label="Ideal full-stack relationship map">
-            <div class="stack-row">
-              <div class="stack-label">User command</div>
-              <div class="mini">User<small>clicks, types, confirms</small></div>
-              <div class="mini">Renderer UI<small>presentation state</small></div>
-              <div class="mini">Renderer API<small>typed client</small></div>
-              <div class="mini">Preload<small>generic bridge</small></div>
-              <div class="mini">Main registry<small>route dispatch</small></div>
-              <div class="mini">Domain IPC<small>payload validation</small></div>
-              <div class="mini">Service<small>business rule</small></div>
-              <div class="mini">Repository<small>table SQL</small></div>
-            </div>
-            <div class="stack-row">
-              <div class="stack-label">Persistence</div>
-              <div class="mini">Service<small>transaction owner</small></div>
-              <div class="mini">Repository<small>domain mapping</small></div>
-              <div class="mini">SQLite adapter<small>generic DB API</small></div>
-              <div class="mini">SQLite store<small>durable rows</small></div>
-              <div class="mini">Vault service<small>whole-store lifecycle</small></div>
-              <div class="mini">Vault crypto<small>encrypt/decrypt</small></div>
-              <div class="mini">Vault file<small>local envelope</small></div>
-              <div class="mini">Export/import<small>user selected file</small></div>
-            </div>
-            <div class="stack-row">
-              <div class="stack-label">Guide proposal</div>
-              <div class="mini">Guide panel<small>message or action</small></div>
-              <div class="mini">Guide route<small>main IPC</small></div>
-              <div class="mini">Guide service<small>context builder</small></div>
-              <div class="mini agent">Agent port<small>local sidecar</small></div>
-              <div class="mini agent">Agent response<small>structured proposals</small></div>
-              <div class="mini">Validator<small>state and payload</small></div>
-              <div class="mini">Domain service<small>accepted mutation</small></div>
-              <div class="mini">Renderer event<small>view refresh</small></div>
-            </div>
-          </div>
-
-          <div class="grid two" style="margin-top: 16px">
-            <article class="card">
-              <h3>Command/Event Swimlane</h3>
-              <div class="swimlane" aria-label="Command and event lanes">
-                <div class="lane-head">
-                  <div>User</div><div>Renderer</div><div>API</div><div>Preload</div><div>Registry</div><div>Domain</div><div>Store</div><div>Event</div>
-                </div>
-                <div class="lane-row">
-                  <div><strong>Intent</strong></div><div>render control</div><div>call route</div><div>invoke generic IPC</div><div>dispatch handler</div><div>validate and apply</div><div><strong class="persist">persist</strong></div><div><strong class="event">refresh view</strong></div>
-                </div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Runtime Responsibility Matrix</h3>
-              <table class="matrix">
-                <thead><tr><th>Component</th><th>Owns</th><th>Must not own</th></tr></thead>
-                <tbody>
-                  <tr><td>Main</td><td>Domains, store, vault, route registry, agent supervision</td><td>React display state</td></tr>
-                  <tr><td>Preload</td><td>Generic request and subscription bridge</td><td>Domain route registration</td></tr>
-                  <tr><td>Renderer</td><td>Views, drafts, animation, selected panels</td><td>Repositories, vault internals, agent process</td></tr>
-                  <tr><td>Agent</td><td>Local model response proposals</td><td>Direct mutation or store access</td></tr>
-                </tbody>
-              </table>
-            </article>
-          </div>
-        </section>
-
-        <section class="view" id="domains">
-          <div class="section-head">
-            <h2>Domain Ownership</h2>
-            <p>
-              The target architecture is domain-first. The API layer composes
-              domains; domains own rules; repositories are the only table access
-              point.
-            </p>
-          </div>
-
-          <div class="stack-map" aria-label="Main composition flow">
-            <div class="stack-row">
-              <div class="stack-label">Composition</div>
-              <div class="mini">electron/main.ts<small>entrypoint</small></div>
-              <div class="mini">main/api/app.ts<small>lifecycle</small></div>
-              <div class="mini">main/api/modules.ts<small>manual wiring</small></div>
-              <div class="mini">store adapter<small>locked at startup</small></div>
-              <div class="mini">repositories<small>domain-owned</small></div>
-              <div class="mini">services<small>business rules</small></div>
-              <div class="mini">route modules<small>self-register</small></div>
-              <div class="mini">registry<small>dispatch</small></div>
-            </div>
-          </div>
-
-          <div class="grid three" style="margin-top: 16px">
-            <article class="card">
-              <h3>Domain Map</h3>
-              <div class="doc-map" aria-label="Domain folders">
-                <div class="map-node">vault</div>
-                <div class="map-node">target</div>
-                <div class="map-node">session</div>
-                <div class="map-node">stimulation-set</div>
-                <div class="map-node">setting</div>
-                <div class="map-node">guide</div>
-                <div class="map-node">lib/store</div>
-                <div class="map-node">lib/agent</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Service Boundary Flow</h3>
-              <div class="flowchart" aria-label="Service to service boundary">
-                <div class="flow-box">Domain service</div>
-                <div class="flow-box">Injected interface</div>
-                <div class="decision"><span>Other domain?</span></div>
-                <div class="flow-box">Call service</div>
-                <div class="flow-box">Never repository</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Repository Isolation</h3>
-              <div class="flowchart" aria-label="Repository isolation">
-                <div class="flow-box">Route</div>
-                <div class="flow-box">Service</div>
-                <div class="decision"><span>Needs rows?</span></div>
-                <div class="flow-box">Repository</div>
-                <div class="flow-box">SQL adapter</div>
-              </div>
-            </article>
-          </div>
-
-          <div class="grid two" style="margin-top: 16px">
-            <article class="card">
-              <h3>Target Directory Tree</h3>
-              <pre class="tree">electron/
-  main.ts
-  preload.cts
-src/
-  main/
-    api/
-    internal/
-      domain/
-      lib/
-  renderer/
-    app/
-    api/
-    animation/
-    features/
-  shared/
-agent/
-docs/
-assets/</pre>
-            </article>
-            <article class="card">
-              <h3>IPC Contract Map</h3>
-              <table class="matrix">
-                <thead><tr><th>Domain</th><th>Routes</th><th>Validation point</th></tr></thead>
-                <tbody>
-                  <tr><td>vault</td><td>status, create, unlock, lock, import, export</td><td>domain IPC and vault service</td></tr>
-                  <tr><td>target</td><td>list, list-all, create, revise</td><td>target IPC and service</td></tr>
-                  <tr><td>session</td><td>list, start, assessment, workflow, advance, end</td><td>session graph and service</td></tr>
-                  <tr><td>stimulation-set</td><td>list by session, log</td><td>workflow-aware service</td></tr>
-                  <tr><td>setting</td><td>get, update stimulation settings</td><td>setting IPC ranges/enums</td></tr>
-                  <tr><td>guide</td><td>view, message, apply action</td><td>proposal validator and target services</td></tr>
-                </tbody>
-              </table>
-            </article>
-          </div>
-        </section>
-
-        <section class="view" id="state">
-          <div class="section-head">
-            <h2>Session State Machine</h2>
-            <p>
-              The target session workflow is an explicit graph. UI commands and
-              guide proposals use the same graph-validated actions.
-            </p>
-          </div>
-
-          <div class="state-rail" aria-label="Ideal session state graph">
-            <div class="state-node"><strong>idle</strong><span>No active session workflow.</span></div>
-            <div class="state-node"><strong>target_selection</strong><span>Choose guide-prioritized active target.</span></div>
-            <div class="state-node"><strong>preparation</strong><span>Update and approve assessment.</span></div>
-            <div class="state-node"><strong>stimulation</strong><span>Run set, log set, pause, or close.</span></div>
-            <div class="state-node"><strong>interjection</strong><span>Grounding and pause between sets.</span></div>
-            <div class="state-node"><strong>closure</strong><span>Close down or return to stimulation.</span></div>
-            <div class="state-node"><strong>review</strong><span>Review final data before ending.</span></div>
-            <div class="state-node"><strong>post_session</strong><span>Return idle or start another session.</span></div>
-          </div>
-
-          <div class="edge-grid" style="margin-top: 18px">
-            <article class="edge-card"><h3>idle</h3><div class="chips"><span class="chip">start_session &rarr; target_selection</span><span class="chip">select_target &rarr; preparation</span></div></article>
-            <article class="edge-card"><h3>target_selection</h3><div class="chips"><span class="chip">select_target &rarr; preparation</span><span class="chip">create_target_draft &rarr; target_selection</span><span class="chip">return_to_idle &rarr; idle</span></div></article>
-            <article class="edge-card"><h3>preparation</h3><div class="chips"><span class="chip">update_assessment &rarr; preparation</span><span class="chip">approve_assessment &rarr; stimulation</span><span class="chip">request_grounding &rarr; interjection</span><span class="chip">begin_closure &rarr; closure</span></div></article>
-            <article class="edge-card"><h3>stimulation</h3><div class="chips"><span class="chip">start_stimulation &rarr; stimulation</span><span class="chip">log_stimulation_set &rarr; stimulation</span><span class="chip">pause_stimulation &rarr; interjection</span><span class="chip">request_grounding &rarr; interjection</span><span class="chip">begin_closure &rarr; closure</span></div></article>
-            <article class="edge-card"><h3>interjection</h3><div class="chips"><span class="chip">continue_stimulation &rarr; stimulation</span><span class="chip">request_grounding &rarr; interjection</span><span class="chip">begin_closure &rarr; closure</span></div></article>
-            <article class="edge-card"><h3>closure</h3><div class="chips"><span class="chip">request_review &rarr; review</span><span class="chip">continue_stimulation &rarr; stimulation</span><span class="chip">request_grounding &rarr; interjection</span></div></article>
-            <article class="edge-card"><h3>review</h3><div class="chips"><span class="chip">close_session &rarr; post_session</span><span class="chip">begin_closure &rarr; closure</span></div></article>
-            <article class="edge-card"><h3>post_session</h3><div class="chips"><span class="chip">return_to_idle &rarr; idle</span><span class="chip">start_session &rarr; target_selection</span></div></article>
-          </div>
-
-          <div class="grid three" style="margin-top: 16px">
-            <article class="card">
-              <h3>Assessment Branch</h3>
-              <div class="flowchart">
-                <div class="flow-box">preparation</div><div class="flow-box">update assessment</div><div class="decision"><span>approved?</span></div><div class="flow-box">stimulation</div><div class="flow-box">or grounding</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Stimulation Branch</h3>
-              <div class="flowchart">
-                <div class="flow-box">stimulation</div><div class="flow-box">run set</div><div class="decision"><span>pause?</span></div><div class="flow-box">interjection</div><div class="flow-box">log set</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Recovery Branch</h3>
-              <div class="flowchart">
-                <div class="flow-box">unlock vault</div><div class="flow-box">read sessions</div><div class="decision"><span>unfinished?</span></div><div class="flow-box">preparation</div><div class="flow-box">interjection</div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view" id="data">
-          <div class="section-head">
-            <h2>Persistence Model</h2>
-            <p>
-              The target database stores durable facts only. Workflow state is
-              reconstructed from durable session facts and remains outside
-              SQLite.
-            </p>
-          </div>
-
-          <div class="er" aria-label="Entity relationship diagram">
-            <div class="er-card">target<small>parent_id references target.id</small></div>
-            <div class="er-card">session<small>target_id references target.id</small></div>
-            <div class="er-card">stimulation_set<small>session_id references session.id</small></div>
-            <div class="er-card">setting<small>key/value JSON</small></div>
-          </div>
-
-          <div class="schema-grid" style="margin-top: 16px">
-            <article class="table-card">
-              <header><h3>target</h3><span>versioned entity</span></header>
-              <div class="field"><strong>id</strong><span>TEXT</span><span>primary key</span></div>
-              <div class="field"><strong>parent_id</strong><span>TEXT</span><span>FK to target.id</span></div>
-              <div class="field"><strong>is_current</strong><span>INTEGER</span><span>0 or 1</span></div>
-              <div class="field"><strong>description</strong><span>TEXT</span><span>required</span></div>
-              <div class="field"><strong>cognitions</strong><span>TEXT</span><span>negative and positive</span></div>
-              <div class="field"><strong>disturbance</strong><span>REAL</span><span>initial and current</span></div>
-              <div class="field"><strong>status</strong><span>TEXT</span><span>active, completed, deferred</span></div>
-            </article>
-            <article class="table-card">
-              <header><h3>session</h3><span>session entity</span></header>
-              <div class="field"><strong>id</strong><span>TEXT</span><span>primary key</span></div>
-              <div class="field"><strong>target_id</strong><span>TEXT</span><span>FK to target.id</span></div>
-              <div class="field"><strong>started_at / ended_at</strong><span>TEXT</span><span>lifecycle timestamps</span></div>
-              <div class="field"><strong>assessment</strong><span>TEXT / REAL</span><span>image, cognitions, VOC, SUD, body</span></div>
-              <div class="field"><strong>final_disturbance</strong><span>REAL</span><span>review outcome</span></div>
-              <div class="field"><strong>notes</strong><span>TEXT</span><span>session notes</span></div>
-            </article>
-            <article class="table-card">
-              <header><h3>stimulation_set</h3><span>session child</span></header>
-              <div class="field"><strong>id</strong><span>TEXT</span><span>primary key</span></div>
-              <div class="field"><strong>session_id</strong><span>TEXT</span><span>FK to session.id</span></div>
-              <div class="field"><strong>set_number</strong><span>INTEGER</span><span>unique per session</span></div>
-              <div class="field"><strong>cycle_count</strong><span>INTEGER</span><span>recorded cycles</span></div>
-              <div class="field"><strong>observation</strong><span>TEXT</span><span>required observation</span></div>
-              <div class="field"><strong>disturbance</strong><span>REAL</span><span>optional SUD</span></div>
-            </article>
-            <article class="table-card">
-              <header><h3>setting</h3><span>app setting</span></header>
-              <div class="field"><strong>key</strong><span>TEXT</span><span>primary key</span></div>
-              <div class="field"><strong>value_json</strong><span>TEXT</span><span>serialized setting value</span></div>
-            </article>
-          </div>
-
-          <div class="grid two" style="margin-top: 16px">
-            <article class="card">
-              <h3>Index Diagram</h3>
-              <div class="doc-map">
-                <div class="map-node">target(parent_id)</div>
-                <div class="map-node">target(current,status,SUD)</div>
-                <div class="map-node">session(target,started)</div>
-                <div class="map-node">session(started)</div>
-                <div class="map-node">set(session,set_number)</div>
-                <div class="map-node">unique set number</div>
-              </div>
-            </article>
-            <article class="card">
-              <h3>Non-Persisted Workflow Diagram</h3>
-              <div class="flowchart">
-                <div class="flow-box">workflow node</div><div class="flow-box">main memory</div><div class="decision"><span>unlock?</span></div><div class="flow-box">durable facts</div><div class="flow-box">reconstruct</div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="view" id="journeys">
-          <div class="section-head">
-            <h2>User Journeys</h2>
-            <p>
-              Journeys describe ideal product behavior at user level. Each
-              journey maps to a sequence diagram in the next section.
-            </p>
-          </div>
-
-          <div class="journey-grid">
-            <article class="journey"><h3>Vault Setup</h3><div class="journey-steps"><div class="journey-step">Setup screen<small>enter password</small></div><div class="journey-step">Create vault<small>generate key</small></div><div class="journey-step">Recovery key<small>show once</small></div><div class="journey-step">Confirm saved<small>required</small></div><div class="journey-step">Unlocked room<small>load data</small></div></div></article>
-            <article class="journey"><h3>Unlock</h3><div class="journey-steps"><div class="journey-step">Locked screen<small>choose credential</small></div><div class="journey-step">Password or key<small>submit</small></div><div class="journey-step">Decrypt vault<small>main only</small></div><div class="journey-step">Recover workflow<small>from facts</small></div><div class="journey-step">Room view<small>ready</small></div></div></article>
-            <article class="journey"><h3>Target Work</h3><div class="journey-steps"><div class="journey-step">Open targets</div><div class="journey-step">Draft target</div><div class="journey-step">Validate fields</div><div class="journey-step">Persist version</div><div class="journey-step">Refresh guide</div></div></article>
-            <article class="journey"><h3>Target Revision</h3><div class="journey-steps"><div class="journey-step">Select target</div><div class="journey-step">Edit current</div><div class="journey-step">Validate patch</div><div class="journey-step">New version</div><div class="journey-step">Lineage updated</div></div></article>
-            <article class="journey"><h3>Session Work</h3><div class="journey-steps"><div class="journey-step">Start Set</div><div class="journey-step">Preparation</div><div class="journey-step">Stimulation</div><div class="journey-step">Closure</div><div class="journey-step">Review</div></div></article>
-            <article class="journey"><h3>Stimulation Run</h3><div class="journey-steps"><div class="journey-step">Start motion</div><div class="journey-step">Run cycles</div><div class="journey-step">Pause</div><div class="journey-step">Log set</div><div class="journey-step">Continue or close</div></div></article>
-            <article class="journey"><h3>Closure Review</h3><div class="journey-steps"><div class="journey-step">Begin closure</div><div class="journey-step">Grounding</div><div class="journey-step">Request review</div><div class="journey-step">Final SUD</div><div class="journey-step">End session</div></div></article>
-            <article class="journey"><h3>Guide Proposal</h3><div class="journey-steps"><div class="journey-step">User message</div><div class="journey-step">Agent response</div><div class="journey-step">Proposal card</div><div class="journey-step">User applies</div><div class="journey-step">Main validates</div></div></article>
-            <article class="journey"><h3>Vault Transfer</h3><div class="journey-steps"><div class="journey-step">Settings</div><div class="journey-step">Import/export</div><div class="journey-step">Native dialog</div><div class="journey-step">Transfer vault</div><div class="journey-step">Notice or unlock</div></div></article>
-            <article class="journey"><h3>History Review</h3><div class="journey-steps"><div class="journey-step">Open history</div><div class="journey-step">List sessions</div><div class="journey-step">Join targets</div><div class="journey-step">Summarize sets</div><div class="journey-step">Show outcomes</div></div></article>
-            <article class="journey"><h3>Settings Update</h3><div class="journey-steps"><div class="journey-step">Open settings</div><div class="journey-step">Change control</div><div class="journey-step">Validate range</div><div class="journey-step">Persist JSON</div><div class="journey-step">Apply animation</div></div></article>
-          </div>
-
-          <div class="grid three" style="margin-top: 16px">
-            <article class="card"><h3>Auth Branch</h3><div class="flowchart"><div class="flow-box">status</div><div class="flow-box">setup</div><div class="decision"><span>vault?</span></div><div class="flow-box">locked</div><div class="flow-box">unlocked</div></div></article>
-            <article class="card"><h3>Start Set Branch</h3><div class="flowchart"><div class="flow-box">topbar</div><div class="flow-box">active targets</div><div class="decision"><span>exists?</span></div><div class="flow-box">select priority</div><div class="flow-box">start session</div></div></article>
-            <article class="card"><h3>Guide Branch</h3><div class="flowchart"><div class="flow-box">proposal</div><div class="flow-box">payload</div><div class="decision"><span>valid?</span></div><div class="flow-box">accept</div><div class="flow-box">reject reason</div></div></article>
-          </div>
-        </section>
-
-        <section class="view" id="sequences">
-          <div class="section-head">
-            <h2>Sequence Diagrams</h2>
-            <p>
-              Every ideal user flow has an explicit cross-layer sequence. Each
-              compact card follows the same lane order: user, renderer, API,
-              main, domain, persistence or sidecar.
-            </p>
-          </div>
-
-          <div class="sequence-grid">
-            <article class="sequence-card"><h3>Vault Status On Startup</h3><div class="sequence"><div class="seq-step">App<small>mounts</small></div><div class="seq-step">Renderer<small>get status</small></div><div class="seq-step">Preload<small>vault:status</small></div><div class="seq-step">Main<small>dispatch</small></div><div class="seq-step">Vault service<small>inspect file</small></div><div class="seq-step">Renderer<small>route auth</small></div></div></article>
-            <article class="sequence-card"><h3>Vault Creation</h3><div class="sequence"><div class="seq-step">User<small>password</small></div><div class="seq-step">Setup UI<small>submit</small></div><div class="seq-step">API<small>vault:create</small></div><div class="seq-step">Vault service<small>create plaintext</small></div><div class="seq-step">Vault crypto<small>seal</small></div><div class="seq-step">Recovery UI<small>show key</small></div></div></article>
-            <article class="sequence-card"><h3>Password Unlock</h3><div class="sequence"><div class="seq-step">User<small>password</small></div><div class="seq-step">Unlock UI<small>submit</small></div><div class="seq-step">API<small>unlock-password</small></div><div class="seq-step">Vault service<small>decrypt</small></div><div class="seq-step">Session service<small>recover</small></div><div class="seq-step">Renderer<small>load room</small></div></div></article>
-            <article class="sequence-card"><h3>Recovery Unlock</h3><div class="sequence"><div class="seq-step">User<small>recovery key</small></div><div class="seq-step">Unlock UI<small>submit</small></div><div class="seq-step">API<small>unlock-recovery</small></div><div class="seq-step">Vault service<small>unwrap key</small></div><div class="seq-step">Store<small>unlock</small></div><div class="seq-step">Renderer<small>load room</small></div></div></article>
-            <article class="sequence-card"><h3>Vault Import</h3><div class="sequence"><div class="seq-step">User<small>Import</small></div><div class="seq-step">Settings UI<small>request</small></div><div class="seq-step">Main dialog<small>choose file</small></div><div class="seq-step">Vault service<small>validate envelope</small></div><div class="seq-step">Store<small>replace locked vault</small></div><div class="seq-step">Unlock UI<small>required</small></div></div></article>
-            <article class="sequence-card"><h3>Vault Export</h3><div class="sequence"><div class="seq-step">User<small>Export</small></div><div class="seq-step">Settings UI<small>request</small></div><div class="seq-step">Main dialog<small>choose path</small></div><div class="seq-step">Vault service<small>copy envelope</small></div><div class="seq-step">File system<small>write vault</small></div><div class="seq-step">Renderer<small>notice</small></div></div></article>
-            <article class="sequence-card"><h3>Vault Lock</h3><div class="sequence"><div class="seq-step">User<small>Lock</small></div><div class="seq-step">Settings UI<small>request</small></div><div class="seq-step">API<small>vault:lock</small></div><div class="seq-step">Store<small>close data</small></div><div class="seq-step">Workflow<small>reset</small></div><div class="seq-step">Unlock UI<small>show</small></div></div></article>
-            <article class="sequence-card"><h3>Unlocked Data Load</h3><div class="sequence"><div class="seq-step">Renderer<small>unlocked</small></div><div class="seq-step">API<small>parallel reads</small></div><div class="seq-step">Main<small>routes</small></div><div class="seq-step">Services<small>list views</small></div><div class="seq-step">Repositories<small>read rows</small></div><div class="seq-step">Renderer<small>hydrate panels</small></div></div></article>
-            <article class="sequence-card"><h3>Target Create</h3><div class="sequence"><div class="seq-step">User<small>draft</small></div><div class="seq-step">Targets UI<small>validate</small></div><div class="seq-step">API<small>target:create</small></div><div class="seq-step">Target service<small>factory</small></div><div class="seq-step">Repository<small>insert</small></div><div class="seq-step">Guide<small>refresh</small></div></div></article>
-            <article class="sequence-card"><h3>Target Revise</h3><div class="sequence"><div class="seq-step">User<small>edit current</small></div><div class="seq-step">Targets UI<small>patch</small></div><div class="seq-step">API<small>target:revise</small></div><div class="seq-step">Target service<small>new version</small></div><div class="seq-step">Repository<small>update lineage</small></div><div class="seq-step">Renderer<small>refresh</small></div></div></article>
-            <article class="sequence-card"><h3>Session Start</h3><div class="sequence"><div class="seq-step">User<small>Start Set</small></div><div class="seq-step">Renderer<small>priority target</small></div><div class="seq-step">API<small>session:start</small></div><div class="seq-step">Session service<small>select target</small></div><div class="seq-step">Repository<small>insert session</small></div><div class="seq-step">Workflow<small>preparation</small></div></div></article>
-            <article class="sequence-card"><h3>Assessment Save</h3><div class="sequence"><div class="seq-step">User<small>assessment</small></div><div class="seq-step">Form<small>save</small></div><div class="seq-step">API<small>update assessment</small></div><div class="seq-step">Workflow<small>validate</small></div><div class="seq-step">Repository<small>update session</small></div><div class="seq-step">Renderer<small>stay prep</small></div></div></article>
-            <article class="sequence-card"><h3>Assessment Approve</h3><div class="sequence"><div class="seq-step">User<small>approve</small></div><div class="seq-step">Form<small>save + advance</small></div><div class="seq-step">API<small>advance flow</small></div><div class="seq-step">Workflow<small>approve</small></div><div class="seq-step">Session<small>stimulation</small></div><div class="seq-step">Renderer<small>show set</small></div></div></article>
-            <article class="sequence-card"><h3>Stimulation Start/Pause</h3><div class="sequence"><div class="seq-step">User<small>button</small></div><div class="seq-step">Room UI<small>toggle</small></div><div class="seq-step">API<small>advance flow</small></div><div class="seq-step">Workflow<small>start or pause</small></div><div class="seq-step">Animation<small>run or stop</small></div><div class="seq-step">Guide<small>refresh</small></div></div></article>
-            <article class="sequence-card"><h3>Log Stimulation Set</h3><div class="sequence"><div class="seq-step">User/UI<small>end set</small></div><div class="seq-step">Guide action<small>log proposal</small></div><div class="seq-step">Main<small>apply action</small></div><div class="seq-step">Workflow<small>validate state</small></div><div class="seq-step">Set repo<small>insert</small></div><div class="seq-step">Renderer<small>set count</small></div></div></article>
-            <article class="sequence-card"><h3>Closure And Review</h3><div class="sequence"><div class="seq-step">User<small>begin closure</small></div><div class="seq-step">Guide panel<small>control</small></div><div class="seq-step">API<small>advance</small></div><div class="seq-step">Workflow<small>closure</small></div><div class="seq-step">Workflow<small>review</small></div><div class="seq-step">Review UI<small>final fields</small></div></div></article>
-            <article class="sequence-card"><h3>End Session</h3><div class="sequence"><div class="seq-step">User<small>end</small></div><div class="seq-step">Review UI<small>patch</small></div><div class="seq-step">Guide action<small>end_session</small></div><div class="seq-step">Session service<small>close</small></div><div class="seq-step">Repository<small>ended_at</small></div><div class="seq-step">Workflow<small>post_session</small></div></div></article>
-            <article class="sequence-card"><h3>History Review</h3><div class="sequence"><div class="seq-step">User<small>History</small></div><div class="seq-step">History UI<small>open panel</small></div><div class="seq-step">API<small>session:list</small></div><div class="seq-step">Session service<small>aggregate</small></div><div class="seq-step">Repositories<small>sessions + sets</small></div><div class="seq-step">Renderer<small>summaries</small></div></div></article>
-            <article class="sequence-card"><h3>Settings Update</h3><div class="sequence"><div class="seq-step">User<small>slider/select</small></div><div class="seq-step">Settings UI<small>patch</small></div><div class="seq-step">API<small>settings update</small></div><div class="seq-step">IPC<small>range/enum</small></div><div class="seq-step">Repository<small>value_json</small></div><div class="seq-step">Animation<small>new config</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Message</h3><div class="sequence"><div class="seq-step">User<small>message</small></div><div class="seq-step">Guide UI<small>submit</small></div><div class="seq-step">API<small>guide:message</small></div><div class="seq-step">Guide service<small>context</small></div><div class="seq-step">Agent<small>response</small></div><div class="seq-step">Renderer<small>proposals</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Apply Target</h3><div class="sequence"><div class="seq-step">User<small>apply</small></div><div class="seq-step">Proposal UI<small>edited draft</small></div><div class="seq-step">API<small>apply action</small></div><div class="seq-step">Guide service<small>validate state</small></div><div class="seq-step">Target service<small>create</small></div><div class="seq-step">Renderer<small>refresh</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Apply Assessment</h3><div class="sequence"><div class="seq-step">User<small>apply</small></div><div class="seq-step">Proposal UI<small>patch</small></div><div class="seq-step">Guide route<small>apply</small></div><div class="seq-step">Workflow<small>preparation</small></div><div class="seq-step">Session service<small>update</small></div><div class="seq-step">Renderer<small>refresh</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Apply Flow</h3><div class="sequence"><div class="seq-step">User<small>apply</small></div><div class="seq-step">Proposal UI<small>flow action</small></div><div class="seq-step">Guide route<small>apply</small></div><div class="seq-step">Workflow<small>validate edge</small></div><div class="seq-step">Session service<small>advance</small></div><div class="seq-step">Renderer<small>new controls</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Apply Log Set</h3><div class="sequence"><div class="seq-step">User<small>apply</small></div><div class="seq-step">Proposal UI<small>observation</small></div><div class="seq-step">Guide route<small>apply</small></div><div class="seq-step">Workflow<small>stimulation</small></div><div class="seq-step">Set service<small>insert</small></div><div class="seq-step">Guide<small>set count</small></div></div></article>
-            <article class="sequence-card"><h3>Guide Apply End</h3><div class="sequence"><div class="seq-step">User<small>apply</small></div><div class="seq-step">Proposal UI<small>final data</small></div><div class="seq-step">Guide route<small>apply</small></div><div class="seq-step">Workflow<small>review</small></div><div class="seq-step">Session service<small>end</small></div><div class="seq-step">Renderer<small>post session</small></div></div></article>
-          </div>
-        </section>
-
-        <section class="view" id="progress">
-          <div class="section-head">
-            <h2>Implementation Progress</h2>
-            <p>
-              This section is progress toward the target architecture. It is not
-              a current-state architecture description.
-            </p>
-          </div>
-
-          <div class="progress-list">
-            <div class="progress-item"><strong>Main API skeleton</strong><div class="bar"><span style="width: 100%"></span></div><span>done</span></div>
-            <div class="progress-item"><strong>Domain routes</strong><div class="bar"><span style="width: 100%"></span></div><span>done</span></div>
-            <div class="progress-item"><strong>Renderer decoupling</strong><div class="bar"><span style="width: 100%"></span></div><span>done</span></div>
-            <div class="progress-item"><strong>Session workflow</strong><div class="bar"><span style="width: 96%"></span></div><span>open</span></div>
-            <div class="progress-item"><strong>Boundary enforcement</strong><div class="bar"><span style="width: 100%"></span></div><span>done</span></div>
-          </div>
-
-          <div class="grid two" style="margin-top: 16px">
-            <article class="card">
-              <h3>Progress Flow</h3>
-              <div class="flowchart">
-                <div class="flow-box">target architecture</div><div class="flow-box">migration phase</div><div class="decision"><span>verified?</span></div><div class="flow-box">mark complete</div><div class="flow-box">keep target stable</div>
-              </div>
-            </article>
-            <article class="callout">
-              <strong>Open target-state decision</strong>
-              <p>
-                Editable guide target ordering may require persistence. No
-                database schema or endpoint schema may change without express
-                approval.
-              </p>
-            </article>
-          </div>
-        </section>
-      </div>
-
     </main>
   </body>
 </html>
