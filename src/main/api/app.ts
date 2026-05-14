@@ -11,6 +11,9 @@ export async function Start() {
   const config = loadAppConfig(process.env, process.argv, {
     sqliteTemplatePath: path.join(app.getAppPath(), "dist-electron/sqlite-template.sqlite")
   });
+  if (config.userDataPath) {
+    app.setPath("userData", config.userDataPath);
+  }
 
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") {
@@ -26,11 +29,19 @@ export async function Start() {
   registerIpcRoutes(ipcMain, registry);
   installNetworkGuard(session.defaultSession, { devServerUrl: config.devServerUrl });
 
-  await createMainWindow({ devServerUrl: config.devServerUrl, useAnimatedUi: config.useAnimatedUi });
+  await createMainWindow({
+    devServerUrl: config.devServerUrl,
+    useAnimatedUi: config.useAnimatedUi,
+    headless: config.headless
+  });
 
   app.on("activate", async () => {
     if (!hasOpenWindows()) {
-      await createMainWindow({ devServerUrl: config.devServerUrl, useAnimatedUi: config.useAnimatedUi });
+      await createMainWindow({
+        devServerUrl: config.devServerUrl,
+        useAnimatedUi: config.useAnimatedUi,
+        headless: config.headless
+      });
     }
   });
 }

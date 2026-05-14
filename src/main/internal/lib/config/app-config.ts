@@ -23,7 +23,8 @@ export function loadAppConfig(
     ),
     devServerUrl: optionalNonEmpty(env.VITE_DEV_SERVER_URL),
     userDataPath: optionalNonEmpty(env.EMDR_LOCAL_USER_DATA_PATH),
-    useAnimatedUi: argv.includes("--animated-ui") || env.EMDR_LOCAL_UI === "animated"
+    useAnimatedUi: argv.includes("--animated-ui") || env.EMDR_LOCAL_UI === "animated",
+    headless: env.EMDR_QA_HEADLESS === "1"
   };
 }
 

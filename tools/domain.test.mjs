@@ -20,9 +20,11 @@ test("app config uses defaults and rejects invalid configured files", () => {
     sqliteTemplatePath: defaultTemplatePath,
     devServerUrl: undefined,
     userDataPath: undefined,
-    useAnimatedUi: false
+    useAnimatedUi: false,
+    headless: false
   });
   assert.equal(loadAppConfig({ EMDR_LOCAL_UI: "animated" }, [], { sqliteTemplatePath: defaultTemplatePath }).useAnimatedUi, true);
+  assert.equal(loadAppConfig({ EMDR_QA_HEADLESS: "1" }, [], { sqliteTemplatePath: defaultTemplatePath }).headless, true);
   assert.equal(
     loadAppConfig(
       { EMDR_SQLITE_TEMPLATE_PATH: path.join(repoRoot, "README.md") },

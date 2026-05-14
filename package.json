@@ -7,10 +7,12 @@
   "main": "dist-electron/electron/main.js",
   "type": "module",
   "scripts": {
-    "dev": "pnpm build:electron && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
-    "dev:animated": "pnpm build:electron && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron . --animated-ui\"",
-    "electron": "pnpm build && electron .",
-    "electron:animated": "pnpm build && electron . --animated-ui",
+    "dev": "pnpm build:electron && node tools/run-electron-qa.mjs dev",
+    "dev:animated": "pnpm build:electron && node tools/run-electron-qa.mjs dev --animated",
+    "qa:dev": "pnpm build:electron && node tools/run-electron-qa.mjs dev --headless",
+    "electron": "pnpm build && node tools/run-electron-qa.mjs app",
+    "electron:animated": "pnpm build && node tools/run-electron-qa.mjs app --animated",
+    "qa:electron": "pnpm build && node tools/run-electron-qa.mjs app --headless",
     "compile:electron": "tsc -p electron/tsconfig.json",
     "build:sqlite-template": "node dist-electron/src/main/internal/lib/store/sqlite/migrations/cli.js --database dist-electron/sqlite-template.sqlite",
     "build:electron": "pnpm compile:electron && pnpm build:sqlite-template",
@@ -23,7 +25,7 @@
     "prepare": "husky",
     "check:architecture": "node tools/check-architecture.mjs",
     "check:architecture:staged": "node tools/check-architecture.mjs --staged",
-    "smoke:electron-workflow": "pnpm build && electron tools/smoke-electron-workflow.mjs"
+    "smoke:electron-workflow": "pnpm build && node tools/run-electron-qa.mjs smoke"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.4",

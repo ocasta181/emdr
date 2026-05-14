@@ -3,6 +3,7 @@ export type AppConfig = {
   devServerUrl?: string;
   userDataPath?: string;
   useAnimatedUi: boolean;
+  headless: boolean;
 };
 
 export type AppConfigDefaults = {

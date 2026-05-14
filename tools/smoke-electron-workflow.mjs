@@ -1,5 +1,4 @@
-import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
@@ -11,6 +10,7 @@ import {
   exportSqliteDatabase
 } from "../dist-electron/src/main/internal/lib/store/sqlite/connection.js";
 import { up as initialSchema } from "../dist-electron/src/main/internal/lib/store/sqlite/migrations/0001_initial_schema.js";
+import { createRunContext, recordCurrentProcess } from "./qa-run-context.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 let phase = "startup";
@@ -28,11 +28,15 @@ void main().catch((error) => {
 });
 
 async function main() {
-  const tempDir = await mkdtemp(path.join(os.tmpdir(), "emdr-electron-workflow-smoke-"));
+  const runContext = await createRunContext({ root: repoRoot });
+  await recordCurrentProcess(runContext, "app");
+  app.setPath("userData", runContext.electronUserDataPath);
+  const artifactDir = path.join(runContext.runDir, "artifacts");
+  await mkdir(artifactDir, { recursive: true });
 
   try {
     phase = "create template";
-    const templatePath = path.join(tempDir, "template.sqlite");
+    const templatePath = path.join(artifactDir, "template.sqlite");
     const templateDb = await createSqliteDatabase();
     initialSchema(templateDb);
     await writeFile(templatePath, exportSqliteDatabase(templateDb));
@@ -45,7 +49,7 @@ async function main() {
     await Initialize({
       routes,
       config: { sqliteTemplatePath: templatePath },
-      getUserDataPath: () => path.join(tempDir, "user-data")
+      getUserDataPath: () => runContext.electronUserDataPath
     });
     registerIpcRoutes(ipcMain, routes);
 
@@ -133,7 +137,7 @@ async function main() {
     await waitForText(window, "SUD end 2");
 
     phase = "export vault";
-    const exportPath = path.join(tempDir, "workflow-export.emdr-vault");
+    const exportPath = path.join(artifactDir, "workflow-export.emdr-vault");
     installVaultDialogStubs(exportPath);
     await clickButton(window, "Close");
     await clickRoomSettings(window);
@@ -157,7 +161,7 @@ async function main() {
     await waitForText(window, "Pause Set");
 
     phase = "export active vault";
-    const activeExportPath = path.join(tempDir, "active-workflow-export.emdr-vault");
+    const activeExportPath = path.join(artifactDir, "active-workflow-export.emdr-vault");
     installVaultDialogStubs(activeExportPath);
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
@@ -188,7 +192,6 @@ async function main() {
   } finally {
     clearTimeout(smokeTimeout);
     app.quit();
-    await rm(tempDir, { recursive: true, force: true });
   }
 }
 

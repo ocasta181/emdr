@@ -13,6 +13,7 @@ export async function createMainWindow(options: MainWindowOptions) {
     height: 820,
     minWidth: 1000,
     minHeight: 700,
+    show: !options.headless,
     title: "EMDR Local",
     backgroundColor: "#171614",
     webPreferences: {
