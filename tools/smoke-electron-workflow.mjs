@@ -87,30 +87,16 @@ async function main() {
     await setFieldByLabel(window, "Negative cognition", "I am stuck");
     await setFieldByLabel(window, "Positive cognition", "I can move");
     await clickButton(window, "Save Version");
-    await waitForText(window, "Start session");
+    await waitForText(window, "Electron workflow target");
     await expectButtonPresent(window, "Start Set", true);
     await clickButton(window, "New Target");
     await waitForText(window, "Save Version");
     await setFieldByLabel(window, "Description", "Second workflow target");
     await clickButton(window, "Save Version");
     await waitForText(window, "Second workflow target");
-    await expectButtonPresent(window, "Start Set", false);
-
-    phase = "start session";
-    await clickButton(window, "Start session");
-    await waitForText(window, "Preparation");
-    await expectButtonPresent(window, "Start Set", true);
-    phase = "guide proposal updates assessment";
-    await setFieldByLabel(window, "Note", "assessment image is a beach");
-    await clickButton(window, "Send");
-    await waitForText(window, "Review proposed assessment");
-    await clickButton(window, "Apply assessment");
-    phase = "approve assessment";
-    await clickButton(window, "Approve assessment");
-    await waitForText(window, "Stimulation");
     await expectButtonPresent(window, "Start Set", true);
 
-    phase = "start stimulation";
+    phase = "start guide-prioritized stimulation";
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
     phase = "guide pauses stimulation";
@@ -137,7 +123,7 @@ async function main() {
     await setFieldByLabel(window, "Final SUD", "2");
     phase = "end session";
     await clickButton(window, "End session");
-    await waitForText(window, "Pick one to start a session");
+    await waitForText(window, "Ready to continue");
     phase = "review history";
     await clickButton(window, "Close");
     await clickRoomHistory(window);
@@ -164,7 +150,7 @@ async function main() {
     await waitForText(window, "Electron workflow target");
 
     phase = "start imported active session";
-    await clickButton(window, "Start session");
+    await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
 
     phase = "export active vault";

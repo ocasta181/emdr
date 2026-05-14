@@ -19,7 +19,7 @@ export class TargetService {
   listCurrentTargets(): Target[] {
     return this.repo
       .all()
-      .filter((target) => target.isCurrent)
+      .filter((target) => target.isCurrent && target.status === "active")
       .sort((a, b) => (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1));
   }
 

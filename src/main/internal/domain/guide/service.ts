@@ -14,6 +14,7 @@ import type {
   GuideStimulationSetWriter,
   GuideTargetMutator,
   GuideTargetReader,
+  GuideTargetSummary,
   GuideView,
   GuideViewRequest
 } from "./types.js";
@@ -30,17 +31,17 @@ export class GuideService {
     const currentTargets = this.targets.listCurrentTargets();
 
     if (!request.activeSessionId) {
-      return idleGuideView(currentTargets.length);
+      return idleGuideView(currentTargets);
     }
 
     const workflow = this.sessions.currentSessionWorkflow();
     if (workflow.activeSessionId !== request.activeSessionId) {
-      return idleGuideView(currentTargets.length);
+      return idleGuideView(currentTargets);
     }
 
     const session = this.sessions.listSessions().find((item) => item.id === request.activeSessionId);
     if (!session || session.endedAt) {
-      return idleGuideView(currentTargets.length);
+      return idleGuideView(currentTargets);
     }
 
     const target = this.targets.listAllTargets().find((item) => item.id === session.targetId);
@@ -195,14 +196,18 @@ function assessmentFromPatch(current: GuideAssessment, patch: GuideAssessmentPat
   };
 }
 
-function idleGuideView(targetCount: number): GuideView {
+function idleGuideView(targets: GuideTargetSummary[]): GuideView {
+  const targetCount = targets.length;
+  const [nextTarget] = targets;
   return {
     mode: "idle",
     targetCount,
     messages: [
       targetCount === 0
         ? "We have no targets yet. Open Targets to add the first one."
-        : `You have ${targetCount} active target${targetCount === 1 ? "" : "s"}. Pick one to start a session.`
+        : targetCount === 1
+          ? `Ready to continue with "${nextTarget?.description ?? "the active target"}".`
+          : `Ready to continue with the guide-prioritized target across ${targetCount} active targets.`
     ],
     primaryAction: {
       type: "open_targets",

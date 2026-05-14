@@ -538,6 +538,12 @@ The renderer must not invent or bypass session workflow transitions. User
 actions that affect the workflow go through domain routes that validate the
 action against the graph before mutating domain state.
 
+When more than one active target exists, the renderer must not ask the user to
+choose which target to process next. The session entrypoint uses guide-prioritized
+target ordering: most recently worked active target first, then higher current
+disturbance, then oldest target. Completed and deferred targets are not session
+start candidates.
+
 Renderer UI may hold display state for selected panels and animation, but
 authoritative session workflow state belongs to the session domain and is
 returned to the renderer as view data. Direct UI calls to start, end, or log

@@ -33,4 +33,6 @@ Manual UI pass run on May 12, 2026 with a fresh encrypted local profile.
 - [x] Replace visible History and Settings hotspot overlays with integrated room props.
 - [x] Expose active session next-step controls in the Guide panel without disabled buttons.
 - [x] New Target should create an unsaved draft, not immediately persist an active target.
-- [x] Topbar Start Set should not appear when multiple active targets require explicit target selection.
+- [x] Topbar Start Set should use the guide-prioritized target when multiple active targets exist.
+- [x] Remove target-specific Start session choices from the Targets panel.
+- [ ] Persist editable guide target ordering after a schema decision.

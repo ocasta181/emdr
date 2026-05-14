@@ -204,14 +204,6 @@ export function AnimatedApp() {
     setEditingTarget(null);
   }
 
-  async function startSession(target: Target) {
-    await beginSession(target);
-    dispatchRoomEvent({ type: "select_guide" });
-    setGuideAnimation({ type: "action", action: "speak" });
-    setChatMessages([]);
-    setGuideProposals([]);
-  }
-
   async function beginSession(target: Target) {
     if (sessionWorkflow.state === "idle" || sessionWorkflow.state === "post_session") {
       setSessionWorkflow(await advanceSessionFlow("start_session"));
@@ -322,7 +314,7 @@ export function AnimatedApp() {
       let session = activeSession;
       let workflow = sessionWorkflow;
       if (!session) {
-        const target = targets.length === 1 ? targets[0] : undefined;
+        const target = targets[0];
         if (!target) return;
         const started = await beginSession(target);
         session = started.session;
@@ -470,12 +462,12 @@ export function AnimatedApp() {
 
   const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
   const settings = viewData.settings.bilateralStimulation;
-  const targets = viewData.targets;
-  const sessionsByTargetId = new Map(viewData.targets.map((target) => [target.id, target] as const));
-  const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const allTargets = viewData.allTargets;
+  const targetById = new Map(allTargets.map((target) => [target.id, target] as const));
+  const targets = guideOrderedTargets(viewData.targets, targetById, viewData.sessions);
+  const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const canStartSetFromTarget = Boolean(
-    !activeSession && targets.length === 1 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
+    !activeSession && targets.length > 0 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
   );
   const canToggleStimulation = Boolean(
     canStartSetFromTarget ||
@@ -500,7 +492,7 @@ export function AnimatedApp() {
           <div className="brand">EMDR Local</div>
           <div className="subtle">
             {activeSession
-              ? `Session in progress · ${sessionsByTargetId.get(activeSession.targetId)?.description ?? "Unknown target"}`
+              ? `Session in progress · ${targetById.get(activeSession.targetId)?.description ?? "Unknown target"}`
               : "Animated room"}
           </div>
         </div>
@@ -526,7 +518,7 @@ export function AnimatedApp() {
               {activeSession ? (
                 <ActiveSessionChat
                   session={activeSession}
-                  targetDescription={sessionsByTargetId.get(activeSession.targetId)?.description}
+                  targetDescription={targetById.get(activeSession.targetId)?.description}
                   guideView={guideView}
                   workflow={sessionWorkflow}
                   chatMessages={chatMessages}
@@ -564,7 +556,6 @@ export function AnimatedApp() {
               onEdit={(target) => setEditingTarget({ kind: "existing", target })}
               onCancelEdit={() => setEditingTarget(null)}
               onSave={saveTarget}
-              onStartSession={startSession}
               onAnimate={(action) => setGuideAnimation({ type: "action", action })}
               isAnimating={(action) => isGuideAnimationAction(guideAnimation, action)}
             />
@@ -573,7 +564,7 @@ export function AnimatedApp() {
           {panel === "history" && (
             <HistoryPanel
               sessions={sessionHistory}
-              targetById={new Map(allTargets.map((target) => [target.id, target]))}
+              targetById={targetById}
             />
           )}
 
@@ -606,6 +597,52 @@ function activeSessionFromWorkflow(sessions: SessionAggregate[], workflow: Sessi
   return workflow.activeSessionId
     ? sessions.find((session) => session.id === workflow.activeSessionId && !session.endedAt) ?? null
     : null;
+}
+
+function guideOrderedTargets(
+  currentTargets: Target[],
+  targetById: Map<string, Target>,
+  sessions: SessionAggregate[]
+): Target[] {
+  const latestWorkByTargetId = new Map<string, string>();
+
+  for (const target of currentTargets) {
+    if (target.status !== "active") continue;
+    const targetIds = targetLineageIds(target, targetById);
+    const latestSession = sessions
+      .filter((session) => targetIds.has(session.targetId))
+      .sort((a, b) => sessionWorkTime(b).localeCompare(sessionWorkTime(a)))[0];
+    if (latestSession) {
+      latestWorkByTargetId.set(target.id, sessionWorkTime(latestSession));
+    }
+  }
+
+  return currentTargets
+    .filter((target) => target.status === "active")
+    .sort((a, b) => {
+      const aWorkedAt = latestWorkByTargetId.get(a.id);
+      const bWorkedAt = latestWorkByTargetId.get(b.id);
+      if (aWorkedAt && bWorkedAt && aWorkedAt !== bWorkedAt) return bWorkedAt.localeCompare(aWorkedAt);
+      if (aWorkedAt && !bWorkedAt) return -1;
+      if (!aWorkedAt && bWorkedAt) return 1;
+      const disturbanceDelta = (b.currentDisturbance ?? -1) - (a.currentDisturbance ?? -1);
+      if (disturbanceDelta !== 0) return disturbanceDelta;
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+}
+
+function targetLineageIds(target: Target, targetById: Map<string, Target>) {
+  const ids = new Set<string>();
+  let current: Target | undefined = target;
+  while (current) {
+    ids.add(current.id);
+    current = current.parentId ? targetById.get(current.parentId) : undefined;
+  }
+  return ids;
+}
+
+function sessionWorkTime(session: SessionAggregate) {
+  return session.endedAt ?? session.startedAt;
 }
 
 function stimulationButtonLabel(workflow: SessionWorkflowSnapshot, running: boolean) {

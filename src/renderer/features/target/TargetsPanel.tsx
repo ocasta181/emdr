@@ -15,7 +15,6 @@ export function TargetsPanel({
   onEdit,
   onCancelEdit,
   onSave,
-  onStartSession,
   onAnimate,
   isAnimating
 }: {
@@ -26,7 +25,6 @@ export function TargetsPanel({
   onEdit: (target: Target) => void;
   onCancelEdit: () => void;
   onSave: (target: TargetEditorState) => void;
-  onStartSession: (target: Target) => void;
   onAnimate: (action: GuideAction) => void;
   isAnimating: (action: GuideAction) => boolean;
 }) {
@@ -67,11 +65,7 @@ export function TargetsPanel({
                 >
                   Edit
                 </button>
-                {activeSessionTargetId === target.id ? (
-                  <span className="inlineStatus">In session</span>
-                ) : (
-                  !activeSessionTargetId && <button onClick={() => onStartSession(target)}>Start session</button>
-                )}
+                {activeSessionTargetId === target.id && <span className="inlineStatus">In session</span>}
               </div>
             </article>
           ))}

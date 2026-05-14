@@ -363,6 +363,9 @@ Exit criteria:
 - [x] Define recovery behavior for app relaunch with an unfinished durable
   session row, without persisting application workflow state in SQLite.
 - [x] Automated route smoke coverage verifies the full graph.
+- [x] Remove user target selection from session start. `Start Set` uses
+  guide-prioritized ordering so multiple active targets still have a default.
+- [ ] Decide whether editable guide target ordering needs persisted schema.
 
 ## Phase 9: Enforce The Final Boundary
 
