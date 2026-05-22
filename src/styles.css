@@ -407,6 +407,40 @@ h2 {
   opacity: 0;
 }
 
+.stimulationActive .animatedTopbar .buttonRow button {
+  box-shadow: none;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.stimulationFieldLight .animatedTopbar .buttonRow button {
+  border-color: rgba(31, 33, 29, 0.12);
+  background: rgba(248, 247, 241, 0.3);
+  color: rgba(31, 33, 29, 0.52);
+}
+
+.stimulationFieldDark .animatedTopbar .buttonRow button {
+  border-color: rgba(241, 237, 223, 0.14);
+  background: rgba(241, 237, 223, 0.08);
+  color: rgba(241, 237, 223, 0.58);
+}
+
+.stimulationFieldLight .animatedTopbar .buttonRow button:hover,
+.stimulationFieldLight .animatedTopbar .buttonRow button:focus-visible {
+  border-color: rgba(31, 33, 29, 0.24);
+  background: rgba(248, 247, 241, 0.46);
+  color: rgba(31, 33, 29, 0.72);
+}
+
+.stimulationFieldDark .animatedTopbar .buttonRow button:hover,
+.stimulationFieldDark .animatedTopbar .buttonRow button:focus-visible {
+  border-color: rgba(241, 237, 223, 0.28);
+  background: rgba(241, 237, 223, 0.14);
+  color: rgba(241, 237, 223, 0.78);
+}
+
 .stimulationActive .animatedTopbar:focus-within,
 .stimulationActive .animatedTopbar:hover {
   opacity: 1;

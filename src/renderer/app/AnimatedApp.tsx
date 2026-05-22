@@ -544,9 +544,12 @@ export function AnimatedApp() {
       (activeSession &&
         (stimulationRunning || ["preparation", "stimulation", "interjection", "closure"].includes(sessionWorkflow.state)))
   );
+  const appClassName = stimulationRunning
+    ? `animatedApp stimulationActive ${settings.fieldMode === "light" ? "stimulationFieldLight" : "stimulationFieldDark"}`
+    : "animatedApp";
 
   return (
-    <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
+    <div className={appClassName}>
       <RoomScene
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
         guideAnimation={guideAnimation}
