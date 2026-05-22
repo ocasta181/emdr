@@ -21,9 +21,11 @@ Kaiser Permanente is not being treated as outcome evidence. It is being used as 
 
 ## Decision
 
-Use a blank light stimulation field during active visual bilateral stimulation.
+Default to a blank light stimulation field during active visual bilateral stimulation.
 
 Use a dark, high-contrast ball by default.
+
+Allow a dark-mode field in Ball Settings for user visibility and comfort preference. Dark mode uses a blank black field with a light, high-contrast ball. It is an optional display mode, not the default clinical or product recommendation.
 
 Keep the ball traveling end-to-end across the available fullscreen viewport, while keeping the ball center inside the visible bounds.
 
@@ -34,6 +36,7 @@ Keep room artwork, decorative motion, and non-control visual content hidden duri
 ## Consequences
 
 - The active set remains visually simple and low-distraction.
-- The app aligns with the Kaiser Permanente implementation pattern supplied as product precedent.
+- The app aligns by default with the Kaiser Permanente implementation pattern supplied as product precedent.
+- Users can still choose a dark field when it is more comfortable or visible for them.
 - The app does not claim that light-background/dark-ball polarity is clinically superior.
 - Future changes to background polarity, target color, or traversal width must distinguish clinical evidence from product precedent.

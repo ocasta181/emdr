@@ -57,11 +57,22 @@ type AppViewData = {
   settings: Settings;
 };
 
-const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
-  green: "#205c3b",
-  blue: "#204866",
-  white: "#202020",
-  orange: "#6d3f12"
+const dotColorHex: Record<
+  BilateralStimulationSettings["fieldMode"],
+  Record<BilateralStimulationSettings["dotColor"], string>
+> = {
+  light: {
+    green: "#205c3b",
+    blue: "#204866",
+    white: "#202020",
+    orange: "#6d3f12"
+  },
+  dark: {
+    green: "#96ff8f",
+    blue: "#8fe5ff",
+    white: "#ffffff",
+    orange: "#ffb45f"
+  }
 };
 
 const emptyViewData: AppViewData = {
@@ -72,7 +83,8 @@ const emptyViewData: AppViewData = {
     bilateralStimulation: {
       speed: 1.2,
       dotSize: "medium",
-      dotColor: "green"
+      dotColor: "green",
+      fieldMode: "light"
     }
   }
 };
@@ -539,7 +551,8 @@ export function AnimatedApp() {
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
         guideAnimation={guideAnimation}
         stimulationRunning={stimulationRunning}
-        stimulationColor={dotColorHex[settings.dotColor]}
+        stimulationColor={dotColorHex[settings.fieldMode][settings.dotColor]}
+        stimulationFieldMode={settings.fieldMode}
         stimulationDotSize={settings.dotSize}
         stimulationSpeed={settings.speed}
         onObjectSelected={selectObject}

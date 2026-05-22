@@ -5,7 +5,8 @@ export function createDefaultSettings(): Settings {
     bilateralStimulation: {
       speed: 1.2,
       dotSize: "medium",
-      dotColor: "green"
+      dotColor: "green",
+      fieldMode: "light"
     }
   };
 }

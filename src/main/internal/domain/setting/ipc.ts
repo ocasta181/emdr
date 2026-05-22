@@ -4,6 +4,7 @@ import type { BilateralStimulationSettings, SettingIpcService } from "./types.js
 
 const dotSizes = ["small", "medium", "large"] as const satisfies readonly BilateralStimulationSettings["dotSize"][];
 const dotColors = ["green", "blue", "white", "orange"] as const satisfies readonly BilateralStimulationSettings["dotColor"][];
+const fieldModes = ["light", "dark"] as const satisfies readonly BilateralStimulationSettings["fieldMode"][];
 const speedRange = { min: 0.8, max: 1.2 } as const;
 
 export function registerSettingIpc(registry: ApiRegistry, service: SettingIpcService) {
@@ -19,10 +20,12 @@ function bilateralStimulationPatchFrom(payload: unknown): Partial<BilateralStimu
   const speed = optionalNumberInRange(value, "speed", speedRange);
   const dotSize = optionalStringEnum(value, "dotSize", dotSizes, "a dot size");
   const dotColor = optionalStringEnum(value, "dotColor", dotColors, "a dot color");
+  const fieldMode = optionalStringEnum(value, "fieldMode", fieldModes, "a field mode");
 
   if (speed !== undefined) patch.speed = speed;
   if (dotSize !== undefined) patch.dotSize = dotSize;
   if (dotColor !== undefined) patch.dotColor = dotColor;
+  if (fieldMode !== undefined) patch.fieldMode = fieldMode;
 
   return patch;
 }

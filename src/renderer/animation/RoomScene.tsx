@@ -13,6 +13,7 @@ export function RoomScene({
   guideAnimation,
   stimulationRunning,
   stimulationColor,
+  stimulationFieldMode,
   stimulationDotSize,
   stimulationSpeed,
   onObjectSelected,
@@ -22,6 +23,7 @@ export function RoomScene({
   guideAnimation: GuideAnimationIntent;
   stimulationRunning: boolean;
   stimulationColor: string;
+  stimulationFieldMode: "light" | "dark";
   stimulationDotSize: "small" | "medium" | "large";
   stimulationSpeed: number;
   onObjectSelected: (objectId: RoomObjectId) => void;
@@ -30,10 +32,26 @@ export function RoomScene({
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
-  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationDotSize, stimulationSpeed });
+  const runtimeRef = useRef({
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationFieldMode,
+    stimulationDotSize,
+    stimulationSpeed
+  });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
-  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationDotSize, stimulationSpeed };
+  runtimeRef.current = {
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationFieldMode,
+    stimulationDotSize,
+    stimulationSpeed
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -201,7 +219,10 @@ export function RoomScene({
         dimmer.clear();
         orbHalo.clear();
         if (runtime.stimulationRunning) {
-          dimmer.rect(0, 0, width, height).fill({ color: 0xf8f7f1, alpha: 1 });
+          dimmer.rect(0, 0, width, height).fill({
+            color: runtime.stimulationFieldMode === "light" ? 0xf8f7f1 : 0x000000,
+            alpha: 1
+          });
         }
 
         orb.visible = runtime.stimulationRunning;
@@ -214,8 +235,13 @@ export function RoomScene({
           orb.height = size;
           orb.tint = runtime.stimulationColor;
           orb.alpha = 1;
-          orbHalo.circle(x, y, size * 0.74).fill({ color: 0x000000, alpha: 0.08 });
-          orbHalo.circle(x, y, size * 0.42).fill({ color: runtime.stimulationColor, alpha: 0.16 });
+          if (runtime.stimulationFieldMode === "light") {
+            orbHalo.circle(x, y, size * 0.74).fill({ color: 0x000000, alpha: 0.08 });
+            orbHalo.circle(x, y, size * 0.42).fill({ color: runtime.stimulationColor, alpha: 0.16 });
+          } else {
+            orbHalo.circle(x, y, size * 0.74).fill({ color: runtime.stimulationColor, alpha: 0.24 });
+            orbHalo.circle(x, y, size * 0.42).fill({ color: 0xffffff, alpha: 0.14 });
+          }
         }
       });
     }

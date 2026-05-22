@@ -15,6 +15,20 @@ export function SettingsPanel({
   onLock: () => Promise<void>;
 }) {
   const [transferMessage, setTransferMessage] = useState("");
+  const dotColorLabels: Record<BilateralStimulationSettings["dotColor"], string> =
+    settings.fieldMode === "light"
+      ? {
+          green: "Forest",
+          blue: "Navy",
+          white: "Charcoal",
+          orange: "Brown"
+        }
+      : {
+          green: "Green",
+          blue: "Blue",
+          white: "White",
+          orange: "Orange"
+        };
 
   async function exportEncryptedData() {
     const exportPath = await onExport();
@@ -31,6 +45,16 @@ export function SettingsPanel({
   return (
     <>
       <h1>Ball Settings</h1>
+      <label>
+        Screen mode
+        <select
+          value={settings.fieldMode}
+          onChange={(event) => onChange({ fieldMode: event.target.value as BilateralStimulationSettings["fieldMode"] })}
+        >
+          <option value="light">Light mode</option>
+          <option value="dark">Dark mode</option>
+        </select>
+      </label>
       <label>
         Ball speed
         <input
@@ -49,10 +73,10 @@ export function SettingsPanel({
           value={settings.dotColor}
           onChange={(event) => onChange({ dotColor: event.target.value as BilateralStimulationSettings["dotColor"] })}
         >
-          <option value="green">Forest</option>
-          <option value="blue">Navy</option>
-          <option value="white">Charcoal</option>
-          <option value="orange">Brown</option>
+          <option value="green">{dotColorLabels.green}</option>
+          <option value="blue">{dotColorLabels.blue}</option>
+          <option value="white">{dotColorLabels.white}</option>
+          <option value="orange">{dotColorLabels.orange}</option>
         </select>
       </label>
       <label>

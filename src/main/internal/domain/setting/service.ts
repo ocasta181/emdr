@@ -8,9 +8,17 @@ export class SettingService {
 
   getSettings(): Settings {
     const row = this.repo.find("bilateralStimulation");
+    const defaults = createDefaultSettings();
     return {
-      ...createDefaultSettings(),
-      ...(row ? { bilateralStimulation: JSON.parse(row.valueJson) } : {})
+      ...defaults,
+      ...(row
+        ? {
+            bilateralStimulation: {
+              ...defaults.bilateralStimulation,
+              ...JSON.parse(row.valueJson)
+            }
+          }
+        : {})
     };
   }
 

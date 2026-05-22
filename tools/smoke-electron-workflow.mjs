@@ -131,7 +131,7 @@ async function main() {
     phase = "start guide-prioritized stimulation";
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
-    await expectStimulationBackdropBlank(window);
+    await waitForStimulationBackdropMode(window, "light");
     phase = "keyboard pauses stimulation";
     await pressKey(window, "A");
     await waitForText(window, "1 set logged");
@@ -179,11 +179,21 @@ async function main() {
     await clickButton(window, "Start Set");
     await waitForText(window, "Session in progress");
     await waitForText(window, "Pause Set");
-    await expectStimulationBackdropBlank(window);
+    await waitForStimulationBackdropMode(window, "light");
 
     phase = "export active vault";
     const activeExportPath = path.join(artifactDir, "active-workflow-export.emdr-vault");
     installVaultDialogStubs(activeExportPath);
+    await clickButton(window, "Ball settings");
+    await waitForText(window, "Ball Settings");
+    await setSelectByLabel(window, "Screen mode", "dark");
+    await clickButton(window, "Close");
+    await waitForStimulationBackdropMode(window, "dark");
+    await clickButton(window, "Ball settings");
+    await waitForText(window, "Ball Settings");
+    await setSelectByLabel(window, "Screen mode", "light");
+    await clickButton(window, "Close");
+    await waitForStimulationBackdropMode(window, "light");
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
     await clickButton(window, "Export");
@@ -265,8 +275,20 @@ async function pressKey(window, keyCode) {
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
-async function expectStimulationBackdropBlank(window) {
-  const samples = await window.webContents.capturePage().then((image) => {
+async function waitForStimulationBackdropMode(window, mode, timeoutMs = 5000) {
+  const startedAt = Date.now();
+  let lastSamples = [];
+  while (Date.now() - startedAt < timeoutMs) {
+    lastSamples = await stimulationBackdropSamples(window);
+    if (stimulationBackdropMatches(lastSamples, mode)) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  throw new Error(`Expected blank ${mode} stimulation backdrop, got brightness samples ${lastSamples.join(", ")}.`);
+}
+
+async function stimulationBackdropSamples(window) {
+  return window.webContents.capturePage().then((image) => {
     const size = image.getSize();
     const bitmap = image.toBitmap();
     const points = [
@@ -276,11 +298,12 @@ async function expectStimulationBackdropBlank(window) {
 
     return points.map((point) => sampleBrightness(bitmap, size.width, point.x, point.y));
   });
+}
 
-  const visibleBackdrop = samples.every((brightness) => brightness > 230);
-  if (!visibleBackdrop) {
-    throw new Error(`Expected blank light stimulation backdrop, got brightness samples ${samples.join(", ")}.`);
-  }
+function stimulationBackdropMatches(samples, mode) {
+  return mode === "light"
+    ? samples.every((brightness) => brightness > 230)
+    : samples.every((brightness) => brightness < 32);
 }
 
 function sampleBrightness(bitmap, width, x, y) {
@@ -300,6 +323,14 @@ async function setFieldByLabel(window, label, value) {
     `(${domHelpers})().setFieldByLabel(${JSON.stringify(label)}, ${JSON.stringify(value)})`,
     true
   );
+}
+
+async function setSelectByLabel(window, label, value) {
+  await window.webContents.executeJavaScript(
+    `(${domHelpers})().setSelectByLabel(${JSON.stringify(label)}, ${JSON.stringify(value)})`,
+    true
+  );
+  await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
 async function expectButtonPresent(window, label, expected) {
@@ -428,6 +459,19 @@ function domHelpers() {
         throw new Error(`Field not found: ${label}`);
       }
       setNativeValue(control, value);
+    },
+
+    setSelectByLabel(label, value) {
+      const fieldLabel = [...document.querySelectorAll("label")].find((item) =>
+        normalize(item.textContent ?? "").startsWith(label)
+      );
+      const control = fieldLabel?.querySelector("select");
+      if (!(control instanceof HTMLSelectElement)) {
+        throw new Error(`Select not found: ${label}`);
+      }
+      const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
+      setter?.call(control, value);
+      control.dispatchEvent(new Event("change", { bubbles: true }));
     }
   };
 }
