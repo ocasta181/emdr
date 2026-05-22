@@ -105,6 +105,7 @@ async function main() {
     phase = "start guide-prioritized stimulation";
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
+    await expectStimulationBackdropBlank(window);
     phase = "guide pauses stimulation";
     await clickButton(window, "Guide");
     await waitForText(window, "1 set logged");
@@ -152,6 +153,7 @@ async function main() {
     await clickButton(window, "Start Set");
     await waitForText(window, "Session in progress");
     await waitForText(window, "Pause Set");
+    await expectStimulationBackdropBlank(window);
 
     phase = "export active vault";
     const activeExportPath = path.join(artifactDir, "active-workflow-export.emdr-vault");
@@ -228,6 +230,29 @@ async function clickRoomPoint(window, xFraction, yFraction) {
   window.webContents.sendInputEvent({ type: "mouseDown", x: point.x, y: point.y, button: "left", clickCount: 1 });
   window.webContents.sendInputEvent({ type: "mouseUp", x: point.x, y: point.y, button: "left", clickCount: 1 });
   await new Promise((resolve) => setTimeout(resolve, 100));
+}
+
+async function expectStimulationBackdropBlank(window) {
+  const samples = await window.webContents.capturePage().then((image) => {
+    const size = image.getSize();
+    const bitmap = image.toBitmap();
+    const points = [
+      { x: Math.floor(size.width * 0.78), y: Math.floor(size.height * 0.19) },
+      { x: Math.floor(size.width * 0.5), y: Math.floor(size.height * 0.84) }
+    ];
+
+    return points.map((point) => sampleBrightness(bitmap, size.width, point.x, point.y));
+  });
+
+  const visibleBackdrop = samples.every((brightness) => brightness < 12);
+  if (!visibleBackdrop) {
+    throw new Error(`Expected blank stimulation backdrop, got brightness samples ${samples.join(", ")}.`);
+  }
+}
+
+function sampleBrightness(bitmap, width, x, y) {
+  const offset = (y * width + x) * 4;
+  return (bitmap[offset] + bitmap[offset + 1] + bitmap[offset + 2]) / 3;
 }
 
 async function setControlValue(window, index, value, selector) {

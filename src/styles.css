@@ -398,8 +398,13 @@ h2 {
 }
 
 .stimulationActive .animatedTopbar {
-  opacity: 0.42;
-  filter: blur(1px);
+  background: transparent;
+  opacity: 1;
+  filter: none;
+}
+
+.stimulationActive .animatedTopbar > div:first-child {
+  opacity: 0;
 }
 
 .stimulationActive .animatedTopbar:focus-within,

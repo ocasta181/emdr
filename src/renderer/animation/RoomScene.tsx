@@ -201,7 +201,7 @@ export function RoomScene({
         dimmer.clear();
         orbHalo.clear();
         if (runtime.stimulationRunning) {
-          dimmer.rect(0, 0, width, height).fill({ color: 0x000000, alpha: 0.72 });
+          dimmer.rect(0, 0, width, height).fill({ color: 0x000000, alpha: 1 });
         }
 
         orb.visible = runtime.stimulationRunning;
