@@ -66,10 +66,7 @@ export class GuideService {
     const workflow = this.sessions.currentSessionWorkflow();
 
     if (!this.agent) {
-      return {
-        messages: [fallbackGuideMessage(view)],
-        proposals: []
-      };
+      return fallbackGuideResponse(request.message, view, workflow);
     }
 
     return this.agent.respond({
@@ -199,20 +196,45 @@ function assessmentFromPatch(current: GuideAssessment, patch: GuideAssessmentPat
 function idleGuideView(targets: GuideTargetSummary[]): GuideView {
   const targetCount = targets.length;
   const [nextTarget] = targets;
+  const emptyTargetMessage =
+    "I can help identify a target. Tell me what feels useful to focus on, and I can turn it into a draft for review.";
+  const singleTargetMessage = `Ready to continue with "${nextTarget?.description ?? "the active target"}". Tell me if you want to work with this target or shape another one.`;
+
   return {
     mode: "idle",
     targetCount,
     messages: [
       targetCount === 0
-        ? "We have no targets yet. Open Targets to add the first one."
+        ? emptyTargetMessage
         : targetCount === 1
-          ? `Ready to continue with "${nextTarget?.description ?? "the active target"}".`
-          : `Ready to continue with the guide-prioritized target across ${targetCount} active targets.`
-    ],
-    primaryAction: {
-      type: "open_targets",
-      label: "Open Targets"
-    }
+          ? singleTargetMessage
+          : `I can help choose among ${targetCount} active targets. Tell me what feels most useful to work on.`
+    ]
+  };
+}
+
+function fallbackGuideResponse(
+  message: string,
+  view: GuideView,
+  workflow: { state: GuideActionProposal["workflowState"]; activeSessionId?: string }
+): GuideAgentResponse {
+  const description = message.trim();
+  if (view.mode === "idle" && workflow.state === "target_selection" && description) {
+    return {
+      messages: ["I can turn that into a target draft. Review it before saving."],
+      proposals: [
+        {
+          type: "create_target_draft",
+          workflowState: workflow.state,
+          description
+        }
+      ]
+    };
+  }
+
+  return {
+    messages: [fallbackGuideMessage(view)],
+    proposals: []
   };
 }
 
@@ -221,5 +243,5 @@ function fallbackGuideMessage(view: GuideView) {
     return "I noted that. Continue with the current session controls when you are ready.";
   }
 
-  return view.messages[0] ?? "Open Targets to choose what to work on.";
+  return view.messages[0] ?? "Tell me what feels useful to focus on, and I can turn it into a target draft for review.";
 }

@@ -15,8 +15,7 @@ export function TargetsPanel({
   onEdit,
   onCancelEdit,
   onSave,
-  onAnimate,
-  isAnimating
+  onAnimate
 }: {
   targets: Target[];
   editing: TargetEditorState | null;
@@ -26,7 +25,6 @@ export function TargetsPanel({
   onCancelEdit: () => void;
   onSave: (target: TargetEditorState) => void;
   onAnimate: (action: GuideAction) => void;
-  isAnimating: (action: GuideAction) => boolean;
 }) {
   return (
     <>
@@ -69,20 +67,6 @@ export function TargetsPanel({
               </div>
             </article>
           ))}
-          <div className="buttonRow">
-            <button
-              className={isAnimating("flip_through_book") ? "active" : undefined}
-              onClick={() => onAnimate("flip_through_book")}
-            >
-              Flip pages
-            </button>
-            <button
-              className={isAnimating("write_in_book") ? "active" : undefined}
-              onClick={() => onAnimate("write_in_book")}
-            >
-              Write target
-            </button>
-          </div>
         </div>
       )}
     </>

@@ -22,19 +22,19 @@ const sheetColumns = 14;
 const idleClipFrames: Record<BookState, { start: number; count: number }> = {
   on_ground: { start: 1, count: 10 },
   in_hand_closed: { start: 59, count: 10 },
-  in_hand_open: { start: 99, count: 10 }
+  in_hand_open: { start: 101, count: 8 }
 };
 
 const actionClipFrames: Partial<Record<GuideActionClipKey, { start: number; count: number; reverseOrder?: boolean }>> = {
   "pick_up_book:on_ground": { start: 50, count: 10 },
   "put_down_book:in_hand_closed": { start: 50, count: 10, reverseOrder: true },
-  "open_book:in_hand_closed": { start: 89, count: 10 },
-  "close_book:in_hand_open": { start: 89, count: 10, reverseOrder: true },
+  "open_book:in_hand_closed": { start: 89, count: 8 },
+  "close_book:in_hand_open": { start: 89, count: 8, reverseOrder: true },
   "flip_through_book:in_hand_open": { start: 121, count: 4 },
   "write_in_book:in_hand_open": { start: 141, count: 13 },
   "speak:on_ground": { start: 29, count: 4 },
   "speak:in_hand_closed": { start: 62, count: 4 },
-  "speak:in_hand_open": { start: 109, count: 4 },
+  "speak:in_hand_open": { start: 98, count: 3 },
   "think:on_ground": { start: 33, count: 5 },
   "think:in_hand_closed": { start: 74, count: 5 },
   "think:in_hand_open": { start: 121, count: 5 }

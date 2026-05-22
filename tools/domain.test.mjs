@@ -255,6 +255,24 @@ test("guide service returns structured advisory agent responses without mutating
   assert.deepEqual(calls, []);
 });
 
+test("guide service defaults to guided target identification", async () => {
+  const { guide, calls } = createGuideHarness("target_selection");
+  const view = guide.getView({});
+
+  assert.equal(view.primaryAction, undefined);
+  assert.doesNotMatch(view.messages[0], /Open Targets/);
+
+  const response = await guide.respondToMessage({ message: "Electron workflow target" });
+  assert.deepEqual(response.proposals, [
+    {
+      type: "create_target_draft",
+      workflowState: "target_selection",
+      description: "Electron workflow target"
+    }
+  ]);
+  assert.deepEqual(calls, []);
+});
+
 test("scripted guide sidecar returns structured advisory proposals", async (t) => {
   const sidecar = new AgentSidecar(
     {
@@ -295,6 +313,27 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
       cycleCount: 24,
       observation: "done with this set",
       disturbance: undefined
+    }
+  ]);
+
+  const targetResponse = await client.respond({
+    message: "Electron workflow target",
+    workflow: { state: "target_selection" },
+    view: {
+      mode: "idle",
+      targetCount: 0,
+      messages: []
+    }
+  });
+
+  assert.equal(targetResponse.messages.length, 1);
+  assert.deepEqual(targetResponse.proposals, [
+    {
+      type: "create_target_draft",
+      workflowState: "target_selection",
+      description: "Electron workflow target",
+      negativeCognition: undefined,
+      positiveCognition: undefined
     }
   ]);
 });

@@ -42,7 +42,7 @@ import {
   initialAnimatedRoomState,
   transitionAnimatedRoomState
 } from "./animatedRoomMachine";
-import { ActiveSessionChat, IdleGuideChat } from "../features/guide/GuidePanel";
+import { ActiveSessionChat, IdleGuideChat, type GuideChatMessage } from "../features/guide/GuidePanel";
 import { HistoryPanel } from "../features/session/HistoryPanel";
 import { SettingsPanel } from "../features/setting/SettingsPanel";
 import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
@@ -89,7 +89,7 @@ export function AnimatedApp() {
   const [guideView, setGuideView] = useState<GuideView | null>(null);
   const [guideProposals, setGuideProposals] = useState<GuideActionProposal[]>([]);
   const [chatDraft, setChatDraft] = useState("");
-  const [chatMessages, setChatMessages] = useState<string[]>([]);
+  const [chatMessages, setChatMessages] = useState<GuideChatMessage[]>([]);
   const [vaultNotice, setVaultNotice] = useState("");
 
   useEffect(() => {
@@ -103,8 +103,12 @@ export function AnimatedApp() {
   }, []);
 
   async function loadUnlockedDatabase() {
-    const [nextViewData, workflow] = await Promise.all([loadViewData(), getSessionWorkflow()]);
-    const restoredActiveSession = activeSessionFromWorkflow(nextViewData.sessions, workflow);
+    const [nextViewData, recoveredWorkflow] = await Promise.all([loadViewData(), getSessionWorkflow()]);
+    const restoredActiveSession = activeSessionFromWorkflow(nextViewData.sessions, recoveredWorkflow);
+    const workflow =
+      !restoredActiveSession && shouldBeginGuideTargetSelection(recoveredWorkflow)
+        ? await advanceSessionFlow("start_session")
+        : recoveredWorkflow;
     const nextGuideView = await getGuideView(restoredActiveSession?.id);
     resetTransientRendererState();
     setViewData(nextViewData);
@@ -112,6 +116,9 @@ export function AnimatedApp() {
     setSessionWorkflow(workflow);
     setGuideView(nextGuideView);
     setVaultNotice("");
+    if (!restoredActiveSession) {
+      dispatchRoomEvent({ type: "select_guide" });
+    }
     setAuthState("ready");
   }
 
@@ -302,8 +309,21 @@ export function AnimatedApp() {
     if (stimulationRunning) {
       await pauseActiveStimulation();
     }
+    if (!activeSession) {
+      await enterGuideTargetSelection();
+    }
     dispatchRoomEvent({ type: "select_guide" });
     setGuideAnimation({ type: "action", action: "speak" });
+  }
+
+  async function enterGuideTargetSelection() {
+    if (activeSession || !shouldBeginGuideTargetSelection(sessionWorkflow)) {
+      return sessionWorkflow;
+    }
+
+    const workflow = await advanceSessionFlow("start_session");
+    setSessionWorkflow(workflow);
+    return workflow;
   }
 
   async function toggleStimulation() {
@@ -391,6 +411,7 @@ export function AnimatedApp() {
 
     if (proposal.type === "create_target_draft") {
       setSessionWorkflow(result.workflow);
+      setGuideAnimation({ type: "action", action: "write_in_book" });
       await refreshViewData();
       await refreshGuideView(activeSession?.id);
       return;
@@ -412,14 +433,21 @@ export function AnimatedApp() {
     event.preventDefault();
     const message = chatDraft.trim();
     if (!message) return;
-    setChatMessages((current) => current.concat(message));
+    if (!activeSession) {
+      await enterGuideTargetSelection();
+    }
+    setChatMessages((current) => current.concat({ speaker: "user", text: message }));
     setChatDraft("");
     try {
       const response = await sendGuideMessage(message, activeSession?.id);
-      setChatMessages((current) => current.concat(response.messages));
+      setChatMessages((current) =>
+        current.concat(response.messages.map((text) => ({ speaker: "guide", text }) satisfies GuideChatMessage))
+      );
       setGuideProposals(response.proposals);
     } catch {
-      setChatMessages((current) => current.concat("The local guide is unavailable right now."));
+      setChatMessages((current) =>
+        current.concat({ speaker: "guide", text: "The local guide is unavailable right now." })
+      );
       setGuideProposals([]);
     }
   }
@@ -539,10 +567,12 @@ export function AnimatedApp() {
               ) : (
                 <IdleGuideChat
                   guideView={guideView}
-                  onOpenTargets={() => {
-                    dispatchRoomEvent({ type: "select_targets" });
-                    setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
-                  }}
+                  chatMessages={chatMessages}
+                  chatDraft={chatDraft}
+                  guideProposals={guideProposals}
+                  onChatChange={setChatDraft}
+                  onSubmitChat={submitChat}
+                  onApplyProposal={applyAgentProposal}
                 />
               )}
             </>
@@ -558,7 +588,6 @@ export function AnimatedApp() {
               onCancelEdit={() => setEditingTarget(null)}
               onSave={saveTarget}
               onAnimate={(action) => setGuideAnimation({ type: "action", action })}
-              isAnimating={(action) => isGuideAnimationAction(guideAnimation, action)}
             />
           )}
 
@@ -665,10 +694,6 @@ async function advanceSessionForStimulationStart(sessionId: string, workflow: Se
   throw new Error(`Cannot start stimulation from ${workflow.state}.`);
 }
 
-function isGuideAnimationAction(intent: GuideAnimationIntent, action: GuideAction) {
-  return intent.type === "action" && intent.action === action;
-}
-
 function targetPatchFrom(target: Target): Partial<Target> {
   return {
     description: target.description,
@@ -680,6 +705,10 @@ function targetPatchFrom(target: Target): Partial<Target> {
     status: target.status,
     notes: target.notes
   };
+}
+
+function shouldBeginGuideTargetSelection(workflow: SessionWorkflowSnapshot) {
+  return workflow.state === "idle" || workflow.state === "post_session";
 }
 
 function authStateForVault(status: VaultStatus): AuthState {

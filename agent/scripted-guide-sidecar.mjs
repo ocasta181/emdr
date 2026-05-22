@@ -32,9 +32,10 @@ function guideMessageResponse(payload) {
   const normalized = message.toLowerCase();
 
   if (!sessionId) {
-    if (state === "target_selection" && /\b(target|work on)\b/.test(normalized)) {
+    const isUnclearTargetReply = /\b(help|not sure|unsure|don't know|do not know)\b/.test(normalized);
+    if (state === "target_selection" && message.trim() && !isUnclearTargetReply) {
       return {
-        messages: ["I can draft a target. Review it before saving."],
+        messages: ["I can turn that into a target draft. Review it before saving."],
         proposals: [
           {
             type: "create_target_draft",
@@ -46,7 +47,7 @@ function guideMessageResponse(payload) {
     }
 
     return {
-      messages: ["I can help once a session is active. Open Targets to choose what to work on."],
+      messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
       proposals: []
     };
   }

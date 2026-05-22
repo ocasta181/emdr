@@ -79,29 +79,25 @@ async function main() {
     await clickCheckbox(window, "I saved this recovery key.");
     await expectButtonPresent(window, "Continue", true);
     await clickButton(window, "Continue");
-    await waitForText(window, "Open Targets");
+    await waitForText(window, "I can help identify a target");
+    await expectText(window, "Open Targets", false);
 
-    phase = "create target";
-    await clickButton(window, "Open Targets");
-    await waitForText(window, "New Target");
-    await clickButton(window, "New Target");
-    await waitForText(window, "Save Version");
+    phase = "create guided target";
     await expectButtonPresent(window, "Start Set", false);
-    await setFieldByLabel(window, "Description", "");
-    await clickButton(window, "Save Version");
-    await waitForText(window, "Enter a target description.");
-    await setFieldByLabel(window, "Description", "Electron workflow target");
+    await setFieldByLabel(window, "Tell the guide", "Electron workflow target");
+    await clickButton(window, "Send");
+    await waitForText(window, "Review proposed target");
     await setFieldByLabel(window, "Negative cognition", "I am stuck");
     await setFieldByLabel(window, "Positive cognition", "I can move");
-    await clickButton(window, "Save Version");
+    await clickButton(window, "Apply target draft");
     await waitForText(window, "Electron workflow target");
-    await expectButtonPresent(window, "Start Set", true);
-    await clickButton(window, "New Target");
-    await waitForText(window, "Save Version");
-    await setFieldByLabel(window, "Description", "Second workflow target");
-    await clickButton(window, "Save Version");
+    await waitForButtonPresent(window, "Start Set", true);
+    await setFieldByLabel(window, "Tell the guide", "Second workflow target");
+    await clickButton(window, "Send");
+    await waitForText(window, "Review proposed target");
+    await clickButton(window, "Apply target draft");
     await waitForText(window, "Second workflow target");
-    await expectButtonPresent(window, "Start Set", true);
+    await waitForButtonPresent(window, "Start Set", true);
 
     phase = "start guide-prioritized stimulation";
     await clickButton(window, "Start Set");
@@ -115,11 +111,6 @@ async function main() {
     await waitForText(window, "Pause Set");
     await clickButton(window, "Guide");
     await waitForText(window, "2 sets logged");
-    await setFieldByLabel(window, "Note", "done with set");
-    await clickButton(window, "Send");
-    await waitForText(window, "Review proposed set");
-    await clickButton(window, "Apply logged set");
-    await waitForText(window, "2 sets logged");
     phase = "begin closure";
     await clickButton(window, "Begin closure");
     await waitForText(window, "Closure");
@@ -130,7 +121,7 @@ async function main() {
     await setFieldByLabel(window, "Final SUD", "2");
     phase = "end session";
     await clickButton(window, "End session");
-    await waitForText(window, "Ready to continue");
+    await waitForText(window, "I can help choose among 2 active targets");
     phase = "review history";
     await clickButton(window, "Close");
     await clickRoomHistory(window);
@@ -152,12 +143,11 @@ async function main() {
     phase = "unlock imported vault";
     await setControlValue(window, 0, "passphrase-123", "input");
     await clickButton(window, "Unlock");
-    await waitForText(window, "Open Targets");
-    await clickButton(window, "Open Targets");
-    await waitForText(window, "Electron workflow target");
+    await waitForText(window, "I can help choose among 2 active targets");
 
     phase = "start imported active session";
     await clickButton(window, "Start Set");
+    await waitForText(window, "Session in progress");
     await waitForText(window, "Pause Set");
 
     phase = "export active vault";
@@ -259,6 +249,21 @@ async function expectButtonPresent(window, label, expected) {
   if (present !== expected) {
     throw new Error(`Expected button "${label}" present=${expected}, got ${present}.`);
   }
+}
+
+async function waitForButtonPresent(window, label, expected, timeoutMs = 5000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const present = await window.webContents.executeJavaScript(
+      `(${domHelpers})().hasButton(${JSON.stringify(label)})`,
+      true
+    );
+    if (present === expected) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  const body = await window.webContents.executeJavaScript("document.body.innerText", true);
+  throw new Error(`Timed out waiting for button "${label}" present=${expected}. Body text: ${body}`);
 }
 
 async function clickCheckbox(window, label) {

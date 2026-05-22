@@ -10,18 +10,51 @@ import { optionalNumber } from "../../../../utils";
 import { AssessmentForm } from "../session/AssessmentForm";
 import { WorkflowControls } from "../stimulation-set/WorkflowControls";
 
-export function IdleGuideChat({ guideView, onOpenTargets }: { guideView: GuideView; onOpenTargets: () => void }) {
+export type GuideChatMessage = {
+  speaker: "user" | "guide";
+  text: string;
+};
+
+export function IdleGuideChat({
+  guideView,
+  chatMessages,
+  chatDraft,
+  guideProposals,
+  onChatChange,
+  onSubmitChat,
+  onApplyProposal
+}: {
+  guideView: GuideView;
+  chatMessages: GuideChatMessage[];
+  chatDraft: string;
+  guideProposals: GuideActionProposal[];
+  onChatChange: (value: string) => void;
+  onSubmitChat: (event: FormEvent) => void;
+  onApplyProposal: (proposal: GuideActionProposal) => void;
+}) {
+  const messages: GuideChatMessage[] = [
+    ...guideView.messages.map((text) => ({ speaker: "guide", text }) satisfies GuideChatMessage),
+    ...chatMessages
+  ];
+
   return (
-    <div className="chatLog">
-      {guideView.messages.map((message, index) => (
-        <p className="guideBubble" key={`${message}-${index}`}>
-          {message}
-        </p>
-      ))}
-      {guideView.primaryAction?.type === "open_targets" && (
-        <button onClick={onOpenTargets}>{guideView.primaryAction.label}</button>
+    <>
+      <ChatLog messages={messages} />
+      <form className="chatComposer" onSubmit={onSubmitChat}>
+        <label>
+          Tell the guide
+          <textarea
+            placeholder="Say what feels useful to focus on..."
+            value={chatDraft}
+            onChange={(event) => onChatChange(event.target.value)}
+          />
+        </label>
+        <button type="submit">Send</button>
+      </form>
+      {guideProposals.length > 0 && (
+        <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
       )}
-    </div>
+    </>
   );
 }
 
@@ -48,7 +81,7 @@ export function ActiveSessionChat({
   targetDescription?: string;
   guideView: GuideView;
   workflow: SessionWorkflowSnapshot;
-  chatMessages: string[];
+  chatMessages: GuideChatMessage[];
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
@@ -65,7 +98,12 @@ export function ActiveSessionChat({
   const sessionView = guideView.mode === "session" ? guideView.activeSession : undefined;
   const displayTargetDescription = sessionView?.targetDescription ?? targetDescription ?? "Unknown target";
   const setCount = sessionView?.stimulationSetCount ?? session.stimulationSets.length;
-  const messages = (guideView.mode === "session" ? guideView.messages : []).concat(chatMessages);
+  const messages: GuideChatMessage[] = [
+    ...(guideView.mode === "session" ? guideView.messages : []).map(
+      (text) => ({ speaker: "guide", text }) satisfies GuideChatMessage
+    ),
+    ...chatMessages
+  ];
   const workflowState = sessionView?.workflowState ?? workflow.state;
 
   return (
@@ -90,16 +128,10 @@ export function ActiveSessionChat({
           onRequestReview={onRequestReview}
         />
       )}
-      <div className="chatLog">
-        {messages.map((message, index) => (
-          <p className="userBubble" key={`${message}-${index}`}>
-            {message}
-          </p>
-        ))}
-      </div>
+      <ChatLog messages={messages} />
       <form className="chatComposer" onSubmit={onSubmitChat}>
         <label>
-          Note
+          Tell the guide
           <textarea
             placeholder="Capture an in-session note..."
             value={chatDraft}
@@ -109,20 +141,47 @@ export function ActiveSessionChat({
         <button type="submit">Send</button>
       </form>
       {guideProposals.length > 0 && (
-        <div className="proposalList">
-          {guideProposals.map((proposal, index) => (
-            <GuideProposalCard
-              key={`${proposal.type}-${index}`}
-              proposal={proposal}
-              onApply={onApplyProposal}
-            />
-          ))}
-        </div>
+        <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
       )}
       {workflowState === "review" && (
         <SessionEndForm session={session} onEndSession={onEndSession} onBeginClosure={onBeginClosure} />
       )}
     </>
+  );
+}
+
+function ChatLog({ messages }: { messages: GuideChatMessage[] }) {
+  return (
+    <div className="chatLog">
+      {messages.map((message, index) => (
+        <p
+          className={message.speaker === "guide" ? "guideBubble" : "userBubble"}
+          key={`${message.speaker}-${message.text}-${index}`}
+        >
+          {message.text}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ProposalList({
+  proposals,
+  onApply
+}: {
+  proposals: GuideActionProposal[];
+  onApply: (proposal: GuideActionProposal) => void;
+}) {
+  return (
+    <div className="proposalList">
+      {proposals.map((proposal, index) => (
+        <GuideProposalCard
+          key={`${proposal.type}-${index}`}
+          proposal={proposal}
+          onApply={onApply}
+        />
+      ))}
+    </div>
   );
 }
 
