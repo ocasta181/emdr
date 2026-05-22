@@ -81,9 +81,10 @@ async function main() {
     await clickButton(window, "Continue");
     await waitForText(window, "I can help identify a target");
     await expectText(window, "Open Targets", false);
-    await waitForText(window, "Start Voice");
-    await expectText(window, "Tell the guide", false);
-    await clickButton(window, "Use Keyboard");
+    await expectButtonPresent(window, "Start Voice", false);
+    await expectButtonPresent(window, "Replay Guide", false);
+    await expectButtonPresent(window, "Use Keyboard", false);
+    await waitForText(window, "Tell the guide");
 
     phase = "create guided target";
     await expectButtonPresent(window, "Start Set", false);

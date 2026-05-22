@@ -182,7 +182,7 @@ function GuideConversation({
 
 function ChatLog({ messages }: { messages: GuideChatMessage[] }) {
   return (
-    <div className="chatLog">
+    <div className="chatLog" role="log" aria-label="Guide transcript">
       {messages.map((message, index) => (
         <p
           className={message.speaker === "guide" ? "guideBubble" : "userBubble"}

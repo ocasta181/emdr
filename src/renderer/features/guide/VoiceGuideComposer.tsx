@@ -16,14 +16,13 @@ export function VoiceGuideComposer({
   onSubmitMessage: (message: string) => void;
   onGuideSpeakingChange: (isSpeaking: boolean) => void;
 }) {
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-  const [isListening, setListening] = useState(false);
-  const [heardText, setHeardText] = useState("");
   const [voiceError, setVoiceError] = useState("");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const shouldListenRef = useRef(false);
+  const onSubmitMessageRef = useRef(onSubmitMessage);
+  const onGuideSpeakingChangeRef = useRef(onGuideSpeakingChange);
   const spokenMessageRef = useRef("");
   const recognitionConstructor = useMemo(() => speechRecognitionConstructor(), []);
-  const canListen = Boolean(recognitionConstructor);
   const latestGuideMessage = latestGuideText(messages);
 
   useEffect(() => {
@@ -33,60 +32,84 @@ export function VoiceGuideComposer({
   }, [latestGuideMessage, onGuideSpeakingChange]);
 
   useEffect(() => {
+    onSubmitMessageRef.current = onSubmitMessage;
+  }, [onSubmitMessage]);
+
+  useEffect(() => {
+    onGuideSpeakingChangeRef.current = onGuideSpeakingChange;
+  }, [onGuideSpeakingChange]);
+
+  useEffect(() => {
+    if (!recognitionConstructor) {
+      setVoiceError("Voice input is unavailable in this build. Type below instead.");
+      return;
+    }
+
+    let restartTimer: number | undefined;
+    shouldListenRef.current = true;
+    setVoiceError("");
+
+    function scheduleRestart() {
+      if (!shouldListenRef.current) return;
+      window.clearTimeout(restartTimer);
+      restartTimer = window.setTimeout(startListening, 250);
+    }
+
+    function startListening() {
+      if (!shouldListenRef.current || !recognitionConstructor) return;
+
+      const recognition = new recognitionConstructor();
+      recognitionRef.current = recognition;
+      recognition.lang = "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onstart = () => setVoiceError("");
+      recognition.onerror = (event) => {
+        if (!shouldListenRef.current || event.error === "aborted" || event.error === "no-speech") return;
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          shouldListenRef.current = false;
+        }
+        setVoiceError("Voice input could not stay connected. Type below or check microphone access.");
+      };
+      recognition.onend = () => {
+        if (recognitionRef.current === recognition) {
+          recognitionRef.current = null;
+        }
+        scheduleRestart();
+      };
+      recognition.onresult = (event) => {
+        const transcript = transcriptFromRecognitionEvent(event);
+        if (transcript.finalText) {
+          onSubmitMessageRef.current(transcript.finalText);
+        }
+      };
+
+      try {
+        recognition.start();
+      } catch {
+        setVoiceError("Voice input could not start. Type below or check microphone access.");
+      }
+    }
+
+    startListening();
+
+    return () => {
+      shouldListenRef.current = false;
+      window.clearTimeout(restartTimer);
+      recognitionRef.current?.abort();
+      recognitionRef.current = null;
+    };
+  }, [recognitionConstructor]);
+
+  useEffect(() => {
     return () => {
       recognitionRef.current?.abort();
       if (canSpeak()) {
         window.speechSynthesis.cancel();
       }
-      onGuideSpeakingChange(false);
+      onGuideSpeakingChangeRef.current(false);
     };
-  }, [onGuideSpeakingChange]);
-
-  function startListening() {
-    setVoiceError("");
-    setHeardText("");
-
-    if (!recognitionConstructor) {
-      setKeyboardOpen(true);
-      setVoiceError("Speech recognition is unavailable in this build. Use keyboard entry instead.");
-      return;
-    }
-
-    recognitionRef.current?.abort();
-    const recognition = new recognitionConstructor();
-    recognitionRef.current = recognition;
-    recognition.lang = "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => setListening(true);
-    recognition.onerror = () => {
-      setListening(false);
-      setVoiceError("I could not hear that clearly. Try again or use keyboard entry.");
-    };
-    recognition.onend = () => setListening(false);
-    recognition.onresult = (event) => {
-      const transcript = transcriptFromRecognitionEvent(event);
-      setHeardText(transcript.displayText);
-      if (transcript.finalText) {
-        recognition.stop();
-        onSubmitMessage(transcript.finalText);
-        setHeardText("");
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch {
-      setListening(false);
-      setVoiceError("I could not start voice input. Try again or use keyboard entry.");
-    }
-  }
-
-  function stopListening() {
-    recognitionRef.current?.stop();
-    setListening(false);
-  }
+  }, []);
 
   function submitKeyboardMessage(event: FormEvent) {
     event.preventDefault();
@@ -95,39 +118,18 @@ export function VoiceGuideComposer({
 
   return (
     <div className="voiceGuide">
-      <div className="voiceStatus" aria-live="polite">
-        <span className={isListening ? "voiceStatusDot active" : "voiceStatusDot"} />
-        <span>{voiceStatusText({ canListen, isListening, heardText })}</span>
-      </div>
-      <div className="voiceControls">
-        <button
-          type="button"
-          className={isListening ? "active" : undefined}
-          onClick={isListening ? stopListening : startListening}
-        >
-          {isListening ? "Stop Listening" : "Start Voice"}
-        </button>
-        <button type="button" onClick={() => speak(latestGuideMessage, onGuideSpeakingChange)}>
-          Replay Guide
-        </button>
-        <button type="button" onClick={() => setKeyboardOpen((current) => !current)}>
-          {keyboardOpen ? "Hide Keyboard" : "Use Keyboard"}
-        </button>
-      </div>
       {voiceError && <div className="formError">{voiceError}</div>}
-      {keyboardOpen && (
-        <form className="chatComposer" onSubmit={submitKeyboardMessage}>
-          <label>
-            Tell the guide
-            <textarea
-              placeholder={placeholder}
-              value={chatDraft}
-              onChange={(event) => onChatChange(event.target.value)}
-            />
-          </label>
-          <button type="submit">Send</button>
-        </form>
-      )}
+      <form className="chatComposer" onSubmit={submitKeyboardMessage}>
+        <label>
+          Tell the guide
+          <textarea
+            placeholder={placeholder}
+            value={chatDraft}
+            onChange={(event) => onChatChange(event.target.value)}
+          />
+        </label>
+        <button type="submit">Send</button>
+      </form>
     </div>
   );
 }
@@ -139,7 +141,7 @@ type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   onstart: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   abort: () => void;
@@ -148,10 +150,15 @@ type SpeechRecognitionLike = {
 };
 
 type SpeechRecognitionEventLike = {
+  resultIndex: number;
   results: {
     length: number;
     [index: number]: SpeechRecognitionResultLike;
   };
+};
+
+type SpeechRecognitionErrorEventLike = {
+  error?: string;
 };
 
 type SpeechRecognitionResultLike = {
@@ -172,36 +179,19 @@ function speechRecognitionConstructor(): SpeechRecognitionConstructor | undefine
 }
 
 function transcriptFromRecognitionEvent(event: SpeechRecognitionEventLike) {
-  let displayText = "";
   let finalText = "";
 
-  for (let index = 0; index < event.results.length; index += 1) {
+  for (let index = event.resultIndex; index < event.results.length; index += 1) {
     const result = event.results[index];
     const text = result[0]?.transcript.trim() ?? "";
     if (!text) continue;
 
-    displayText = text;
     if (result.isFinal) {
       finalText = text;
     }
   }
 
-  return { displayText, finalText };
-}
-
-function voiceStatusText({
-  canListen,
-  isListening,
-  heardText
-}: {
-  canListen: boolean;
-  isListening: boolean;
-  heardText: string;
-}) {
-  if (!canListen) return "Voice input unavailable. Keyboard fallback is ready.";
-  if (heardText) return `Heard: ${heardText}`;
-  if (isListening) return "Listening...";
-  return "Voice guide is ready.";
+  return { finalText };
 }
 
 function canSpeak() {
