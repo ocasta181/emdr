@@ -20,6 +20,15 @@ import type {
 } from "./types.js";
 
 export class GuideService {
+  private targetIntake:
+    | {
+        description: string;
+        emotions?: string;
+        disturbance?: number;
+        negativeCognition?: string;
+      }
+    | undefined;
+
   constructor(
     private readonly targets: GuideTargetReader & GuideTargetMutator,
     private readonly sessions: GuideSessionReader & GuideSessionMutator & GuideSessionFlowValidator,
@@ -64,6 +73,13 @@ export class GuideService {
   async respondToMessage(request: GuideMessageRequest): Promise<GuideAgentResponse> {
     const view = this.getView({ activeSessionId: request.activeSessionId });
     const workflow = this.sessions.currentSessionWorkflow();
+
+    const targetIntakeResponse = this.respondToTargetIntake(request.message, view, workflow);
+    if (targetIntakeResponse) {
+      return targetIntakeResponse;
+    }
+
+    this.targetIntake = undefined;
 
     if (!this.agent) {
       return fallbackGuideResponse(request.message, view, workflow);
@@ -182,6 +198,79 @@ export class GuideService {
       result: applied.result
     };
   }
+
+  private respondToTargetIntake(
+    message: string,
+    view: GuideView,
+    workflow: { state: GuideActionProposal["workflowState"]; activeSessionId?: string }
+  ): GuideAgentResponse | undefined {
+    const text = message.trim();
+    if (view.mode !== "idle" || workflow.state !== "target_selection" || !text) {
+      return undefined;
+    }
+
+    const needsTargetPrompt = !this.targetIntake && /\b(help|not sure|unsure|don't know|do not know)\b/i.test(text);
+    if (needsTargetPrompt) {
+      return {
+        messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+        proposals: []
+      };
+    }
+
+    if (!this.targetIntake) {
+      this.targetIntake = { description: text };
+      return {
+        messages: ["How does that make you feel right now?"],
+        proposals: []
+      };
+    }
+
+    if (!this.targetIntake.emotions) {
+      this.targetIntake = { ...this.targetIntake, emotions: text };
+      return {
+        messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+        proposals: []
+      };
+    }
+
+    if (this.targetIntake.disturbance === undefined) {
+      const disturbance = disturbanceScoreFrom(text);
+      if (disturbance === undefined) {
+        return {
+          messages: ["Please give a subjective disturbance score from 0 to 10."],
+          proposals: []
+        };
+      }
+
+      this.targetIntake = { ...this.targetIntake, disturbance };
+      return {
+        messages: ["What negative cognition goes with it?"],
+        proposals: []
+      };
+    }
+
+    if (!this.targetIntake.negativeCognition) {
+      this.targetIntake = { ...this.targetIntake, negativeCognition: text };
+      return {
+        messages: ["What positive cognition would you rather hold with this target?"],
+        proposals: []
+      };
+    }
+
+    const proposal = {
+      type: "create_target_draft",
+      workflowState: workflow.state,
+      description: this.targetIntake.description,
+      negativeCognition: this.targetIntake.negativeCognition,
+      positiveCognition: text
+    } satisfies GuideActionProposal;
+    this.targetIntake = undefined;
+
+    return {
+      messages: ["Review the target draft below."],
+      proposals: [proposal]
+    };
+  }
 }
 
 function assessmentFromPatch(current: GuideAssessment, patch: GuideAssessmentPatch): GuideAssessment {
@@ -197,7 +286,7 @@ function idleGuideView(targets: GuideTargetSummary[]): GuideView {
   const targetCount = targets.length;
   const [nextTarget] = targets;
   const emptyTargetMessage =
-    "I can help identify a target. Tell me what feels useful to focus on, and I can turn it into a draft for review.";
+    "I can help identify a target. Tell me the memory, image, or situation you want to focus on.";
   const singleTargetMessage = `Ready to continue with "${nextTarget?.description ?? "the active target"}". Tell me if you want to work with this target or shape another one.`;
 
   return {
@@ -221,14 +310,8 @@ function fallbackGuideResponse(
   const description = message.trim();
   if (view.mode === "idle" && workflow.state === "target_selection" && description) {
     return {
-      messages: ["I can turn that into a target draft. Review it before saving."],
-      proposals: [
-        {
-          type: "create_target_draft",
-          workflowState: workflow.state,
-          description
-        }
-      ]
+      messages: ["How does that make you feel right now?"],
+      proposals: []
     };
   }
 
@@ -243,5 +326,29 @@ function fallbackGuideMessage(view: GuideView) {
     return "I noted that. Continue with the current session controls when you are ready.";
   }
 
-  return view.messages[0] ?? "Tell me what feels useful to focus on, and I can turn it into a target draft for review.";
+  return view.messages[0] ?? "Tell me the memory, image, or situation you want to focus on.";
 }
+
+function disturbanceScoreFrom(text: string) {
+  const numeric = text.match(/-?\d+(?:\.\d+)?/);
+  if (numeric) {
+    const score = Number(numeric[0]);
+    if (score >= 0 && score <= 10) return score;
+  }
+
+  return wordDisturbanceScores.get(text.trim().toLowerCase());
+}
+
+const wordDisturbanceScores = new Map([
+  ["zero", 0],
+  ["one", 1],
+  ["two", 2],
+  ["three", 3],
+  ["four", 4],
+  ["five", 5],
+  ["six", 6],
+  ["seven", 7],
+  ["eight", 8],
+  ["nine", 9],
+  ["ten", 10]
+]);

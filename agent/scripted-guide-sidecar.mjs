@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline";
 
 const lines = createInterface({ input: process.stdin });
+let targetIntake;
 
 lines.on("line", (line) => {
   let request;
@@ -32,25 +33,26 @@ function guideMessageResponse(payload) {
   const normalized = message.toLowerCase();
 
   if (!sessionId) {
-    const isUnclearTargetReply = /\b(help|not sure|unsure|don't know|do not know)\b/.test(normalized);
-    if (state === "target_selection" && message.trim() && !isUnclearTargetReply) {
+    const targetIntakeResponse = guideTargetIntakeResponse(message, state);
+    if (targetIntakeResponse) {
+      return targetIntakeResponse;
+    }
+
+    if (state === "target_selection") {
       return {
-        messages: ["I can turn that into a target draft. Review it before saving."],
-        proposals: [
-          {
-            type: "create_target_draft",
-            workflowState: state,
-            description: message
-          }
-        ]
+        messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+        proposals: []
       };
     }
 
+    targetIntake = undefined;
     return {
       messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
       proposals: []
     };
   }
+
+  targetIntake = undefined;
 
   if (state === "preparation" && /\b(assessment|image|sud|disturbance|cognition)\b/.test(normalized)) {
     return {
@@ -130,3 +132,94 @@ function guideMessageResponse(payload) {
     proposals: []
   };
 }
+
+function guideTargetIntakeResponse(message, state) {
+  const text = message.trim();
+  if (state !== "target_selection" || !text) return undefined;
+
+  const isUnclearTargetReply = /\b(help|not sure|unsure|don't know|do not know)\b/i.test(text);
+  if (!targetIntake && isUnclearTargetReply) {
+    return {
+      messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+      proposals: []
+    };
+  }
+
+  if (!targetIntake) {
+    targetIntake = { description: text };
+    return {
+      messages: ["How does that make you feel right now?"],
+      proposals: []
+    };
+  }
+
+  if (!targetIntake.emotions) {
+    targetIntake = { ...targetIntake, emotions: text };
+    return {
+      messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+      proposals: []
+    };
+  }
+
+  if (targetIntake.disturbance === undefined) {
+    const disturbance = disturbanceScoreFrom(text);
+    if (disturbance === undefined) {
+      return {
+        messages: ["Please give a subjective disturbance score from 0 to 10."],
+        proposals: []
+      };
+    }
+
+    targetIntake = { ...targetIntake, disturbance };
+    return {
+      messages: ["What negative cognition goes with it?"],
+      proposals: []
+    };
+  }
+
+  if (!targetIntake.negativeCognition) {
+    targetIntake = { ...targetIntake, negativeCognition: text };
+    return {
+      messages: ["What positive cognition would you rather hold with this target?"],
+      proposals: []
+    };
+  }
+
+  const proposal = {
+    type: "create_target_draft",
+    workflowState: state,
+    description: targetIntake.description,
+    negativeCognition: targetIntake.negativeCognition,
+    positiveCognition: text
+  };
+  targetIntake = undefined;
+
+  return {
+    messages: ["Review the target draft below."],
+    proposals: [proposal]
+  };
+}
+
+function disturbanceScoreFrom(text) {
+  const numeric = text.match(/-?\d+(?:\.\d+)?/);
+  if (numeric) {
+    const score = Number(numeric[0]);
+    if (score >= 0 && score <= 10) return score;
+  }
+
+  return wordDisturbanceScores.get(text.trim().toLowerCase());
+}
+
+const wordDisturbanceScores = new Map([
+  ["zero", 0],
+  ["one", 1],
+  ["two", 2],
+  ["three", 3],
+  ["four", 4],
+  ["five", 5],
+  ["six", 6],
+  ["seven", 7],
+  ["eight", 8],
+  ["nine", 9],
+  ["ten", 10]
+]);

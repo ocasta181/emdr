@@ -262,12 +262,50 @@ test("guide service defaults to guided target identification", async () => {
   assert.equal(view.primaryAction, undefined);
   assert.doesNotMatch(view.messages[0], /Open Targets/);
 
-  const response = await guide.respondToMessage({ message: "Electron workflow target" });
-  assert.deepEqual(response.proposals, [
+  const targetResponse = await guide.respondToMessage({ message: "Electron workflow target" });
+  assert.deepEqual(targetResponse, {
+    messages: ["How does that make you feel right now?"],
+    proposals: []
+  });
+
+  const emotionResponse = await guide.respondToMessage({ message: "afraid" });
+  assert.deepEqual(emotionResponse, {
+    messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+    proposals: []
+  });
+
+  const outOfRangeScoreResponse = await guide.respondToMessage({ message: "11" });
+  assert.deepEqual(outOfRangeScoreResponse, {
+    messages: ["Please give a subjective disturbance score from 0 to 10."],
+    proposals: []
+  });
+
+  const invalidScoreResponse = await guide.respondToMessage({ message: "high" });
+  assert.deepEqual(invalidScoreResponse, {
+    messages: ["Please give a subjective disturbance score from 0 to 10."],
+    proposals: []
+  });
+
+  const scoreResponse = await guide.respondToMessage({ message: "7" });
+  assert.deepEqual(scoreResponse, {
+    messages: ["What negative cognition goes with it?"],
+    proposals: []
+  });
+
+  const negativeCognitionResponse = await guide.respondToMessage({ message: "I am not safe" });
+  assert.deepEqual(negativeCognitionResponse, {
+    messages: ["What positive cognition would you rather hold with this target?"],
+    proposals: []
+  });
+
+  const positiveCognitionResponse = await guide.respondToMessage({ message: "I can protect myself" });
+  assert.deepEqual(positiveCognitionResponse.proposals, [
     {
       type: "create_target_draft",
       workflowState: "target_selection",
-      description: "Electron workflow target"
+      description: "Electron workflow target",
+      negativeCognition: "I am not safe",
+      positiveCognition: "I can protect myself"
     }
   ]);
   assert.deepEqual(calls, []);
@@ -326,14 +364,76 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
     }
   });
 
-  assert.equal(targetResponse.messages.length, 1);
-  assert.deepEqual(targetResponse.proposals, [
+  assert.deepEqual(targetResponse, {
+    messages: ["How does that make you feel right now?"],
+    proposals: []
+  });
+
+  assert.deepEqual(
+    await client.respond({
+      message: "scared",
+      workflow: { state: "target_selection" },
+      view: {
+        mode: "idle",
+        targetCount: 0,
+        messages: []
+      }
+    }),
+    {
+      messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+      proposals: []
+    }
+  );
+
+  assert.deepEqual(
+    await client.respond({
+      message: "six",
+      workflow: { state: "target_selection" },
+      view: {
+        mode: "idle",
+        targetCount: 0,
+        messages: []
+      }
+    }),
+    {
+      messages: ["What negative cognition goes with it?"],
+      proposals: []
+    }
+  );
+
+  assert.deepEqual(
+    await client.respond({
+      message: "I am trapped",
+      workflow: { state: "target_selection" },
+      view: {
+        mode: "idle",
+        targetCount: 0,
+        messages: []
+      }
+    }),
+    {
+      messages: ["What positive cognition would you rather hold with this target?"],
+      proposals: []
+    }
+  );
+
+  const targetProposalResponse = await client.respond({
+    message: "I can leave",
+    workflow: { state: "target_selection" },
+    view: {
+      mode: "idle",
+      targetCount: 0,
+      messages: []
+    }
+  });
+
+  assert.deepEqual(targetProposalResponse.proposals, [
     {
       type: "create_target_draft",
       workflowState: "target_selection",
       description: "Electron workflow target",
-      negativeCognition: undefined,
-      positiveCognition: undefined
+      negativeCognition: "I am trapped",
+      positiveCognition: "I can leave"
     }
   ]);
 });
