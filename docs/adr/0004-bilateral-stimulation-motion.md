@@ -17,17 +17,19 @@ Reviewed sources:
 - Piepenbrock et al., "Smaller pupil size and better proofreading performance with positive than with negative polarity displays": https://www.psychologie.hhu.de/fileadmin/redaktion/Oeffentliche_Medien/Fakultaeten/Mathematisch-Naturwissenschaftliche_Fakultaet/Psychologie/AAP/Publikationen/in_press/Piepenbrock-in_press-Smaller_pupil_size_and_better.pdf
 - Shieh and Lin, "Effects of polarity and luminance contrast on visual performance and VDT display quality": https://www.sciencedirect.com/science/article/abs/pii/S0169814199000402
 
-The sources support horizontal, rhythmic eye movements across the visual field, with speed set fast enough to tax working memory while remaining tolerable. van Veen et al. found stronger analogue-memory effects for faster eye movements at 1.2 Hz than slower eye movements at 0.8 Hz. van den Hout et al. used a sinusoidal horizontal dot movement that slowed near the edges to reduce eye strain and resemble therapist hand motion. The training manual recommends fast but comfortable, straight-across, steady movement.
+The sources support horizontal, rhythmic eye movements across the visual field, with speed set fast enough to tax working memory while remaining tolerable. van Veen et al. tested working-memory load at 0.4, 0.6, 0.8, 1.0, and 1.2 Hz, then selected 0.8 Hz as the slow condition and 1.2 Hz as the fast condition for the analogue-memory experiment. They found stronger analogue-memory effects for faster eye movements at 1.2 Hz than slower eye movements at 0.8 Hz. The article also cites Maxfield et al. finding larger effects at 1.25 Hz than 1.0 Hz. van den Hout et al. used a sinusoidal horizontal dot movement that slowed near the edges to reduce eye strain and resemble therapist hand motion. The training manual recommends fast but comfortable, straight-across, steady movement.
 
 van Veen et al. used a white dot on a black screen in both eye-movement conditions. This is useful precedent for visual bilateral stimulation, but it is not evidence that a black background is clinically superior to a white background. General display-polarity research often favors dark content on a light background for reading and fine-detail visual performance, likely because higher display luminance reduces pupil size and sharpens detail. That evidence does not directly transfer to this app's task, where the user tracks a large moving target while recalling material rather than reading or proofreading.
 
-The sources do not establish that constant linear velocity is superior to sinusoidal movement. They also do not establish a universal speed, background polarity, or dot color for every user or clinical scenario.
+The sources do not establish that constant linear velocity is superior to sinusoidal movement. They also do not establish a universal speed, background polarity, or dot color for every user or clinical scenario. The 0.8-1.2 Hz range is not a proven full effective range; it is the narrowest range directly compared in the strongest reviewed speed-specific study.
 
 ## Decision
 
 Use sinusoidal horizontal motion as the default visual bilateral stimulation pattern.
 
 Use 1.2 Hz as the default speed, interpreted as 1.2 complete left-right-left cycles per second.
+
+Constrain the user-facing visual stimulation speed control to 0.8-1.2 Hz. This is an evidence-anchored product range, not a claim that speeds outside this range are ineffective.
 
 Render the stimulation path across the full available viewport while keeping the dot center inside the visible bounds.
 
@@ -41,6 +43,7 @@ Keep speed configurable so the user can reduce or increase the working-memory lo
 
 - The default avoids endpoint pauses while preserving a smooth reversal at the edges.
 - The default prioritizes a researched faster speed without hard-coding it as clinically correct for every user.
+- The app avoids offering speed values far outside the reviewed evidence while preserving a small comfort-adjustment range.
 - The renderer should derive travel distance from the actual viewport dimensions, including fullscreen dimensions.
 - The active stimulation view reduces visual distractions and overall screen luminance, while preserving display contrast for eye tracking.
 - A future light-background mode would be a usability option, not a research-backed clinical improvement unless stronger evidence is reviewed.
