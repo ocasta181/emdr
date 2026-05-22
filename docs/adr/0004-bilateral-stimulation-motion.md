@@ -4,6 +4,8 @@
 
 Accepted
 
+Amended by ADR 0005 for stimulation field polarity, ball color, and full-screen traversal.
+
 ## Context
 
 The app renders visual bilateral stimulation as a moving dot. The default motion should follow the best available implementation guidance without implying that the app independently provides clinical EMDR therapy.
@@ -33,9 +35,7 @@ Constrain the user-facing visual stimulation speed control to 0.8-1.2 Hz. This i
 
 Render the stimulation path across the full available viewport while keeping the dot center inside the visible bounds.
 
-During an active stimulation set, render a blank black stimulation field behind the dot and hide room artwork, decorative motion, and non-control visual content.
-
-Prefer a light, high-contrast dot on the black stimulation field. Keep dot color configurable.
+During an active stimulation set, render a blank stimulation field behind the dot and hide room artwork, decorative motion, and non-control visual content. See ADR 0005 for background polarity and ball color.
 
 Keep speed configurable so the user can reduce or increase the working-memory load for comfort and tolerance.
 
@@ -45,6 +45,6 @@ Keep speed configurable so the user can reduce or increase the working-memory lo
 - The default prioritizes a researched faster speed without hard-coding it as clinically correct for every user.
 - The app avoids offering speed values far outside the reviewed evidence while preserving a small comfort-adjustment range.
 - The renderer should derive travel distance from the actual viewport dimensions, including fullscreen dimensions.
-- The active stimulation view reduces visual distractions and overall screen luminance, while preserving display contrast for eye tracking.
-- A future light-background mode would be a usability option, not a research-backed clinical improvement unless stronger evidence is reviewed.
+- The active stimulation view reduces visual distractions while preserving display contrast for eye tracking.
+- Background polarity is governed by ADR 0005.
 - Future changes to stimulation modality, speed ranges, motion curves, or claims about clinical optimization need a new ADR or an update to this ADR.
