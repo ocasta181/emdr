@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import type {
   Assessment,
   GuideActionProposal,
@@ -9,6 +9,7 @@ import type {
 import { optionalNumber } from "../../../../utils";
 import { AssessmentForm } from "../session/AssessmentForm";
 import { WorkflowControls } from "../stimulation-set/WorkflowControls";
+import { VoiceGuideComposer } from "./VoiceGuideComposer";
 
 export type GuideChatMessage = {
   speaker: "user" | "guide";
@@ -21,7 +22,8 @@ export function IdleGuideChat({
   chatDraft,
   guideProposals,
   onChatChange,
-  onSubmitChat,
+  onSubmitMessage,
+  onGuideSpeakingChange,
   onApplyProposal
 }: {
   guideView: GuideView;
@@ -29,7 +31,8 @@ export function IdleGuideChat({
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
-  onSubmitChat: (event: FormEvent) => void;
+  onSubmitMessage: (message: string) => void;
+  onGuideSpeakingChange: (isSpeaking: boolean) => void;
   onApplyProposal: (proposal: GuideActionProposal) => void;
 }) {
   const messages: GuideChatMessage[] = [
@@ -38,23 +41,16 @@ export function IdleGuideChat({
   ];
 
   return (
-    <>
-      <ChatLog messages={messages} />
-      <form className="chatComposer" onSubmit={onSubmitChat}>
-        <label>
-          Tell the guide
-          <textarea
-            placeholder="Say what feels useful to focus on..."
-            value={chatDraft}
-            onChange={(event) => onChatChange(event.target.value)}
-          />
-        </label>
-        <button type="submit">Send</button>
-      </form>
-      {guideProposals.length > 0 && (
-        <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
-      )}
-    </>
+    <GuideConversation
+      messages={messages}
+      chatDraft={chatDraft}
+      guideProposals={guideProposals}
+      placeholder="Say what feels useful to focus on..."
+      onChatChange={onChatChange}
+      onSubmitMessage={onSubmitMessage}
+      onGuideSpeakingChange={onGuideSpeakingChange}
+      onApplyProposal={onApplyProposal}
+    />
   );
 }
 
@@ -67,7 +63,8 @@ export function ActiveSessionChat({
   chatDraft,
   guideProposals,
   onChatChange,
-  onSubmitChat,
+  onSubmitMessage,
+  onGuideSpeakingChange,
   onApplyProposal,
   onSaveAssessment,
   onApproveAssessment,
@@ -85,7 +82,8 @@ export function ActiveSessionChat({
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
-  onSubmitChat: (event: FormEvent) => void;
+  onSubmitMessage: (message: string) => void;
+  onGuideSpeakingChange: (isSpeaking: boolean) => void;
   onApplyProposal: (proposal: GuideActionProposal) => void;
   onSaveAssessment: (assessment: Assessment) => void;
   onApproveAssessment: (assessment: Assessment) => void;
@@ -128,23 +126,55 @@ export function ActiveSessionChat({
           onRequestReview={onRequestReview}
         />
       )}
-      <ChatLog messages={messages} />
-      <form className="chatComposer" onSubmit={onSubmitChat}>
-        <label>
-          Tell the guide
-          <textarea
-            placeholder="Capture an in-session note..."
-            value={chatDraft}
-            onChange={(event) => onChatChange(event.target.value)}
-          />
-        </label>
-        <button type="submit">Send</button>
-      </form>
-      {guideProposals.length > 0 && (
-        <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
-      )}
+      <GuideConversation
+        messages={messages}
+        chatDraft={chatDraft}
+        guideProposals={guideProposals}
+        placeholder="Capture an in-session note..."
+        onChatChange={onChatChange}
+        onSubmitMessage={onSubmitMessage}
+        onGuideSpeakingChange={onGuideSpeakingChange}
+        onApplyProposal={onApplyProposal}
+      />
       {workflowState === "review" && (
         <SessionEndForm session={session} onEndSession={onEndSession} onBeginClosure={onBeginClosure} />
+      )}
+    </>
+  );
+}
+
+function GuideConversation({
+  messages,
+  chatDraft,
+  guideProposals,
+  placeholder,
+  onChatChange,
+  onSubmitMessage,
+  onGuideSpeakingChange,
+  onApplyProposal
+}: {
+  messages: GuideChatMessage[];
+  chatDraft: string;
+  guideProposals: GuideActionProposal[];
+  placeholder: string;
+  onChatChange: (value: string) => void;
+  onSubmitMessage: (message: string) => void;
+  onGuideSpeakingChange: (isSpeaking: boolean) => void;
+  onApplyProposal: (proposal: GuideActionProposal) => void;
+}) {
+  return (
+    <>
+      <ChatLog messages={messages} />
+      <VoiceGuideComposer
+        messages={messages}
+        chatDraft={chatDraft}
+        placeholder={placeholder}
+        onChatChange={onChatChange}
+        onSubmitMessage={onSubmitMessage}
+        onGuideSpeakingChange={onGuideSpeakingChange}
+      />
+      {guideProposals.length > 0 && (
+        <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
       )}
     </>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { RoomScene, type RoomObjectId } from "../animation/RoomScene";
 import type { GuideAction, GuideAnimationIntent } from "../animation/guideAnimationModel";
 import {
@@ -82,7 +82,7 @@ export function AnimatedApp() {
   const [recoveryCode, setRecoveryCode] = useState("");
   const [viewData, setViewData] = useState<AppViewData>(emptyViewData);
   const [roomState, dispatchRoomEvent] = useReducer(transitionAnimatedRoomState, initialAnimatedRoomState);
-  const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "action", action: "speak" });
+  const [guideAnimation, setGuideAnimation] = useState<GuideAnimationIntent>({ type: "book_state", bookState: "on_ground" });
   const [editingTarget, setEditingTarget] = useState<TargetEditorState | null>(null);
   const [activeSession, setActiveSession] = useState<SessionAggregate | null>(null);
   const [sessionWorkflow, setSessionWorkflow] = useState<SessionWorkflowSnapshot>({ state: "idle" });
@@ -100,6 +100,12 @@ export function AnimatedApp() {
         setAuthState(authStateForVault(status));
       }
     });
+  }, []);
+
+  const handleGuideSpeakingChange = useCallback((isSpeaking: boolean) => {
+    setGuideAnimation(
+      isSpeaking ? { type: "action", action: "speak" } : { type: "book_state", bookState: "on_ground" }
+    );
   }, []);
 
   async function loadUnlockedDatabase() {
@@ -182,7 +188,7 @@ export function AnimatedApp() {
   function resetTransientRendererState() {
     dispatchRoomEvent({ type: "reset_room" });
     setEditingTarget(null);
-    setGuideAnimation({ type: "action", action: "speak" });
+    setGuideAnimation({ type: "book_state", bookState: "on_ground" });
     setGuideProposals([]);
     setChatDraft("");
     setChatMessages([]);
@@ -313,7 +319,6 @@ export function AnimatedApp() {
       await enterGuideTargetSelection();
     }
     dispatchRoomEvent({ type: "select_guide" });
-    setGuideAnimation({ type: "action", action: "speak" });
   }
 
   async function enterGuideTargetSelection() {
@@ -429,9 +434,8 @@ export function AnimatedApp() {
     }
   }
 
-  async function submitChat(event: FormEvent) {
-    event.preventDefault();
-    const message = chatDraft.trim();
+  async function submitGuideMessage(rawMessage: string) {
+    const message = rawMessage.trim();
     if (!message) return;
     if (!activeSession) {
       await enterGuideTargetSelection();
@@ -554,7 +558,8 @@ export function AnimatedApp() {
                   chatDraft={chatDraft}
                   guideProposals={guideProposals}
                   onChatChange={setChatDraft}
-                  onSubmitChat={submitChat}
+                  onSubmitMessage={(message) => void submitGuideMessage(message)}
+                  onGuideSpeakingChange={handleGuideSpeakingChange}
                   onApplyProposal={applyAgentProposal}
                   onSaveAssessment={saveSessionAssessment}
                   onApproveAssessment={approveSessionAssessment}
@@ -571,7 +576,8 @@ export function AnimatedApp() {
                   chatDraft={chatDraft}
                   guideProposals={guideProposals}
                   onChatChange={setChatDraft}
-                  onSubmitChat={submitChat}
+                  onSubmitMessage={(message) => void submitGuideMessage(message)}
+                  onGuideSpeakingChange={handleGuideSpeakingChange}
                   onApplyProposal={applyAgentProposal}
                 />
               )}
