@@ -110,8 +110,8 @@ export function RoomScene({
       let lastHeight = 0;
 
       function redraw() {
-        const width = app.renderer.width;
-        const height = app.renderer.height;
+        const width = app.screen.width;
+        const height = app.screen.height;
         const floorY = height * 0.78;
         const historyX = width * 0.68;
         const historyY = height * 0.78;
@@ -170,8 +170,8 @@ export function RoomScene({
       app.ticker.add((ticker) => {
         elapsed += ticker.deltaTime / 60;
 
-        const width = app.renderer.width;
-        const height = app.renderer.height;
+        const width = app.screen.width;
+        const height = app.screen.height;
         const runtime = runtimeRef.current;
         if (width !== lastWidth || height !== lastHeight) {
           redraw();
@@ -206,17 +206,16 @@ export function RoomScene({
 
         orb.visible = runtime.stimulationRunning;
         if (runtime.stimulationRunning) {
-          const travel = width * 0.64;
-          const centerX = width * 0.5;
-          const x = centerX + Math.sin(elapsed * 1.55 * runtime.stimulationSpeed) * travel * 0.5;
           const size = stimulationDotPixelSize(runtime.stimulationDotSize);
-          orb.position.set(x, height * 0.36);
+          const x = stimulationXPosition(width, size, elapsed, runtime.stimulationSpeed);
+          const y = height * 0.5;
+          orb.position.set(x, y);
           orb.width = size;
           orb.height = size;
           orb.tint = runtime.stimulationColor;
           orb.alpha = 1;
-          orbHalo.circle(x, height * 0.36, size * 0.74).fill({ color: runtime.stimulationColor, alpha: 0.24 });
-          orbHalo.circle(x, height * 0.36, size * 0.42).fill({ color: 0xffffff, alpha: 0.14 });
+          orbHalo.circle(x, y, size * 0.74).fill({ color: runtime.stimulationColor, alpha: 0.24 });
+          orbHalo.circle(x, y, size * 0.42).fill({ color: 0xffffff, alpha: 0.14 });
         }
       });
     }
@@ -236,4 +235,10 @@ function stimulationDotPixelSize(size: "small" | "medium" | "large") {
   if (size === "small") return 58;
   if (size === "large") return 112;
   return 82;
+}
+
+function stimulationXPosition(width: number, dotSize: number, elapsedSeconds: number, cyclesPerSecond: number) {
+  const travel = Math.max(0, width - dotSize);
+  const phase = Math.sin(elapsedSeconds * Math.PI * 2 * cyclesPerSecond) * 0.5 + 0.5;
+  return dotSize * 0.5 + phase * travel;
 }

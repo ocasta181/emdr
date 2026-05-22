@@ -70,7 +70,7 @@ const emptyViewData: AppViewData = {
   sessions: [],
   settings: {
     bilateralStimulation: {
-      speed: 1,
+      speed: 1.2,
       dotSize: "medium",
       dotColor: "green"
     }

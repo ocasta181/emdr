@@ -42,7 +42,7 @@ export function SettingsPanel({
           onChange={(event) => onChange({ speed: Number(event.target.value) })}
         />
       </label>
-      <div className="speedReadout">{settings.speed.toFixed(1)}x</div>
+      <div className="speedReadout">{settings.speed.toFixed(1)} Hz</div>
       <label>
         Ball color
         <select
