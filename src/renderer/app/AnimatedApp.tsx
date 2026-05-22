@@ -123,9 +123,18 @@ export function AnimatedApp() {
     }
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (!isStimulationExitKey(event)) return;
+
       event.preventDefault();
       event.stopPropagation();
-      if (event.repeat || isPausingStimulationRef.current) return;
+      if (event.repeat) return;
+
+      if (roomState === "stimulation_settings") {
+        dispatchRoomEvent({ type: "close_panel" });
+        return;
+      }
+
+      if (isPausingStimulationRef.current) return;
 
       isPausingStimulationRef.current = true;
       void pauseActiveStimulation()
@@ -139,7 +148,7 @@ export function AnimatedApp() {
 
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
-  }, [stimulationRunning, activeSession, sessionWorkflow.state]);
+  }, [stimulationRunning, roomState, activeSession, sessionWorkflow.state]);
 
   const handleGuideSpeakingChange = useCallback((isSpeaking: boolean) => {
     setGuideAnimation(
@@ -727,6 +736,17 @@ function stimulationButtonLabel(workflow: SessionWorkflowSnapshot, running: bool
   if (running) return "Pause Set";
   if (workflow.state === "interjection" || workflow.state === "closure") return "Continue Set";
   return "Start Set";
+}
+
+function isStimulationExitKey(event: KeyboardEvent) {
+  return (
+    event.key === "Escape" ||
+    event.key === "Enter" ||
+    event.key === " " ||
+    event.key === "Space" ||
+    event.key === "Spacebar" ||
+    event.code === "Space"
+  );
 }
 
 async function advanceSessionForStimulationStart(sessionId: string, workflow: SessionWorkflowSnapshot) {

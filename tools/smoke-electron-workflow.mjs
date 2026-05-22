@@ -132,8 +132,12 @@ async function main() {
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
     await waitForStimulationBackdropMode(window, "light");
-    phase = "keyboard pauses stimulation";
+    phase = "non-exit key leaves stimulation running";
     await pressKey(window, "A");
+    await expectButtonPresent(window, "Pause Set", true);
+    await expectText(window, "1 set logged", false);
+    phase = "exit key pauses stimulation";
+    await pressKey(window, "Escape");
     await waitForText(window, "1 set logged");
     await waitForText(window, "Begin closure");
     phase = "guide proposal logs stimulation";
@@ -186,14 +190,22 @@ async function main() {
     installVaultDialogStubs(activeExportPath);
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
+    await pressKey(window, "A");
+    await waitForText(window, "Ball Settings");
     await setSelectByLabel(window, "Screen mode", "dark");
-    await clickButton(window, "Close");
+    await pressKey(window, "Enter");
+    await waitForTextAbsent(window, "Ball Settings");
     await waitForStimulationBackdropMode(window, "dark");
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
     await setSelectByLabel(window, "Screen mode", "light");
-    await clickButton(window, "Close");
+    await pressKey(window, "Space");
+    await waitForTextAbsent(window, "Ball Settings");
     await waitForStimulationBackdropMode(window, "light");
+    await clickButton(window, "Ball settings");
+    await waitForText(window, "Ball Settings");
+    await pressKey(window, "Escape");
+    await waitForTextAbsent(window, "Ball Settings");
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
     await clickButton(window, "Export");
@@ -378,6 +390,21 @@ async function waitForText(window, text, timeoutMs = 5000) {
 
   const body = await window.webContents.executeJavaScript("document.body.innerText", true);
   throw new Error(`Timed out waiting for text "${text}". Body text: ${body}`);
+}
+
+async function waitForTextAbsent(window, text, timeoutMs = 5000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const found = await window.webContents.executeJavaScript(
+      `document.body.innerText.includes(${JSON.stringify(text)})`,
+      true
+    );
+    if (!found) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  const body = await window.webContents.executeJavaScript("document.body.innerText", true);
+  throw new Error(`Timed out waiting for text "${text}" to disappear. Body text: ${body}`);
 }
 
 async function expectText(window, text, expected) {
