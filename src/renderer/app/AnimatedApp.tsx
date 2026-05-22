@@ -62,16 +62,16 @@ const dotColorHex: Record<
   Record<BilateralStimulationSettings["dotColor"], string>
 > = {
   light: {
-    green: "#205c3b",
-    blue: "#204866",
-    white: "#202020",
-    orange: "#6d3f12"
+    green: "#1f5c42",
+    blue: "#263a63",
+    white: "#22211d",
+    orange: "#5d2d4c"
   },
   dark: {
-    green: "#96ff8f",
-    blue: "#8fe5ff",
-    white: "#ffffff",
-    orange: "#ffb45f"
+    green: "#b7d996",
+    blue: "#93d0dc",
+    white: "#d8d0be",
+    orange: "#d2a15f"
   }
 };
 

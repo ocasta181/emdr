@@ -19,15 +19,15 @@ export function SettingsPanel({
     settings.fieldMode === "light"
       ? {
           green: "Forest",
-          blue: "Navy",
+          blue: "Indigo",
           white: "Charcoal",
-          orange: "Brown"
+          orange: "Plum"
         }
       : {
-          green: "Green",
-          blue: "Blue",
-          white: "White",
-          orange: "Orange"
+          green: "Sage",
+          blue: "Sky",
+          white: "Pearl",
+          orange: "Amber"
         };
 
   async function exportEncryptedData() {

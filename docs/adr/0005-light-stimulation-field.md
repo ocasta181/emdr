@@ -14,6 +14,8 @@ The relevant reviewed evidence is:
 - Mertens et al., "Verbal suggestions fail to modulate expectations about the effectiveness of a laboratory model of EMDR therapy": https://www.sciencedirect.com/science/article/pii/S0005791621000380
 - Goliskina et al., "The Effect of Stimulus Contrast and Spatial Position on Saccadic Eye Movement Parameters": https://www.mdpi.com/2411-5150/7/4/68
 - Kaiser Permanente visual bilateral-stimulation implementation, as observed by the product owner: light background, dark moving ball, and full-screen end-to-end traversal.
+- W3C, "Understanding Success Criterion 1.4.11: Non-text Contrast": https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html
+- Google Material Design, "Material Design's Color Palette": https://design.google/library/material-design-dark-theme
 
 The EMDR studies support using a high-contrast moving target and a blank low-distraction field, but they do not establish a superior background polarity or ball color. General saccadic-eye-movement research likewise supports avoiding low-contrast targets, but it does not establish that black-background/light-target or light-background/dark-target polarity is clinically superior for EMDR bilateral stimulation.
 
@@ -26,6 +28,8 @@ Default to a blank light stimulation field during active visual bilateral stimul
 Use a dark, high-contrast ball by default.
 
 Allow a dark-mode field in Ball Settings for user visibility and comfort preference. Dark mode uses a blank black field with a light, high-contrast ball. It is an optional display mode, not the default clinical or product recommendation.
+
+Use mode-specific ball palettes rather than direct light/dark inversions. Light mode uses dark, moderately saturated ball colors against the light field. Dark mode uses softer light colors against the black field and avoids pure white or neon saturation by default. Each ball/background pairing must exceed WCAG's 3:1 non-text contrast threshold with margin, and hue must not be the only cue for visibility.
 
 Keep the ball traveling end-to-end across the available fullscreen viewport, while keeping the ball center inside the visible bounds.
 
