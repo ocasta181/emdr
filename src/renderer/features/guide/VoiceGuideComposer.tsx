@@ -66,7 +66,7 @@ export function VoiceGuideComposer({
       recognition.onstart = () => setVoiceError("");
       recognition.onerror = (event) => {
         if (!shouldListenRef.current || event.error === "aborted" || event.error === "no-speech") return;
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        if (isFatalSpeechRecognitionError(event.error)) {
           shouldListenRef.current = false;
         }
         setVoiceError(speechRecognitionErrorMessage(event.error));
@@ -87,6 +87,7 @@ export function VoiceGuideComposer({
       try {
         recognition.start();
       } catch {
+        shouldListenRef.current = false;
         setVoiceError("Speech-to-text could not start. Type below or check microphone access.");
       }
     }
@@ -200,10 +201,25 @@ function speechRecognitionErrorMessage(error: string | undefined) {
   }
 
   if (error === "network") {
-    return "Speech-to-text service is unavailable in this build. Type below instead.";
+    return "Speech-to-text is unavailable in Electron's browser service. Type below instead.";
+  }
+
+  if (error === "audio-capture") {
+    return "Speech-to-text cannot access an audio input device. Type below or check microphone access.";
   }
 
   return "Speech-to-text could not stay connected. Type below or check microphone access.";
+}
+
+function isFatalSpeechRecognitionError(error: string | undefined) {
+  return (
+    error === "network" ||
+    error === "audio-capture" ||
+    error === "not-allowed" ||
+    error === "service-not-allowed" ||
+    error === "language-not-supported" ||
+    error === "bad-grammar"
+  );
 }
 
 function canSpeak() {
