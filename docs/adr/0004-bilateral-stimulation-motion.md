@@ -23,7 +23,7 @@ The sources support horizontal, rhythmic eye movements across the visual field, 
 
 van Veen et al. used a white dot on a black screen in both eye-movement conditions. This is useful precedent for visual bilateral stimulation, but it is not evidence that a black background is clinically superior to a white background. General display-polarity research often favors dark content on a light background for reading and fine-detail visual performance, likely because higher display luminance reduces pupil size and sharpens detail. That evidence does not directly transfer to this app's task, where the user tracks a large moving target while recalling material rather than reading or proofreading.
 
-The sources do not establish that constant linear velocity is superior to sinusoidal movement. They also do not establish a universal speed, background polarity, or dot color for every user or clinical scenario. The 0.8-1.2 Hz range is not a proven full effective range; it is the narrowest range directly compared in the strongest reviewed speed-specific study.
+The sources do not establish that constant linear velocity is superior to sinusoidal movement. They also do not establish a universal speed, background polarity, or dot color for every user or clinical scenario. The 0.8-1.2 Hz range is not a proven full effective range; it is the narrowest range directly compared in the strongest reviewed speed-specific study. The broader 0.5-1.2 Hz product range exists for comfort and tolerance, because 0.8 Hz can still feel too fast for some users.
 
 ## Decision
 
@@ -31,7 +31,7 @@ Use sinusoidal horizontal motion as the default visual bilateral stimulation pat
 
 Use 1.2 Hz as the default speed, interpreted as 1.2 complete left-right-left cycles per second.
 
-Constrain the user-facing visual stimulation speed control to 0.8-1.2 Hz. This is an evidence-anchored product range, not a claim that speeds outside this range are ineffective.
+Constrain the user-facing visual stimulation speed control to 0.5-1.2 Hz. This is a comfort-adjusted product range anchored by the reviewed speed evidence, not a claim that speeds outside this range are ineffective.
 
 Render the stimulation path across the full available viewport while keeping the dot center inside the visible bounds.
 
@@ -43,7 +43,7 @@ Keep speed configurable so the user can reduce or increase the working-memory lo
 
 - The default avoids endpoint pauses while preserving a smooth reversal at the edges.
 - The default prioritizes a researched faster speed without hard-coding it as clinically correct for every user.
-- The app avoids offering speed values far outside the reviewed evidence while preserving a small comfort-adjustment range.
+- The app allows slower user-selected speeds for comfort while preserving the researched faster default.
 - The renderer should derive travel distance from the actual viewport dimensions, including fullscreen dimensions.
 - The active stimulation view reduces visual distractions while preserving display contrast for eye tracking.
 - Background polarity is governed by ADR 0005.

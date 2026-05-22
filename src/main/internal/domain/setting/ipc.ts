@@ -5,7 +5,7 @@ import type { BilateralStimulationSettings, SettingIpcService } from "./types.js
 const dotSizes = ["small", "medium", "large"] as const satisfies readonly BilateralStimulationSettings["dotSize"][];
 const dotColors = ["green", "blue", "white", "orange"] as const satisfies readonly BilateralStimulationSettings["dotColor"][];
 const fieldModes = ["light", "dark"] as const satisfies readonly BilateralStimulationSettings["fieldMode"][];
-const speedRange = { min: 0.8, max: 1.2 } as const;
+const speedRange = { min: 0.5, max: 1.2 } as const;
 
 export function registerSettingIpc(registry: ApiRegistry, service: SettingIpcService) {
   registry.handle("settings:get", async () => service.getSettings());

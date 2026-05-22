@@ -59,7 +59,7 @@ export function SettingsPanel({
         Ball speed
         <input
           type="range"
-          min="0.8"
+          min="0.5"
           max="1.2"
           step="0.1"
           value={settings.speed}
