@@ -49,10 +49,10 @@ export function SettingsPanel({
           value={settings.dotColor}
           onChange={(event) => onChange({ dotColor: event.target.value as BilateralStimulationSettings["dotColor"] })}
         >
-          <option value="green">Green</option>
-          <option value="blue">Blue</option>
-          <option value="white">White</option>
-          <option value="orange">Orange</option>
+          <option value="green">Forest</option>
+          <option value="blue">Navy</option>
+          <option value="white">Charcoal</option>
+          <option value="orange">Brown</option>
         </select>
       </label>
       <label>

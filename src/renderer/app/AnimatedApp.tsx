@@ -58,10 +58,10 @@ type AppViewData = {
 };
 
 const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
-  green: "#96ff8f",
-  blue: "#8fe5ff",
-  white: "#ffffff",
-  orange: "#ffb45f"
+  green: "#205c3b",
+  blue: "#204866",
+  white: "#202020",
+  orange: "#6d3f12"
 };
 
 const emptyViewData: AppViewData = {

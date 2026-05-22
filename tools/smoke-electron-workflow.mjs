@@ -277,9 +277,9 @@ async function expectStimulationBackdropBlank(window) {
     return points.map((point) => sampleBrightness(bitmap, size.width, point.x, point.y));
   });
 
-  const visibleBackdrop = samples.every((brightness) => brightness < 12);
+  const visibleBackdrop = samples.every((brightness) => brightness > 230);
   if (!visibleBackdrop) {
-    throw new Error(`Expected blank stimulation backdrop, got brightness samples ${samples.join(", ")}.`);
+    throw new Error(`Expected blank light stimulation backdrop, got brightness samples ${samples.join(", ")}.`);
   }
 }
 
