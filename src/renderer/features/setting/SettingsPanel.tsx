@@ -35,8 +35,8 @@ export function SettingsPanel({
         Ball speed
         <input
           type="range"
-          min="0.5"
-          max="2.5"
+          min="0.8"
+          max="1.2"
           step="0.1"
           value={settings.speed}
           onChange={(event) => onChange({ speed: Number(event.target.value) })}

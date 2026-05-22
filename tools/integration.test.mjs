@@ -41,6 +41,11 @@ test("registered routes persist through migrated SQLite repositories and vault i
   await request("vault:create", "passphrase-123");
   assertNoWorkflowColumn(harness.db);
   assert.equal((await request("settings:get")).bilateralStimulation.speed, 1.2);
+  assert.equal((await request("settings:update-bilateral-stimulation", { speed: 0.8 })).speed, 0.8);
+  await assert.rejects(
+    () => request("settings:update-bilateral-stimulation", { speed: 0.7 }),
+    /Expected speed to be between 0.8 and 1.2/
+  );
 
   assert.throws(
     () =>

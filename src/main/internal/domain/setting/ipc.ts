@@ -4,6 +4,7 @@ import type { BilateralStimulationSettings, SettingIpcService } from "./types.js
 
 const dotSizes = ["small", "medium", "large"] as const satisfies readonly BilateralStimulationSettings["dotSize"][];
 const dotColors = ["green", "blue", "white", "orange"] as const satisfies readonly BilateralStimulationSettings["dotColor"][];
+const speedRange = { min: 0.8, max: 1.2 } as const;
 
 export function registerSettingIpc(registry: ApiRegistry, service: SettingIpcService) {
   registry.handle("settings:get", async () => service.getSettings());
@@ -15,7 +16,7 @@ export function registerSettingIpc(registry: ApiRegistry, service: SettingIpcSer
 function bilateralStimulationPatchFrom(payload: unknown): Partial<BilateralStimulationSettings> {
   const value = recordFrom(payload);
   const patch: Partial<BilateralStimulationSettings> = {};
-  const speed = optionalNumberInRange(value, "speed", { min: 0.5, max: 2.5 });
+  const speed = optionalNumberInRange(value, "speed", speedRange);
   const dotSize = optionalStringEnum(value, "dotSize", dotSizes, "a dot size");
   const dotColor = optionalStringEnum(value, "dotColor", dotColors, "a dot color");
 
