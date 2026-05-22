@@ -1,10 +1,11 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { Initialize } from "../dist-electron/src/main/api/modules.js";
 import { createApiRegistry } from "../dist-electron/src/main/api/registry.js";
 import { registerIpcRoutes } from "../dist-electron/src/main/internal/lib/ipc/electron.js";
+import { installPermissionPolicy } from "../dist-electron/src/main/internal/lib/electron/permissions.js";
 import {
   createSqliteDatabase,
   exportSqliteDatabase
@@ -52,6 +53,7 @@ async function main() {
       getUserDataPath: () => runContext.electronUserDataPath
     });
     registerIpcRoutes(ipcMain, routes);
+    installPermissionPolicy(session.defaultSession, {});
 
     phase = "create window";
     const window = new BrowserWindow({

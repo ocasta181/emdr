@@ -3,6 +3,7 @@ import { app, ipcMain, session } from "electron";
 import { loadAppConfig } from "../internal/lib/config/app-config.js";
 import { createMainWindow, hasOpenWindows } from "../internal/lib/electron/window.js";
 import { installNetworkGuard } from "../internal/lib/electron/network.js";
+import { installPermissionPolicy } from "../internal/lib/electron/permissions.js";
 import { registerIpcRoutes } from "../internal/lib/ipc/electron.js";
 import { Initialize } from "./modules.js";
 import { createApiRegistry } from "./registry.js";
@@ -28,6 +29,7 @@ export async function Start() {
 
   registerIpcRoutes(ipcMain, registry);
   installNetworkGuard(session.defaultSession, { devServerUrl: config.devServerUrl });
+  installPermissionPolicy(session.defaultSession, { devServerUrl: config.devServerUrl });
 
   await createMainWindow({
     devServerUrl: config.devServerUrl,

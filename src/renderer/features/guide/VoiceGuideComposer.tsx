@@ -41,7 +41,7 @@ export function VoiceGuideComposer({
 
   useEffect(() => {
     if (!recognitionConstructor) {
-      setVoiceError("Voice input is unavailable in this build. Type below instead.");
+      setVoiceError("Speech-to-text is unavailable in this build. Type below instead.");
       return;
     }
 
@@ -69,7 +69,7 @@ export function VoiceGuideComposer({
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
           shouldListenRef.current = false;
         }
-        setVoiceError("Voice input could not stay connected. Type below or check microphone access.");
+        setVoiceError(speechRecognitionErrorMessage(event.error));
       };
       recognition.onend = () => {
         if (recognitionRef.current === recognition) {
@@ -87,7 +87,7 @@ export function VoiceGuideComposer({
       try {
         recognition.start();
       } catch {
-        setVoiceError("Voice input could not start. Type below or check microphone access.");
+        setVoiceError("Speech-to-text could not start. Type below or check microphone access.");
       }
     }
 
@@ -192,6 +192,18 @@ function transcriptFromRecognitionEvent(event: SpeechRecognitionEventLike) {
   }
 
   return { finalText };
+}
+
+function speechRecognitionErrorMessage(error: string | undefined) {
+  if (error === "not-allowed" || error === "service-not-allowed") {
+    return "Speech-to-text does not have microphone access. Type below or check microphone access.";
+  }
+
+  if (error === "network") {
+    return "Speech-to-text service is unavailable in this build. Type below instead.";
+  }
+
+  return "Speech-to-text could not stay connected. Type below or check microphone access.";
 }
 
 function canSpeak() {
