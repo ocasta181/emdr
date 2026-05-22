@@ -106,8 +106,8 @@ async function main() {
     await clickButton(window, "Start Set");
     await waitForText(window, "Pause Set");
     await expectStimulationBackdropBlank(window);
-    phase = "guide pauses stimulation";
-    await clickButton(window, "Guide");
+    phase = "keyboard pauses stimulation";
+    await pressKey(window, "A");
     await waitForText(window, "1 set logged");
     await waitForText(window, "Begin closure");
     phase = "guide proposal logs stimulation";
@@ -229,6 +229,13 @@ async function clickRoomPoint(window, xFraction, yFraction) {
   window.webContents.sendInputEvent({ type: "mouseMove", x: point.x, y: point.y });
   window.webContents.sendInputEvent({ type: "mouseDown", x: point.x, y: point.y, button: "left", clickCount: 1 });
   window.webContents.sendInputEvent({ type: "mouseUp", x: point.x, y: point.y, button: "left", clickCount: 1 });
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
+
+async function pressKey(window, keyCode) {
+  window.webContents.focus();
+  window.webContents.sendInputEvent({ type: "keyDown", keyCode });
+  window.webContents.sendInputEvent({ type: "keyUp", keyCode });
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 

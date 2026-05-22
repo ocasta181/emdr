@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { RoomScene, type RoomObjectId } from "../animation/RoomScene";
 import type { GuideAction, GuideAnimationIntent } from "../animation/guideAnimationModel";
 import {
@@ -91,6 +91,8 @@ export function AnimatedApp() {
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<GuideChatMessage[]>([]);
   const [vaultNotice, setVaultNotice] = useState("");
+  const isPausingStimulationRef = useRef(false);
+  const stimulationRunning = animatedRoomStimulationRunning(roomState);
 
   useEffect(() => {
     getVaultStatus().then((status) => {
@@ -101,6 +103,31 @@ export function AnimatedApp() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!stimulationRunning) {
+      isPausingStimulationRef.current = false;
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat || isPausingStimulationRef.current) return;
+
+      isPausingStimulationRef.current = true;
+      void pauseActiveStimulation()
+        .catch((error: unknown) => {
+          console.error(error);
+        })
+        .finally(() => {
+          isPausingStimulationRef.current = false;
+        });
+    }
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+  }, [stimulationRunning, activeSession, sessionWorkflow.state]);
 
   const handleGuideSpeakingChange = useCallback((isSpeaking: boolean) => {
     setGuideAnimation(
@@ -486,7 +513,6 @@ export function AnimatedApp() {
   }
 
   const panel = animatedPanelForState(roomState);
-  const stimulationRunning = animatedRoomStimulationRunning(roomState);
 
   if (!guideView) {
     return <div className="boot">Loading local data...</div>;
