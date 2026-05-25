@@ -95,7 +95,6 @@ flowchart TD
   idle -- "start_session" --> targetSelection
   idle -- "select_target" --> preparation
   targetSelection -- "select_target" --> preparation
-  targetSelection -- "create_target_draft" --> targetSelection
   targetSelection -- "return_to_idle" --> idle
   preparation -- "update_assessment" --> preparation
   preparation -- "approve_assessment" --> stimulation

@@ -31,7 +31,6 @@ const sessionFlowStates = [
 const sessionFlowActions = [
   "start_session",
   "select_target",
-  "create_target_draft",
   "update_assessment",
   "approve_assessment",
   "start_stimulation",

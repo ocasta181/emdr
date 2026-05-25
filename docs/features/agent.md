@@ -240,7 +240,6 @@ The agent can request app actions. Action request types should use `SessionFlowA
 
 ```ts
 type AgentActionRequest =
-  | { action: "create_target_draft"; description: string; negativeCognition?: string; positiveCognition?: string }
   | { action: "select_target"; targetId: string }
   | { action: "update_assessment"; fields: Partial<Assessment> }
   | { action: "start_stimulation"; speed?: number; color?: string }
@@ -278,8 +277,8 @@ Target selection
   If existing target is chosen:
     confirm target
   If new target is described:
-    extract target draft
-    ask user to review/edit
+    collect the target details
+    save the target without a review proposal
   If user is unsure:
     ask grounding/context questions without forcing detail
 
@@ -327,7 +326,7 @@ Idle
   Blocked: start_stimulation, log_stimulation_set, close_session
 
 Target selection
-  Allowed: create_target_draft, select_target, return_to_idle
+  Allowed: select_target, return_to_idle
   Blocked: start_stimulation, log_stimulation_set, close_session
 
 Preparation
@@ -337,15 +336,15 @@ Preparation
 Stimulation
   Allowed: start_stimulation, pause_stimulation, log_stimulation_set, request_grounding, begin_closure
   Allowed after explicit user confirmation: start_stimulation
-  Blocked: create_target_draft, select_target
+  Blocked: select_target
 
 Interjection
   Allowed: continue_stimulation, request_grounding, begin_closure
-  Blocked: create_target_draft, select_target
+  Blocked: select_target
 
 Closure
   Allowed: request_review, continue_stimulation, request_grounding
-  Blocked: create_target_draft, select_target
+  Blocked: select_target
 
 Review
   Allowed: close_session, begin_closure

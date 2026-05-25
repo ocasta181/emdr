@@ -121,27 +121,6 @@ test("guide service rejects stale or disallowed action proposals before mutation
 });
 
 test("guide service applies allowed actions through domain service ports", () => {
-  const targetHarness = createGuideHarness("target_selection");
-  const createdTarget = targetHarness.guide.applyAction({
-    type: "create_target_draft",
-    workflowState: "target_selection",
-    description: "Draft target",
-    negativeCognition: "I am stuck",
-    positiveCognition: "I can move"
-  });
-
-  assert.equal(createdTarget.accepted, true);
-  assert.deepEqual(targetHarness.calls, [
-    {
-      type: "target",
-      draft: {
-        description: "Draft target",
-        negativeCognition: "I am stuck",
-        positiveCognition: "I can move"
-      }
-    }
-  ]);
-
   const assessmentHarness = createGuideHarness("preparation");
   const updatedAssessment = assessmentHarness.guide.applyAction({
     type: "update_assessment",
@@ -299,16 +278,20 @@ test("guide service defaults to guided target identification", async () => {
   });
 
   const positiveCognitionResponse = await guide.respondToMessage({ message: "I can protect myself" });
-  assert.deepEqual(positiveCognitionResponse.proposals, [
+  assert.deepEqual(positiveCognitionResponse, {
+    messages: [],
+    proposals: []
+  });
+  assert.deepEqual(calls, [
     {
-      type: "create_target_draft",
-      workflowState: "target_selection",
-      description: "Electron workflow target",
-      negativeCognition: "I am not safe",
-      positiveCognition: "I can protect myself"
+      type: "target",
+      draft: {
+        description: "Electron workflow target",
+        negativeCognition: "I am not safe",
+        positiveCognition: "I can protect myself"
+      }
     }
   ]);
-  assert.deepEqual(calls, []);
 });
 
 test("scripted guide sidecar returns structured advisory proposals", async (t) => {
@@ -427,15 +410,10 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
     }
   });
 
-  assert.deepEqual(targetProposalResponse.proposals, [
-    {
-      type: "create_target_draft",
-      workflowState: "target_selection",
-      description: "Electron workflow target",
-      negativeCognition: "I am trapped",
-      positiveCognition: "I can leave"
-    }
-  ]);
+  assert.deepEqual(targetProposalResponse, {
+    messages: [],
+    proposals: []
+  });
 });
 
 function createGuideHarness(state, agent) {

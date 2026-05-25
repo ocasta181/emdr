@@ -17,7 +17,6 @@ import type {
 } from "./types.js";
 
 const guideActionTypes = [
-  "create_target_draft",
   "update_assessment",
   "advance_session_flow",
   "log_stimulation_set",
@@ -69,16 +68,6 @@ function guideMessageRequestFrom(payload: unknown) {
 function guideActionProposalFrom(payload: unknown): GuideActionProposal {
   const value = recordFrom(payload);
   const type = requiredStringEnum(value, "type", guideActionTypes, "a guide action type");
-
-  if (type === "create_target_draft") {
-    return {
-      type,
-      workflowState: requiredStringEnum(value, "workflowState", guideSessionFlowStates, "a session flow state"),
-      description: requiredString(value, "description"),
-      negativeCognition: optionalString(value, "negativeCognition"),
-      positiveCognition: optionalString(value, "positiveCognition")
-    };
-  }
 
   if (type === "update_assessment") {
     return {

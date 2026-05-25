@@ -82,7 +82,6 @@ export type SessionFlowState =
 export type SessionFlowAction =
   | "start_session"
   | "select_target"
-  | "create_target_draft"
   | "update_assessment"
   | "approve_assessment"
   | "start_stimulation"
@@ -125,13 +124,6 @@ export type SessionEndPatch = {
 };
 
 export type GuideActionProposal =
-  | {
-      type: "create_target_draft";
-      workflowState: SessionFlowState;
-      description: string;
-      negativeCognition?: string;
-      positiveCognition?: string;
-    }
   | {
       type: "update_assessment";
       sessionId: string;

@@ -18,7 +18,6 @@ export type GuideSessionFlowState =
   | "post_session";
 
 export type GuideSessionFlowAction =
-  | "create_target_draft"
   | "update_assessment"
   | "continue_stimulation"
   | "request_grounding"
@@ -53,13 +52,6 @@ export type GuideAssessment = {
 };
 
 export type GuideActionProposal =
-  | {
-      type: "create_target_draft";
-      workflowState: GuideSessionFlowState;
-      description: string;
-      negativeCognition?: string;
-      positiveCognition?: string;
-    }
   | {
       type: "update_assessment";
       sessionId: string;

@@ -462,14 +462,6 @@ export function AnimatedApp() {
       return;
     }
 
-    if (proposal.type === "create_target_draft") {
-      setSessionWorkflow(result.workflow);
-      setGuideAnimation({ type: "action", action: "write_in_book" });
-      await refreshViewData();
-      await refreshGuideView(activeSession?.id);
-      return;
-    }
-
     if (proposal.type === "log_stimulation_set" && stimulationRunning) {
       dispatchRoomEvent({ type: "pause_stimulation" });
     }
@@ -496,6 +488,13 @@ export function AnimatedApp() {
         current.concat(response.messages.map((text) => ({ speaker: "guide", text }) satisfies GuideChatMessage))
       );
       setGuideProposals(response.proposals);
+      if (!activeSession) {
+        if (response.messages.length === 0 && response.proposals.length === 0) {
+          setGuideAnimation({ type: "action", action: "write_in_book" });
+        }
+        await refreshViewData();
+        await refreshGuideView();
+      }
     } catch {
       setChatMessages((current) =>
         current.concat({ speaker: "guide", text: "The local guide is unavailable right now." })

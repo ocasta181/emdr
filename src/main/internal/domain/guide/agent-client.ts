@@ -57,16 +57,6 @@ function guideActionProposalFrom(payload: unknown): GuideActionProposal {
   const type = stringFrom(value.type, "proposal.type");
   const workflowState = workflowStateFrom(value.workflowState);
 
-  if (type === "create_target_draft") {
-    return {
-      type,
-      workflowState,
-      description: stringFrom(value.description, "proposal.description"),
-      negativeCognition: optionalStringFrom(value.negativeCognition, "proposal.negativeCognition"),
-      positiveCognition: optionalStringFrom(value.positiveCognition, "proposal.positiveCognition")
-    };
-  }
-
   const sessionId = stringFrom(value.sessionId, "proposal.sessionId");
 
   if (type === "update_assessment") {

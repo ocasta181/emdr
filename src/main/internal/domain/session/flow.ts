@@ -12,7 +12,6 @@ export const sessionStateGraph = [
     state: "target_selection",
     edges: [
       { action: "select_target", to: "preparation" },
-      { action: "create_target_draft", to: "target_selection" },
       { action: "return_to_idle", to: "idle" }
     ]
   },

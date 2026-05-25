@@ -104,10 +104,8 @@ async function main() {
     await waitForText(window, "What positive cognition would you rather hold with this target?");
     await setFieldByLabel(window, "Tell the guide", "I can move");
     await clickButton(window, "Send");
-    await waitForText(window, "Review proposed target");
-    await waitForText(window, "Positive cognition");
-    await clickButton(window, "Apply target draft");
-    await waitForText(window, "Electron workflow target");
+    await waitForText(window, "Ready to continue with \"Electron workflow target\"");
+    await expectText(window, "Review proposed target", false);
     await waitForButtonPresent(window, "Start Set", true);
     await setFieldByLabel(window, "Tell the guide", "Second workflow target");
     await clickButton(window, "Send");
@@ -123,9 +121,7 @@ async function main() {
     await waitForText(window, "What positive cognition would you rather hold with this target?");
     await setFieldByLabel(window, "Tell the guide", "I can choose");
     await clickButton(window, "Send");
-    await waitForText(window, "Review proposed target");
-    await clickButton(window, "Apply target draft");
-    await waitForText(window, "Second workflow target");
+    await waitForText(window, "I can help choose among 2 active targets");
     await waitForButtonPresent(window, "Start Set", true);
 
     phase = "start guide-prioritized stimulation";

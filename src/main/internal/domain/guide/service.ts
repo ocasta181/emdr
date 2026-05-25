@@ -93,17 +93,6 @@ export class GuideService {
   }
 
   applyAction(proposal: GuideActionProposal): GuideActionResult {
-    if (proposal.type === "create_target_draft") {
-      return this.applyValidatedWorkflowAction(proposal.workflowState, "create_target_draft", () => {
-        const result = this.targets.addTarget({
-          description: proposal.description,
-          negativeCognition: proposal.negativeCognition ?? "",
-          positiveCognition: proposal.positiveCognition ?? ""
-        });
-        return { result, workflow: this.sessions.currentSessionWorkflow() };
-      });
-    }
-
     if (proposal.type === "advance_session_flow") {
       return this.applyActiveSessionProposal(proposal, proposal.action, () => {
         const workflow = this.sessions.advanceSessionFlow(proposal.action, proposal.sessionId);
@@ -257,18 +246,16 @@ export class GuideService {
       };
     }
 
-    const proposal = {
-      type: "create_target_draft",
-      workflowState: workflow.state,
+    this.targets.addTarget({
       description: this.targetIntake.description,
-      negativeCognition: this.targetIntake.negativeCognition,
+      negativeCognition: this.targetIntake.negativeCognition ?? "",
       positiveCognition: text
-    } satisfies GuideActionProposal;
+    });
     this.targetIntake = undefined;
 
     return {
-      messages: ["Review the target draft below."],
-      proposals: [proposal]
+      messages: [],
+      proposals: []
     };
   }
 }

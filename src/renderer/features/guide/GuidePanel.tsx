@@ -222,10 +222,6 @@ function GuideProposalCard({
   proposal: GuideActionProposal;
   onApply: (proposal: GuideActionProposal) => void;
 }) {
-  if (proposal.type === "create_target_draft") {
-    return <CreateTargetProposal proposal={proposal} onApply={onApply} />;
-  }
-
   if (proposal.type === "update_assessment") {
     return <UpdateAssessmentProposal proposal={proposal} onApply={onApply} />;
   }
@@ -239,42 +235,6 @@ function GuideProposalCard({
   }
 
   return <EndSessionProposal proposal={proposal} onApply={onApply} />;
-}
-
-function CreateTargetProposal({
-  proposal,
-  onApply
-}: {
-  proposal: Extract<GuideActionProposal, { type: "create_target_draft" }>;
-  onApply: (proposal: GuideActionProposal) => void;
-}) {
-  const [description, setDescription] = useState(proposal.description);
-  const [negativeCognition, setNegativeCognition] = useState(proposal.negativeCognition ?? "");
-  const [positiveCognition, setPositiveCognition] = useState(proposal.positiveCognition ?? "");
-
-  return (
-    <div className="proposalCard">
-      <h2>Review proposed target</h2>
-      <label>
-        Description
-        <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
-      </label>
-      <label>
-        Negative cognition
-        <input value={negativeCognition} onChange={(event) => setNegativeCognition(event.target.value)} />
-      </label>
-      <label>
-        Positive cognition
-        <input value={positiveCognition} onChange={(event) => setPositiveCognition(event.target.value)} />
-      </label>
-      <button
-        type="button"
-        onClick={() => onApply({ ...proposal, description, negativeCognition, positiveCognition })}
-      >
-        Apply target draft
-      </button>
-    </div>
-  );
 }
 
 function UpdateAssessmentProposal({

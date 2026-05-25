@@ -90,15 +90,12 @@ try {
 
   await expectWorkflow(request("session:workflow"), "idle");
   await expectWorkflow(request("session:advance-flow", { action: "start_session" }), "target_selection");
-  const createTargetResult = await request("guide:apply-action", {
-    type: "create_target_draft",
-    workflowState: "target_selection",
+  const target = await request("target:create", {
     description: "Workflow smoke target",
     negativeCognition: "I am stuck",
-    positiveCognition: "I can move"
+    positiveCognition: "I can move",
+    status: "active"
   });
-  assertAccepted(createTargetResult, "create target draft");
-  const target = createTargetResult.result;
   const session = await request("session:start", { targetId: target.id });
   await expectWorkflow(request("session:workflow"), "preparation", session.id);
 

@@ -185,18 +185,11 @@ function guideTargetIntakeResponse(message, state) {
     };
   }
 
-  const proposal = {
-    type: "create_target_draft",
-    workflowState: state,
-    description: targetIntake.description,
-    negativeCognition: targetIntake.negativeCognition,
-    positiveCognition: text
-  };
   targetIntake = undefined;
 
   return {
-    messages: ["Review the target draft below."],
-    proposals: [proposal]
+    messages: [],
+    proposals: []
   };
 }
 
