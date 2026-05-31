@@ -467,6 +467,7 @@ h2 {
   gap: 14px;
   width: min(390px, calc(100vw - 48px));
   max-height: calc(100vh - 130px);
+  min-height: 0;
   overflow: auto;
   border: 1px solid rgba(216, 198, 146, 0.28);
   border-radius: 8px;
@@ -479,11 +480,16 @@ h2 {
 .animatedPanel-chat {
   right: 24px;
   bottom: 24px;
+  height: min(720px, calc(100vh - 130px));
+  grid-template-rows: auto auto minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
 }
 
 .animatedPanel-chat:has(.workflowForm),
 .animatedPanel-chat:has(.proposalCard) {
   top: 96px;
+  height: auto;
   max-height: none;
 }
 
@@ -522,6 +528,17 @@ h2 {
 .chatLog {
   display: grid;
   gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.guideConversation {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  min-height: 0;
 }
 
 .chatComposer {

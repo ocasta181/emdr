@@ -243,43 +243,45 @@ test("guide service defaults to guided target identification", async () => {
 
   const targetResponse = await guide.respondToMessage({ message: "Electron workflow target" });
   assert.deepEqual(targetResponse, {
-    messages: ["How does that make you feel right now?"],
+    messages: ["What emotion or body sensation comes up with that now?"],
     proposals: []
   });
 
   const emotionResponse = await guide.respondToMessage({ message: "afraid" });
   assert.deepEqual(emotionResponse, {
-    messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+    messages: ["From 0 to 10, how disturbing does it feel right now?"],
     proposals: []
   });
 
   const outOfRangeScoreResponse = await guide.respondToMessage({ message: "11" });
   assert.deepEqual(outOfRangeScoreResponse, {
-    messages: ["Please give a subjective disturbance score from 0 to 10."],
+    messages: ["Enter a number from 0 to 10 for how disturbing it feels right now."],
     proposals: []
   });
 
   const invalidScoreResponse = await guide.respondToMessage({ message: "high" });
   assert.deepEqual(invalidScoreResponse, {
-    messages: ["Please give a subjective disturbance score from 0 to 10."],
+    messages: ["Enter a number from 0 to 10 for how disturbing it feels right now."],
     proposals: []
   });
 
   const scoreResponse = await guide.respondToMessage({ message: "7" });
   assert.deepEqual(scoreResponse, {
-    messages: ["What negative cognition goes with it?"],
+    messages: ["What negative self-belief comes with it? A short 'I...' phrase is enough, or write 'not sure'."],
     proposals: []
   });
 
   const negativeCognitionResponse = await guide.respondToMessage({ message: "I am not safe" });
   assert.deepEqual(negativeCognitionResponse, {
-    messages: ["What positive cognition would you rather hold with this target?"],
+    messages: ["What would you rather believe about yourself now? A short 'I can...' or 'I am...' phrase is enough."],
     proposals: []
   });
 
   const positiveCognitionResponse = await guide.respondToMessage({ message: "I can protect myself" });
   assert.deepEqual(positiveCognitionResponse, {
-    messages: [],
+    messages: [
+      "Target note saved. Before starting, review the full assessment: image, body sensation, disturbance, and how true that positive belief feels from 1 to 7."
+    ],
     proposals: []
   });
   assert.deepEqual(calls, [
@@ -348,7 +350,7 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
   });
 
   assert.deepEqual(targetResponse, {
-    messages: ["How does that make you feel right now?"],
+    messages: ["What emotion or body sensation comes up with that now?"],
     proposals: []
   });
 
@@ -363,7 +365,7 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
       }
     }),
     {
-      messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+      messages: ["From 0 to 10, how disturbing does it feel right now?"],
       proposals: []
     }
   );
@@ -379,7 +381,7 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
       }
     }),
     {
-      messages: ["What negative cognition goes with it?"],
+      messages: ["What negative self-belief comes with it? A short 'I...' phrase is enough, or write 'not sure'."],
       proposals: []
     }
   );
@@ -395,7 +397,7 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
       }
     }),
     {
-      messages: ["What positive cognition would you rather hold with this target?"],
+      messages: ["What would you rather believe about yourself now? A short 'I can...' or 'I am...' phrase is enough."],
       proposals: []
     }
   );
@@ -411,7 +413,9 @@ test("scripted guide sidecar returns structured advisory proposals", async (t) =
   });
 
   assert.deepEqual(targetProposalResponse, {
-    messages: [],
+    messages: [
+      "Target note saved. Before starting, review the full assessment: image, body sensation, disturbance, and how true that positive belief feels from 1 to 7."
+    ],
     proposals: []
   });
 });

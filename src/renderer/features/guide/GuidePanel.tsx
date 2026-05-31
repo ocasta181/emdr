@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type {
   Assessment,
   GuideActionProposal,
@@ -171,7 +171,7 @@ function GuideConversation({
   onApplyProposal: (proposal: GuideActionProposal) => void;
 }) {
   return (
-    <>
+    <div className="guideConversation">
       <ChatLog messages={messages} />
       <VoiceGuideComposer
         messages={messages}
@@ -185,13 +185,22 @@ function GuideConversation({
       {guideProposals.length > 0 && (
         <ProposalList proposals={guideProposals} onApply={onApplyProposal} />
       )}
-    </>
+    </div>
   );
 }
 
 function ChatLog({ messages }: { messages: GuideChatMessage[] }) {
+  const logRef = useRef<HTMLDivElement>(null);
+  const lastMessage = messages.at(-1);
+
+  useLayoutEffect(() => {
+    const log = logRef.current;
+    if (!log) return;
+    log.scrollTop = log.scrollHeight;
+  }, [messages.length, lastMessage?.speaker, lastMessage?.text]);
+
   return (
-    <div className="chatLog" role="log" aria-label="Guide transcript">
+    <div className="chatLog" ref={logRef} role="log" aria-label="Guide transcript">
       {messages.map((message, index) => (
         <p
           className={message.speaker === "guide" ? "guideBubble" : "userBubble"}

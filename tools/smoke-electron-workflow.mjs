@@ -81,48 +81,49 @@ async function main() {
     await clickCheckbox(window, "I saved this recovery key.");
     await expectButtonPresent(window, "Continue", true);
     await clickButton(window, "Continue");
-    await waitForText(window, "I can help identify a target");
+    await waitForText(window, "Let's make a target note");
     await expectText(window, "Open Targets", false);
     await expectButtonPresent(window, "Settings", true);
     await expectButtonPresent(window, "Start Voice", false);
     await expectButtonPresent(window, "Replay Guide", false);
     await expectButtonPresent(window, "Use Keyboard", false);
-    await waitForText(window, "Tell the guide");
 
     phase = "create guided target";
     await expectButtonPresent(window, "Start Set", false);
-    await setFieldByLabel(window, "Tell the guide", "Electron workflow target");
+    await setControlValue(window, 0, "Electron workflow target", "textarea");
+    await pressGuideSubmitShortcut(window);
+    await waitForText(window, "What emotion or body sensation comes up with that now?");
+    await setControlValue(window, 0, "afraid", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "How does that make you feel right now?");
-    await setFieldByLabel(window, "Tell the guide", "afraid");
+    await waitForText(window, "From 0 to 10, how disturbing does it feel right now?");
+    await setControlValue(window, 0, "7", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What subjective disturbance score would you give that feeling from 0 to 10?");
-    await setFieldByLabel(window, "Tell the guide", "7");
+    await waitForText(window, "What negative self-belief comes with it?");
+    await setControlValue(window, 0, "I am stuck", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What negative cognition goes with it?");
-    await setFieldByLabel(window, "Tell the guide", "I am stuck");
+    await waitForText(window, "What would you rather believe about yourself now?");
+    await setControlValue(window, 0, "I can move", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What positive cognition would you rather hold with this target?");
-    await setFieldByLabel(window, "Tell the guide", "I can move");
-    await clickButton(window, "Send");
+    await waitForText(window, "Target note saved");
     await waitForText(window, "Ready to continue with \"Electron workflow target\"");
     await expectText(window, "Review proposed target", false);
     await waitForButtonPresent(window, "Start Set", true);
-    await setFieldByLabel(window, "Tell the guide", "Second workflow target");
+    await setControlValue(window, 0, "Second workflow target", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "How does that make you feel right now?");
-    await setFieldByLabel(window, "Tell the guide", "tense");
+    await waitForText(window, "What emotion or body sensation comes up with that now?");
+    await setControlValue(window, 0, "tense", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What subjective disturbance score would you give that feeling from 0 to 10?");
-    await setFieldByLabel(window, "Tell the guide", "6");
+    await waitForText(window, "From 0 to 10, how disturbing does it feel right now?");
+    await setControlValue(window, 0, "6", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What negative cognition goes with it?");
-    await setFieldByLabel(window, "Tell the guide", "I cannot move");
+    await waitForText(window, "What negative self-belief comes with it?");
+    await setControlValue(window, 0, "I cannot move", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "What positive cognition would you rather hold with this target?");
-    await setFieldByLabel(window, "Tell the guide", "I can choose");
+    await waitForText(window, "What would you rather believe about yourself now?");
+    await setControlValue(window, 0, "I can choose", "textarea");
     await clickButton(window, "Send");
-    await waitForText(window, "I can help choose among 2 active targets");
+    await waitForText(window, "There are 2 active target notes");
+    await expectGuideComposerPinned(window);
     await waitForButtonPresent(window, "Start Set", true);
 
     phase = "start guide-prioritized stimulation";
@@ -152,7 +153,7 @@ async function main() {
     await setFieldByLabel(window, "Final SUD", "2");
     phase = "end session";
     await clickButton(window, "End session");
-    await waitForText(window, "I can help choose among 2 active targets");
+    await waitForText(window, "There are 2 active target notes");
     phase = "review history";
     await clickButton(window, "Close");
     await clickRoomHistory(window);
@@ -175,7 +176,7 @@ async function main() {
     phase = "unlock imported vault";
     await setControlValue(window, 0, "passphrase-123", "input");
     await clickButton(window, "Unlock");
-    await waitForText(window, "I can help choose among 2 active targets");
+    await waitForText(window, "There are 2 active target notes");
 
     phase = "start imported active session";
     await clickButton(window, "Start Set");
@@ -351,6 +352,17 @@ async function setSelectByLabel(window, label, value) {
   await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
+async function pressGuideSubmitShortcut(window) {
+  await window.webContents.executeJavaScript(`(${domHelpers})().pressGuideSubmitShortcut()`, true);
+}
+
+async function expectGuideComposerPinned(window) {
+  const state = await window.webContents.executeJavaScript(`(${domHelpers})().guideComposerState()`, true);
+  if (!state.textareaVisible || !state.sendVisible || !state.chatLogAtBottom || state.composerInsideChatLog) {
+    throw new Error(`Expected pinned guide composer with bottom-scrolled chat log, got ${JSON.stringify(state)}.`);
+  }
+}
+
 async function expectButtonPresent(window, label, expected) {
   const present = await window.webContents.executeJavaScript(
     `(${domHelpers})().hasButton(${JSON.stringify(label)})`,
@@ -505,6 +517,45 @@ function domHelpers() {
       const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")?.set;
       setter?.call(control, value);
       control.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+
+    pressGuideSubmitShortcut() {
+      const textarea = document.querySelector(".voiceGuide textarea");
+      if (!(textarea instanceof HTMLTextAreaElement)) throw new Error("Guide textarea not found.");
+      textarea.focus();
+      textarea.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          code: "Enter",
+          metaKey: true,
+          bubbles: true,
+          cancelable: true
+        })
+      );
+    },
+
+    guideComposerState() {
+      const chatLog = document.querySelector(".chatLog");
+      const textarea = document.querySelector(".voiceGuide textarea");
+      const sendButton = [...document.querySelectorAll(".voiceGuide button")].find(
+        (item) => normalize(item.textContent ?? "") === "Send"
+      );
+      if (!(chatLog instanceof HTMLElement)) throw new Error("Chat log not found.");
+      if (!(textarea instanceof HTMLTextAreaElement)) throw new Error("Guide textarea not found.");
+      if (!(sendButton instanceof HTMLButtonElement)) throw new Error("Guide send button not found.");
+
+      const textareaRect = textarea.getBoundingClientRect();
+      const sendRect = sendButton.getBoundingClientRect();
+      const chatLogAtBottom =
+        chatLog.scrollHeight <= chatLog.clientHeight ||
+        chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight <= 1;
+
+      return {
+        textareaVisible: textareaRect.top >= 0 && textareaRect.bottom <= window.innerHeight,
+        sendVisible: sendRect.top >= 0 && sendRect.bottom <= window.innerHeight,
+        chatLogAtBottom,
+        composerInsideChatLog: Boolean(chatLog.querySelector("textarea, button"))
+      };
     }
   };
 }

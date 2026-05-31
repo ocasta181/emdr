@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { GuideChatMessage } from "./GuidePanel";
 import { canSpeakGuideText, speakGuideText, stopGuideSpeech } from "./guideSpeech";
 
@@ -118,18 +118,23 @@ export function VoiceGuideComposer({
     onSubmitMessage(chatDraft);
   }
 
+  function submitKeyboardShortcut(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || (!event.metaKey && !event.ctrlKey) || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    onSubmitMessage(chatDraft);
+  }
+
   return (
     <div className="voiceGuide">
       {voiceError && <div className="formError">{voiceError}</div>}
       <form className="chatComposer" onSubmit={submitKeyboardMessage}>
-        <label>
-          Tell the guide
-          <textarea
-            placeholder={placeholder}
-            value={chatDraft}
-            onChange={(event) => onChatChange(event.target.value)}
-          />
-        </label>
+        <textarea
+          aria-label="Guide message"
+          placeholder={placeholder}
+          value={chatDraft}
+          onChange={(event) => onChatChange(event.target.value)}
+          onKeyDown={submitKeyboardShortcut}
+        />
         <button type="submit">Send</button>
       </form>
     </div>

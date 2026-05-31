@@ -201,7 +201,9 @@ export class GuideService {
     const needsTargetPrompt = !this.targetIntake && /\b(help|not sure|unsure|don't know|do not know)\b/i.test(text);
     if (needsTargetPrompt) {
       return {
-        messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+        messages: [
+          "Start with any doorway into it: a current trigger, brief image, body sensation, self-belief, or future situation. A few words are enough."
+        ],
         proposals: []
       };
     }
@@ -209,7 +211,7 @@ export class GuideService {
     if (!this.targetIntake) {
       this.targetIntake = { description: text };
       return {
-        messages: ["How does that make you feel right now?"],
+        messages: ["What emotion or body sensation comes up with that now?"],
         proposals: []
       };
     }
@@ -217,7 +219,7 @@ export class GuideService {
     if (!this.targetIntake.emotions) {
       this.targetIntake = { ...this.targetIntake, emotions: text };
       return {
-        messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+        messages: ["From 0 to 10, how disturbing does it feel right now?"],
         proposals: []
       };
     }
@@ -226,14 +228,14 @@ export class GuideService {
       const disturbance = disturbanceScoreFrom(text);
       if (disturbance === undefined) {
         return {
-          messages: ["Please give a subjective disturbance score from 0 to 10."],
+          messages: ["Enter a number from 0 to 10 for how disturbing it feels right now."],
           proposals: []
         };
       }
 
       this.targetIntake = { ...this.targetIntake, disturbance };
       return {
-        messages: ["What negative cognition goes with it?"],
+        messages: ["What negative self-belief comes with it? A short 'I...' phrase is enough, or write 'not sure'."],
         proposals: []
       };
     }
@@ -241,7 +243,7 @@ export class GuideService {
     if (!this.targetIntake.negativeCognition) {
       this.targetIntake = { ...this.targetIntake, negativeCognition: text };
       return {
-        messages: ["What positive cognition would you rather hold with this target?"],
+        messages: ["What would you rather believe about yourself now? A short 'I can...' or 'I am...' phrase is enough."],
         proposals: []
       };
     }
@@ -254,7 +256,9 @@ export class GuideService {
     this.targetIntake = undefined;
 
     return {
-      messages: [],
+      messages: [
+        "Target note saved. Before starting, review the full assessment: image, body sensation, disturbance, and how true that positive belief feels from 1 to 7."
+      ],
       proposals: []
     };
   }
@@ -273,8 +277,8 @@ function idleGuideView(targets: GuideTargetSummary[]): GuideView {
   const targetCount = targets.length;
   const [nextTarget] = targets;
   const emptyTargetMessage =
-    "I can help identify a target. Tell me the memory, image, or situation you want to focus on.";
-  const singleTargetMessage = `Ready to continue with "${nextTarget?.description ?? "the active target"}". Tell me if you want to work with this target or shape another one.`;
+    "Let's make a target note. Use a brief label, not the full story: a past event, current trigger, image, body sensation, or future situation for EMDR.";
+  const singleTargetMessage = `Ready to continue with "${nextTarget?.description ?? "the active target"}". You can work with this target or make another brief target note.`;
 
   return {
     mode: "idle",
@@ -284,7 +288,7 @@ function idleGuideView(targets: GuideTargetSummary[]): GuideView {
         ? emptyTargetMessage
         : targetCount === 1
           ? singleTargetMessage
-          : `I can help choose among ${targetCount} active targets. Tell me what feels most useful to work on.`
+          : `There are ${targetCount} active target notes. Tell me which one feels most useful to continue, or add another brief target note.`
     ]
   };
 }
@@ -297,7 +301,7 @@ function fallbackGuideResponse(
   const description = message.trim();
   if (view.mode === "idle" && workflow.state === "target_selection" && description) {
     return {
-      messages: ["How does that make you feel right now?"],
+      messages: ["What emotion or body sensation comes up with that now?"],
       proposals: []
     };
   }
@@ -313,7 +317,10 @@ function fallbackGuideMessage(view: GuideView) {
     return "I noted that. Continue with the current session controls when you are ready.";
   }
 
-  return view.messages[0] ?? "Tell me the memory, image, or situation you want to focus on.";
+  return (
+    view.messages[0] ??
+    "Use a brief label, not the full story: a past event, current trigger, image, body sensation, or future situation for EMDR."
+  );
 }
 
 function disturbanceScoreFrom(text: string) {

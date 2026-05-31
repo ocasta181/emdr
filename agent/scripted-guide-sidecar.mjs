@@ -40,14 +40,18 @@ function guideMessageResponse(payload) {
 
     if (state === "target_selection") {
       return {
-        messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+        messages: [
+          "Start with any doorway into it: a current trigger, brief image, body sensation, self-belief, or future situation. A few words are enough."
+        ],
         proposals: []
       };
     }
 
     targetIntake = undefined;
     return {
-      messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+      messages: [
+        "Start with any doorway into it: a current trigger, brief image, body sensation, self-belief, or future situation. A few words are enough."
+      ],
       proposals: []
     };
   }
@@ -140,7 +144,9 @@ function guideTargetIntakeResponse(message, state) {
   const isUnclearTargetReply = /\b(help|not sure|unsure|don't know|do not know)\b/i.test(text);
   if (!targetIntake && isUnclearTargetReply) {
     return {
-      messages: ["What memory, image, or situation feels useful to focus on right now? A few words are enough."],
+      messages: [
+        "Start with any doorway into it: a current trigger, brief image, body sensation, self-belief, or future situation. A few words are enough."
+      ],
       proposals: []
     };
   }
@@ -148,7 +154,7 @@ function guideTargetIntakeResponse(message, state) {
   if (!targetIntake) {
     targetIntake = { description: text };
     return {
-      messages: ["How does that make you feel right now?"],
+      messages: ["What emotion or body sensation comes up with that now?"],
       proposals: []
     };
   }
@@ -156,7 +162,7 @@ function guideTargetIntakeResponse(message, state) {
   if (!targetIntake.emotions) {
     targetIntake = { ...targetIntake, emotions: text };
     return {
-      messages: ["What subjective disturbance score would you give that feeling from 0 to 10?"],
+      messages: ["From 0 to 10, how disturbing does it feel right now?"],
       proposals: []
     };
   }
@@ -165,14 +171,14 @@ function guideTargetIntakeResponse(message, state) {
     const disturbance = disturbanceScoreFrom(text);
     if (disturbance === undefined) {
       return {
-        messages: ["Please give a subjective disturbance score from 0 to 10."],
+        messages: ["Enter a number from 0 to 10 for how disturbing it feels right now."],
         proposals: []
       };
     }
 
     targetIntake = { ...targetIntake, disturbance };
     return {
-      messages: ["What negative cognition goes with it?"],
+      messages: ["What negative self-belief comes with it? A short 'I...' phrase is enough, or write 'not sure'."],
       proposals: []
     };
   }
@@ -180,7 +186,7 @@ function guideTargetIntakeResponse(message, state) {
   if (!targetIntake.negativeCognition) {
     targetIntake = { ...targetIntake, negativeCognition: text };
     return {
-      messages: ["What positive cognition would you rather hold with this target?"],
+      messages: ["What would you rather believe about yourself now? A short 'I can...' or 'I am...' phrase is enough."],
       proposals: []
     };
   }
@@ -188,7 +194,9 @@ function guideTargetIntakeResponse(message, state) {
   targetIntake = undefined;
 
   return {
-    messages: [],
+    messages: [
+      "Target note saved. Before starting, review the full assessment: image, body sensation, disturbance, and how true that positive belief feels from 1 to 7."
+    ],
     proposals: []
   };
 }
