@@ -110,6 +110,25 @@ export type Settings = {
   bilateralStimulation: BilateralStimulationSettings;
 };
 
+export type SpeechVoice = {
+  id: string;
+  name: string;
+  provider: "Qwen";
+  model: "Qwen3-TTS-12Hz-0.6B-Base";
+  runtime: "MLX";
+  language: "English";
+};
+
+export type SpeechSynthesisRequest = {
+  text: string;
+  voiceId: string;
+};
+
+export type SpeechSynthesisResponse = {
+  mimeType: "audio/wav";
+  audioBase64: string;
+};
+
 export type StimulationSetDraft = {
   sessionId: string;
   cycleCount: number;

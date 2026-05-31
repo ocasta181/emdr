@@ -9,6 +9,9 @@ import { SessionService, SessionWorkflowMachine } from "../internal/domain/sessi
 import { SettingRoutes } from "../internal/domain/setting/module.js";
 import { newSettingRepository } from "../internal/domain/setting/repository.js";
 import { SettingService } from "../internal/domain/setting/service.js";
+import { SpeechRoutes } from "../internal/domain/speech/module.js";
+import { QwenTtsSidecarClient } from "../internal/domain/speech/qwen-tts-client.js";
+import { SpeechService } from "../internal/domain/speech/service.js";
 import { StimulationSetRoutes } from "../internal/domain/stimulation-set/module.js";
 import { newStimulationSetRepository } from "../internal/domain/stimulation-set/repository.js";
 import { StimulationSetService } from "../internal/domain/stimulation-set/service.js";
@@ -44,6 +47,7 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const stimulationSetService = new StimulationSetService(stimulationSetRepository, sessionLookupService, sessionWorkflow);
   const sessionService = new SessionService(sessionRepository, sessionWorkflow, stimulationSetService);
   const settingService = new SettingService(settingRepository);
+  const speechService = new SpeechService(createQwenTtsSynthesizer());
 
   const scriptedGuideAgentPath = path.resolve("agent/scripted-guide-sidecar.mjs");
   const guideAgentSidecar = existsSync(scriptedGuideAgentPath)
@@ -77,8 +81,37 @@ export async function Initialize(options: InitializeOptions): Promise<MainModule
   const targetRoutes = new TargetRoutes(routes, targetService);
   const sessionRoutes = new SessionRoutes(routes, sessionService, targetService);
   const settingRoutes = new SettingRoutes(routes, settingService);
+  const speechRoutes = new SpeechRoutes(routes, speechService);
   const stimulationSetRoutes = new StimulationSetRoutes(routes, stimulationSetService);
   const guideRoutes = new GuideRoutes(routes, guideService);
 
-  return [vaultRoutes, targetRoutes, sessionRoutes, settingRoutes, stimulationSetRoutes, guideRoutes];
+  return [vaultRoutes, targetRoutes, sessionRoutes, settingRoutes, speechRoutes, stimulationSetRoutes, guideRoutes];
+}
+
+function createQwenTtsSynthesizer() {
+  const sidecarPath = path.resolve("speech/qwen3_tts_sidecar.py");
+  const speechProjectPath = path.resolve("speech");
+  if (!existsSync(sidecarPath) || !existsSync(path.join(speechProjectPath, "pyproject.toml"))) return undefined;
+
+  const modelRoot = path.resolve(".models");
+  const qwenTtsSidecar = new AgentSidecar(
+    {
+      command: process.env.EMDR_TTS_UV_PATH ?? "uv",
+      args: ["run", "--project", speechProjectPath, "--prerelease", "allow", "python", sidecarPath],
+      cwd: path.resolve("."),
+      env: {
+        EMDR_TTS_MODEL_ID: "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16",
+        HF_HOME: path.join(modelRoot, "huggingface"),
+        HF_HUB_CACHE: path.join(modelRoot, "huggingface", "hub"),
+        XDG_CACHE_HOME: path.join(modelRoot, "cache"),
+        PYTHONUNBUFFERED: "1"
+      },
+      startupTimeoutMs: 1000,
+      shutdownTimeoutMs: 1000
+    },
+    undefined,
+    (child) => new JsonLineAgentTransport(child.stdout, child.stdin)
+  );
+
+  return new QwenTtsSidecarClient(qwenTtsSidecar);
 }

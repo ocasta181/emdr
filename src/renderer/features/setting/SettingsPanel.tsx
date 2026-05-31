@@ -23,6 +23,7 @@ export function SettingsPanel({
 }) {
   const [transferMessage, setTransferMessage] = useState("");
   const guideVoiceSelectable = guideVoicePlaybackAvailable && guideVoices.length > 0;
+  const guideVoiceTestable = guideVoiceSelectable && Boolean(guideVoiceURI);
 
   async function exportEncryptedData() {
     const exportPath = await onExport();
@@ -48,7 +49,8 @@ export function SettingsPanel({
             disabled={!guideVoiceSelectable}
             onChange={(event) => onGuideVoiceChange(event.target.value)}
           >
-            {!guideVoiceSelectable && <option value="">No English TTS voices found</option>}
+            {!guideVoiceSelectable && <option value="">No local Qwen3 voices found</option>}
+            {guideVoiceSelectable && <option value="">Select a local Qwen3 voice</option>}
             {guideVoices.map((voice) => (
               <option key={voice.uri} value={voice.uri}>
                 {voice.label}
@@ -56,13 +58,13 @@ export function SettingsPanel({
             ))}
           </select>
         </label>
-        <button type="button" disabled={!guideVoiceSelectable} onClick={onTestGuideVoice}>
+        <button type="button" disabled={!guideVoiceTestable} onClick={onTestGuideVoice}>
           Test voice
         </button>
       </div>
       {!guideVoicePlaybackAvailable && <div className="formError">AI voice playback is unavailable in this build.</div>}
       {guideVoicePlaybackAvailable && guideVoices.length === 0 && (
-        <div className="formError">Install or enable an English TTS voice provider to use AI voice playback.</div>
+        <div className="formError">Install the local Qwen3 TTS model to use AI voice playback.</div>
       )}
       <h2>Encrypted Data</h2>
       <div className="buttonRow">

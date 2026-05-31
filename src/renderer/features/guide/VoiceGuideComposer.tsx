@@ -29,9 +29,16 @@ export function VoiceGuideComposer({
   const latestGuideMessage = latestGuideText(messages);
 
   useEffect(() => {
-    if (!latestGuideMessage || spokenMessageRef.current === latestGuideMessage || !canSpeakGuideText()) return;
+    if (!latestGuideMessage || !guideVoiceURI || spokenMessageRef.current === latestGuideMessage || !canSpeakGuideText()) {
+      return;
+    }
     spokenMessageRef.current = latestGuideMessage;
-    speakGuideText(latestGuideMessage, { voiceURI: guideVoiceURI, onSpeakingChange: onGuideSpeakingChange });
+    void speakGuideText(latestGuideMessage, { voiceURI: guideVoiceURI, onSpeakingChange: onGuideSpeakingChange }).catch(
+      (error: unknown) => {
+        console.error(error);
+        onGuideSpeakingChange(false);
+      }
+    );
   }, [latestGuideMessage, guideVoiceURI, onGuideSpeakingChange]);
 
   useEffect(() => {

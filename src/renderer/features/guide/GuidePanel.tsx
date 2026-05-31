@@ -191,13 +191,26 @@ function GuideConversation({
 
 function ChatLog({ messages }: { messages: GuideChatMessage[] }) {
   const logRef = useRef<HTMLDivElement>(null);
-  const lastMessage = messages.at(-1);
+  const messageScrollKey = messages.map((message) => `${message.speaker}:${message.text}`).join("\n");
 
   useLayoutEffect(() => {
     const log = logRef.current;
     if (!log) return;
-    log.scrollTop = log.scrollHeight;
-  }, [messages.length, lastMessage?.speaker, lastMessage?.text]);
+    const currentLog = log;
+
+    function scrollToBottom() {
+      currentLog.scrollTop = currentLog.scrollHeight;
+    }
+
+    scrollToBottom();
+    queueMicrotask(scrollToBottom);
+    const frame = window.requestAnimationFrame(scrollToBottom);
+    const timer = window.setTimeout(scrollToBottom, 50);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [messageScrollKey]);
 
   return (
     <div className="chatLog" ref={logRef} role="log" aria-label="Guide transcript">

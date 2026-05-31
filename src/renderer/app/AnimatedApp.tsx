@@ -111,6 +111,7 @@ export function AnimatedApp() {
   const [vaultNotice, setVaultNotice] = useState("");
   const [guideVoices, setGuideVoices] = useState<GuideVoiceOption[]>([]);
   const [guideVoiceURI, setGuideVoiceURI] = useState("");
+  const [guideVoicePlaybackAvailable, setGuideVoicePlaybackAvailable] = useState(canSpeakGuideText());
   const isPausingStimulationRef = useRef(false);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
 
@@ -129,37 +130,35 @@ export function AnimatedApp() {
   }, []);
 
   useEffect(() => {
-    if (!canSpeakGuideText()) return;
+    let isCurrent = true;
 
-    let loadAttempts = 0;
-    let retryTimer: number | undefined;
+    async function loadGuideVoices() {
+      if (!canSpeakGuideText()) {
+        setGuideVoicePlaybackAvailable(false);
+        return;
+      }
 
-    function loadGuideVoices() {
-      const options = guideVoiceOptions();
+      const options = await guideVoiceOptions();
+      if (!isCurrent) return;
+      setGuideVoicePlaybackAvailable(true);
       setGuideVoices(options);
-      window.clearTimeout(retryTimer);
-      if (options.length > 0 || loadAttempts >= 6) return;
-      loadAttempts += 1;
-      retryTimer = window.setTimeout(loadGuideVoices, 250);
     }
 
-    loadGuideVoices();
-    window.speechSynthesis.addEventListener("voiceschanged", loadGuideVoices);
+    void loadGuideVoices().catch((error: unknown) => {
+      console.error(error);
+      if (!isCurrent) return;
+      setGuideVoicePlaybackAvailable(false);
+      setGuideVoices([]);
+    });
+
     return () => {
-      window.clearTimeout(retryTimer);
-      window.speechSynthesis.removeEventListener("voiceschanged", loadGuideVoices);
+      isCurrent = false;
     };
   }, []);
 
   useEffect(() => {
-    if (guideVoices.length === 0) {
-      if (guideVoiceURI) changeGuideVoice("");
-      return;
-    }
-
-    if (guideVoiceURI && guideVoices.some((voice) => voice.uri === guideVoiceURI)) return;
-
-    changeGuideVoice(guideVoices[0].uri);
+    if (!guideVoiceURI || guideVoices.some((voice) => voice.uri === guideVoiceURI)) return;
+    changeGuideVoice("");
   }, [guideVoiceURI, guideVoices, changeGuideVoice]);
 
   useEffect(() => {
@@ -203,9 +202,12 @@ export function AnimatedApp() {
   }, []);
 
   const testGuideVoice = useCallback(() => {
-    speakGuideText("This is the selected AI guide voice.", {
+    void speakGuideText("This is the selected AI guide voice.", {
       voiceURI: guideVoiceURI,
       onSpeakingChange: handleGuideSpeakingChange
+    }).catch((error: unknown) => {
+      console.error(error);
+      handleGuideSpeakingChange(false);
     });
   }, [guideVoiceURI, handleGuideSpeakingChange]);
 
@@ -724,7 +726,7 @@ export function AnimatedApp() {
               <SettingsPanel
                 guideVoices={guideVoices}
                 guideVoiceURI={guideVoiceURI}
-                guideVoicePlaybackAvailable={canSpeakGuideText()}
+                guideVoicePlaybackAvailable={guideVoicePlaybackAvailable}
                 onGuideVoiceChange={changeGuideVoice}
                 onTestGuideVoice={testGuideVoice}
                 onExport={exportEncryptedData}

@@ -8,6 +8,8 @@ import type {
   SessionFlowAction,
   SessionWorkflowSnapshot,
   Settings,
+  SpeechSynthesisResponse,
+  SpeechVoice,
   Target,
   TargetDraft
 } from "../../shared/types";
@@ -101,6 +103,14 @@ export async function updateBilateralStimulationSettings(
   patch: Partial<BilateralStimulationSettings>
 ): Promise<BilateralStimulationSettings> {
   return emdr().request<BilateralStimulationSettings>("settings:update-bilateral-stimulation", patch);
+}
+
+export async function listSpeechVoices(): Promise<SpeechVoice[]> {
+  return emdr().request<SpeechVoice[]>("speech:voices");
+}
+
+export async function synthesizeSpeech(text: string, voiceId: string): Promise<SpeechSynthesisResponse> {
+  return emdr().request<SpeechSynthesisResponse>("speech:synthesize", { text, voiceId });
 }
 
 function emdr() {

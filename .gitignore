@@ -2,5 +2,7 @@ node_modules/
 dist/
 dist-electron/
 .tmp/
+.models/
+speech/.venv/
 .DS_Store
 npm-debug.log*
