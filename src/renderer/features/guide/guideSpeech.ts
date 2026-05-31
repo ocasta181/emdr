@@ -1,5 +1,7 @@
 export type GuideVoiceOption = {
   uri: string;
+  name: string;
+  provider: string;
   label: string;
 };
 
@@ -10,10 +12,12 @@ export function canSpeakGuideText() {
 export function guideVoiceOptions(): GuideVoiceOption[] {
   if (!canSpeakGuideText()) return [];
 
-  return polishedEnglishVoices()
+  return guideVoices()
     .sort(compareGuideVoices)
     .map((voice) => ({
       uri: voice.voiceURI,
+      name: voice.name,
+      provider: voiceProvider(voice),
       label: guideVoiceLabel(voice)
     }));
 }
@@ -32,7 +36,7 @@ export function speakGuideText(
 
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  const voices = polishedEnglishVoices().sort(compareGuideVoices);
+  const voices = guideVoices().sort(compareGuideVoices);
   const voice = voiceURI ? voices.find((item) => item.voiceURI === voiceURI) ?? voices[0] : voices[0];
 
   if (!voice) return;
@@ -54,26 +58,44 @@ export function stopGuideSpeech() {
 }
 
 function guideVoiceLabel(voice: SpeechSynthesisVoice) {
+  const provider = voiceProvider(voice);
   const defaultText = voice.default ? " default" : "";
-  return `${voice.name} (${voice.lang})${defaultText}`;
+  return `${voice.name} - ${provider} (${voice.lang})${defaultText}`;
 }
 
-function polishedEnglishVoices() {
-  return window.speechSynthesis.getVoices().filter(isPolishedEnglishVoice);
+function guideVoices() {
+  return window.speechSynthesis
+    .getVoices()
+    .filter((voice) => voice.lang.toLowerCase().startsWith("en") && !isKnownRoboticVoice(voice));
 }
 
-function isPolishedEnglishVoice(voice: SpeechSynthesisVoice) {
-  if (!voice.lang.toLowerCase().startsWith("en")) return false;
-
+function isKnownRoboticVoice(voice: SpeechSynthesisVoice) {
   const identity = voiceIdentity(voice);
-  if (roboticVoicePatterns.some((pattern) => pattern.test(identity))) return false;
-  if (premiumVoicePatterns.some((pattern) => pattern.test(identity))) return true;
+  return roboticVoicePatterns.some((pattern) => pattern.test(identity));
+}
 
-  return polishedEnglishVoiceNames.has(normalizedVoiceName(voice.name));
+function voiceProvider(voice: SpeechSynthesisVoice) {
+  const identity = voiceIdentity(voice);
+  if (/\b(com\.apple|apple|siri)\b/.test(identity)) return "Apple";
+  if (/\b(microsoft|windows)\b/.test(identity)) return "Microsoft";
+  if (/\bgoogle\b/.test(identity)) return "Google";
+  if (/\b(amazon|polly)\b/.test(identity)) return "Amazon Polly";
+  if (/\belevenlabs\b/.test(identity)) return "ElevenLabs";
+  if (/\bopenai\b/.test(identity)) return "OpenAI";
+  if (/\bazure\b/.test(identity)) return "Azure AI Speech";
+  if (/\bibm\b/.test(identity)) return "IBM Watson";
+  if (/\bespeak\b/.test(identity)) return "eSpeak";
+  if (voice.localService) return "Operating System";
+  return "Browser Cloud";
 }
 
 function compareGuideVoices(a: SpeechSynthesisVoice, b: SpeechSynthesisVoice) {
-  return voiceRank(b) - voiceRank(a) || a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name);
+  return (
+    voiceProvider(a).localeCompare(voiceProvider(b)) ||
+    voiceRank(b) - voiceRank(a) ||
+    a.lang.localeCompare(b.lang) ||
+    a.name.localeCompare(b.name)
+  );
 }
 
 function voiceRank(voice: SpeechSynthesisVoice) {
@@ -87,24 +109,6 @@ function voiceIdentity(voice: SpeechSynthesisVoice) {
   return `${voice.name} ${voice.voiceURI}`.toLowerCase();
 }
 
-function normalizedVoiceName(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/\s*\([^)]*\)\s*/g, " ")
-    .replace(/\b(enhanced|premium|natural|neural|online|desktop)\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const premiumVoicePatterns = [
-  /\b(enhanced|premium|natural|neural|siri)\b/,
-  /\bava\b/,
-  /\bsamantha\b/,
-  /\balex\b/,
-  /\bnicky\b/,
-  /\baaron\b/
-] as const;
-
 const roboticVoicePatterns = [
   /\b(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|fred|good news)\b/,
   /\b(hysterical|junior|kathy|organ|princess|ralph|trinoids|whisper|zarvox)\b/,
@@ -112,43 +116,3 @@ const roboticVoicePatterns = [
   /\bgoogle us english\b/,
   /\bmicrosoft (david|mark|zira)\b/
 ] as const;
-
-const polishedEnglishVoiceNames = new Set([
-  "aaron",
-  "alex",
-  "allison",
-  "amy",
-  "aria",
-  "ava",
-  "brian",
-  "clara",
-  "daniel",
-  "emma",
-  "guy",
-  "ivy",
-  "jamie",
-  "jenny",
-  "joanna",
-  "joelle",
-  "justin",
-  "karen",
-  "kendra",
-  "kevin",
-  "kimberly",
-  "libby",
-  "liam",
-  "maisie",
-  "matthew",
-  "moira",
-  "natasha",
-  "nicky",
-  "olivia",
-  "ryan",
-  "salli",
-  "samantha",
-  "sonia",
-  "stephen",
-  "susan",
-  "tessa",
-  "tom"
-]);

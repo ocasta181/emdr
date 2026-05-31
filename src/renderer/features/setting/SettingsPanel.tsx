@@ -48,7 +48,7 @@ export function SettingsPanel({
             disabled={!guideVoiceSelectable}
             onChange={(event) => onGuideVoiceChange(event.target.value)}
           >
-            {!guideVoiceSelectable && <option value="">No polished English voices found</option>}
+            {!guideVoiceSelectable && <option value="">No English TTS voices found</option>}
             {guideVoices.map((voice) => (
               <option key={voice.uri} value={voice.uri}>
                 {voice.label}
@@ -62,7 +62,7 @@ export function SettingsPanel({
       </div>
       {!guideVoicePlaybackAvailable && <div className="formError">AI voice playback is unavailable in this build.</div>}
       {guideVoicePlaybackAvailable && guideVoices.length === 0 && (
-        <div className="formError">Install an enhanced English system voice to use AI voice playback.</div>
+        <div className="formError">Install or enable an English TTS voice provider to use AI voice playback.</div>
       )}
       <h2>Encrypted Data</h2>
       <div className="buttonRow">
