@@ -49,6 +49,16 @@ button.active {
   background: #34402f;
 }
 
+button.primaryAction {
+  border-color: #d8c692;
+  background: #465a34;
+}
+
+button.primaryAction:hover {
+  border-color: #efe1a8;
+  background: #536c3c;
+}
+
 button:disabled {
   cursor: default;
   opacity: 0.45;
@@ -626,6 +636,13 @@ h2 {
   min-height: 38px;
   display: grid;
   align-items: center;
+}
+
+.voiceSettings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
 }
 
 .colorSwatches {

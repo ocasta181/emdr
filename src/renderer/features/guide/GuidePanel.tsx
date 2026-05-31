@@ -19,6 +19,7 @@ export type GuideChatMessage = {
 export function IdleGuideChat({
   guideView,
   chatMessages,
+  guideVoiceURI,
   chatDraft,
   guideProposals,
   onChatChange,
@@ -28,6 +29,7 @@ export function IdleGuideChat({
 }: {
   guideView: GuideView;
   chatMessages: GuideChatMessage[];
+  guideVoiceURI: string;
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
@@ -43,6 +45,7 @@ export function IdleGuideChat({
   return (
     <GuideConversation
       messages={messages}
+      guideVoiceURI={guideVoiceURI}
       chatDraft={chatDraft}
       guideProposals={guideProposals}
       placeholder="Say what feels useful to focus on..."
@@ -60,6 +63,7 @@ export function ActiveSessionChat({
   guideView,
   workflow,
   chatMessages,
+  guideVoiceURI,
   chatDraft,
   guideProposals,
   onChatChange,
@@ -79,6 +83,7 @@ export function ActiveSessionChat({
   guideView: GuideView;
   workflow: SessionWorkflowSnapshot;
   chatMessages: GuideChatMessage[];
+  guideVoiceURI: string;
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   onChatChange: (value: string) => void;
@@ -128,6 +133,7 @@ export function ActiveSessionChat({
       )}
       <GuideConversation
         messages={messages}
+        guideVoiceURI={guideVoiceURI}
         chatDraft={chatDraft}
         guideProposals={guideProposals}
         placeholder="Capture an in-session note..."
@@ -145,6 +151,7 @@ export function ActiveSessionChat({
 
 function GuideConversation({
   messages,
+  guideVoiceURI,
   chatDraft,
   guideProposals,
   placeholder,
@@ -154,6 +161,7 @@ function GuideConversation({
   onApplyProposal
 }: {
   messages: GuideChatMessage[];
+  guideVoiceURI: string;
   chatDraft: string;
   guideProposals: GuideActionProposal[];
   placeholder: string;
@@ -167,6 +175,7 @@ function GuideConversation({
       <ChatLog messages={messages} />
       <VoiceGuideComposer
         messages={messages}
+        guideVoiceURI={guideVoiceURI}
         chatDraft={chatDraft}
         placeholder={placeholder}
         onChatChange={onChatChange}

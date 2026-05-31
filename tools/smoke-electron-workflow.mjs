@@ -83,6 +83,7 @@ async function main() {
     await clickButton(window, "Continue");
     await waitForText(window, "I can help identify a target");
     await expectText(window, "Open Targets", false);
+    await expectButtonPresent(window, "Settings", true);
     await expectButtonPresent(window, "Start Voice", false);
     await expectButtonPresent(window, "Replay Guide", false);
     await expectButtonPresent(window, "Use Keyboard", false);
@@ -163,6 +164,7 @@ async function main() {
     await clickButton(window, "Close");
     await clickRoomSettings(window);
     await waitForText(window, "Ball Settings");
+    await setSelectByLabel(window, "AI voice", "");
     await clickButton(window, "Export");
     await waitForFile(exportPath);
 

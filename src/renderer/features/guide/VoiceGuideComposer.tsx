@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type { GuideChatMessage } from "./GuidePanel";
+import { canSpeakGuideText, speakGuideText, stopGuideSpeech } from "./guideSpeech";
 
 export function VoiceGuideComposer({
   messages,
+  guideVoiceURI,
   chatDraft,
   placeholder,
   onChatChange,
@@ -10,6 +12,7 @@ export function VoiceGuideComposer({
   onGuideSpeakingChange
 }: {
   messages: GuideChatMessage[];
+  guideVoiceURI: string;
   chatDraft: string;
   placeholder: string;
   onChatChange: (value: string) => void;
@@ -26,10 +29,10 @@ export function VoiceGuideComposer({
   const latestGuideMessage = latestGuideText(messages);
 
   useEffect(() => {
-    if (!latestGuideMessage || spokenMessageRef.current === latestGuideMessage || !canSpeak()) return;
+    if (!latestGuideMessage || spokenMessageRef.current === latestGuideMessage || !canSpeakGuideText()) return;
     spokenMessageRef.current = latestGuideMessage;
-    speak(latestGuideMessage, onGuideSpeakingChange);
-  }, [latestGuideMessage, onGuideSpeakingChange]);
+    speakGuideText(latestGuideMessage, { voiceURI: guideVoiceURI, onSpeakingChange: onGuideSpeakingChange });
+  }, [latestGuideMessage, guideVoiceURI, onGuideSpeakingChange]);
 
   useEffect(() => {
     onSubmitMessageRef.current = onSubmitMessage;
@@ -105,9 +108,7 @@ export function VoiceGuideComposer({
   useEffect(() => {
     return () => {
       recognitionRef.current?.abort();
-      if (canSpeak()) {
-        window.speechSynthesis.cancel();
-      }
+      stopGuideSpeech();
       onGuideSpeakingChangeRef.current(false);
     };
   }, []);
@@ -220,21 +221,4 @@ function isFatalSpeechRecognitionError(error: string | undefined) {
     error === "language-not-supported" ||
     error === "bad-grammar"
   );
-}
-
-function canSpeak() {
-  return "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
-}
-
-function speak(text: string, onGuideSpeakingChange?: (isSpeaking: boolean) => void) {
-  if (!text || !canSpeak()) return;
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.92;
-  utterance.pitch = 0.96;
-  utterance.onstart = () => onGuideSpeakingChange?.(true);
-  utterance.onend = () => onGuideSpeakingChange?.(false);
-  utterance.onerror = () => onGuideSpeakingChange?.(false);
-  window.speechSynthesis.speak(utterance);
 }

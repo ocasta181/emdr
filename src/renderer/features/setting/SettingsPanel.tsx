@@ -1,15 +1,26 @@
 import { useState } from "react";
 import type { BilateralStimulationSettings } from "../../../shared/types";
+import type { GuideVoiceOption } from "../guide/guideSpeech";
 
 export function SettingsPanel({
   settings,
+  guideVoices,
+  guideVoiceURI,
+  guideVoicePlaybackAvailable,
   onChange,
+  onGuideVoiceChange,
+  onTestGuideVoice,
   onExport,
   onImport,
   onLock
 }: {
   settings: BilateralStimulationSettings;
+  guideVoices: GuideVoiceOption[];
+  guideVoiceURI: string;
+  guideVoicePlaybackAvailable: boolean;
   onChange: (patch: Partial<BilateralStimulationSettings>) => void;
+  onGuideVoiceChange: (voiceURI: string) => void;
+  onTestGuideVoice: () => void;
   onExport: () => Promise<string | undefined>;
   onImport: () => Promise<boolean>;
   onLock: () => Promise<void>;
@@ -44,7 +55,30 @@ export function SettingsPanel({
 
   return (
     <>
-      <h1>Ball Settings</h1>
+      <h1>Settings</h1>
+      <h2>AI Voice</h2>
+      <div className="voiceSettings">
+        <label>
+          AI voice
+          <select
+            value={guideVoiceURI}
+            disabled={!guideVoicePlaybackAvailable}
+            onChange={(event) => onGuideVoiceChange(event.target.value)}
+          >
+            <option value="">System default</option>
+            {guideVoices.map((voice) => (
+              <option key={voice.uri} value={voice.uri}>
+                {voice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" disabled={!guideVoicePlaybackAvailable} onClick={onTestGuideVoice}>
+          Test voice
+        </button>
+      </div>
+      {!guideVoicePlaybackAvailable && <div className="formError">AI voice playback is unavailable in this build.</div>}
+      <h2>Ball Settings</h2>
       <label>
         Screen mode
         <select

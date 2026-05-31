@@ -43,6 +43,12 @@ import {
   transitionAnimatedRoomState
 } from "./animatedRoomMachine";
 import { ActiveSessionChat, IdleGuideChat, type GuideChatMessage } from "../features/guide/GuidePanel";
+import {
+  canSpeakGuideText,
+  guideVoiceOptions,
+  speakGuideText,
+  type GuideVoiceOption
+} from "../features/guide/guideSpeech";
 import { HistoryPanel } from "../features/session/HistoryPanel";
 import { SettingsPanel } from "../features/setting/SettingsPanel";
 import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
@@ -103,8 +109,14 @@ export function AnimatedApp() {
   const [chatDraft, setChatDraft] = useState("");
   const [chatMessages, setChatMessages] = useState<GuideChatMessage[]>([]);
   const [vaultNotice, setVaultNotice] = useState("");
+  const [guideVoices, setGuideVoices] = useState<GuideVoiceOption[]>([]);
+  const [guideVoiceURI, setGuideVoiceURI] = useState("");
   const isPausingStimulationRef = useRef(false);
   const stimulationRunning = animatedRoomStimulationRunning(roomState);
+
+  const changeGuideVoice = useCallback((voiceURI: string) => {
+    setGuideVoiceURI(voiceURI);
+  }, []);
 
   useEffect(() => {
     getVaultStatus().then((status) => {
@@ -115,6 +127,36 @@ export function AnimatedApp() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (!canSpeakGuideText()) return;
+
+    let loadAttempts = 0;
+    let retryTimer: number | undefined;
+
+    function loadGuideVoices() {
+      const options = guideVoiceOptions();
+      setGuideVoices(options);
+      window.clearTimeout(retryTimer);
+      if (options.length > 0 || loadAttempts >= 6) return;
+      loadAttempts += 1;
+      retryTimer = window.setTimeout(loadGuideVoices, 250);
+    }
+
+    loadGuideVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", loadGuideVoices);
+    return () => {
+      window.clearTimeout(retryTimer);
+      window.speechSynthesis.removeEventListener("voiceschanged", loadGuideVoices);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!guideVoiceURI || guideVoices.length === 0) return;
+    if (guideVoices.some((voice) => voice.uri === guideVoiceURI)) return;
+
+    changeGuideVoice("");
+  }, [guideVoiceURI, guideVoices, changeGuideVoice]);
 
   useEffect(() => {
     if (!stimulationRunning) {
@@ -155,6 +197,13 @@ export function AnimatedApp() {
       isSpeaking ? { type: "action", action: "speak" } : { type: "book_state", bookState: "on_ground" }
     );
   }, []);
+
+  const testGuideVoice = useCallback(() => {
+    speakGuideText("This is the selected AI guide voice.", {
+      voiceURI: guideVoiceURI,
+      onSpeakingChange: handleGuideSpeakingChange
+    });
+  }, [guideVoiceURI, handleGuideSpeakingChange]);
 
   async function loadUnlockedDatabase() {
     const [nextViewData, recoveredWorkflow] = await Promise.all([loadViewData(), getSessionWorkflow()]);
@@ -581,6 +630,9 @@ export function AnimatedApp() {
         </div>
         <div className="buttonRow">
           <button onClick={() => void openGuidePanel()}>Guide</button>
+          <button className="primaryAction" onClick={() => dispatchRoomEvent({ type: "select_settings" })}>
+            Settings
+          </button>
           {canToggleStimulation && (
             <button onClick={toggleStimulation}>{stimulationButtonLabel(sessionWorkflow, stimulationRunning)}</button>
           )}
@@ -605,6 +657,7 @@ export function AnimatedApp() {
                   guideView={guideView}
                   workflow={sessionWorkflow}
                   chatMessages={chatMessages}
+                  guideVoiceURI={guideVoiceURI}
                   chatDraft={chatDraft}
                   guideProposals={guideProposals}
                   onChatChange={setChatDraft}
@@ -623,6 +676,7 @@ export function AnimatedApp() {
                 <IdleGuideChat
                   guideView={guideView}
                   chatMessages={chatMessages}
+                  guideVoiceURI={guideVoiceURI}
                   chatDraft={chatDraft}
                   guideProposals={guideProposals}
                   onChatChange={setChatDraft}
@@ -657,7 +711,12 @@ export function AnimatedApp() {
           {panel === "settings" && (
             <SettingsPanel
               settings={settings}
+              guideVoices={guideVoices}
+              guideVoiceURI={guideVoiceURI}
+              guideVoicePlaybackAvailable={canSpeakGuideText()}
               onChange={updateSettings}
+              onGuideVoiceChange={changeGuideVoice}
+              onTestGuideVoice={testGuideVoice}
               onExport={exportEncryptedData}
               onImport={importEncryptedData}
               onLock={lockEncryptedData}
