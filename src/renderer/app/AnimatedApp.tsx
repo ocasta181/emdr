@@ -152,10 +152,14 @@ export function AnimatedApp() {
   }, []);
 
   useEffect(() => {
-    if (!guideVoiceURI || guideVoices.length === 0) return;
-    if (guideVoices.some((voice) => voice.uri === guideVoiceURI)) return;
+    if (guideVoices.length === 0) {
+      if (guideVoiceURI) changeGuideVoice("");
+      return;
+    }
 
-    changeGuideVoice("");
+    if (guideVoiceURI && guideVoices.some((voice) => voice.uri === guideVoiceURI)) return;
+
+    changeGuideVoice(guideVoices[0].uri);
   }, [guideVoiceURI, guideVoices, changeGuideVoice]);
 
   useEffect(() => {

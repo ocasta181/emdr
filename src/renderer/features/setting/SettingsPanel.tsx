@@ -26,6 +26,7 @@ export function SettingsPanel({
   onLock: () => Promise<void>;
 }) {
   const [transferMessage, setTransferMessage] = useState("");
+  const guideVoiceSelectable = guideVoicePlaybackAvailable && guideVoices.length > 0;
   const dotColorLabels: Record<BilateralStimulationSettings["dotColor"], string> =
     settings.fieldMode === "light"
       ? {
@@ -62,10 +63,10 @@ export function SettingsPanel({
           AI voice
           <select
             value={guideVoiceURI}
-            disabled={!guideVoicePlaybackAvailable}
+            disabled={!guideVoiceSelectable}
             onChange={(event) => onGuideVoiceChange(event.target.value)}
           >
-            <option value="">System default</option>
+            {!guideVoiceSelectable && <option value="">No polished English voices found</option>}
             {guideVoices.map((voice) => (
               <option key={voice.uri} value={voice.uri}>
                 {voice.label}
@@ -73,11 +74,14 @@ export function SettingsPanel({
             ))}
           </select>
         </label>
-        <button type="button" disabled={!guideVoicePlaybackAvailable} onClick={onTestGuideVoice}>
+        <button type="button" disabled={!guideVoiceSelectable} onClick={onTestGuideVoice}>
           Test voice
         </button>
       </div>
       {!guideVoicePlaybackAvailable && <div className="formError">AI voice playback is unavailable in this build.</div>}
+      {guideVoicePlaybackAvailable && guideVoices.length === 0 && (
+        <div className="formError">Install an enhanced English system voice to use AI voice playback.</div>
+      )}
       <h2>Ball Settings</h2>
       <label>
         Screen mode
