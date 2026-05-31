@@ -50,7 +50,7 @@ import {
   type GuideVoiceOption
 } from "../features/guide/guideSpeech";
 import { HistoryPanel } from "../features/session/HistoryPanel";
-import { SettingsPanel } from "../features/setting/SettingsPanel";
+import { BallSettingsPanel, SettingsPanel } from "../features/setting/SettingsPanel";
 import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
 import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAccess";
 
@@ -634,9 +634,11 @@ export function AnimatedApp() {
         </div>
         <div className="buttonRow">
           <button onClick={() => void openGuidePanel()}>Guide</button>
-          <button className="primaryAction" onClick={() => dispatchRoomEvent({ type: "select_settings" })}>
-            Settings
-          </button>
+          {!stimulationRunning && (
+            <button className="primaryAction" onClick={() => dispatchRoomEvent({ type: "select_settings" })}>
+              Settings
+            </button>
+          )}
           {canToggleStimulation && (
             <button onClick={toggleStimulation}>{stimulationButtonLabel(sessionWorkflow, stimulationRunning)}</button>
           )}
@@ -713,18 +715,23 @@ export function AnimatedApp() {
           )}
 
           {panel === "settings" && (
-            <SettingsPanel
-              settings={settings}
-              guideVoices={guideVoices}
-              guideVoiceURI={guideVoiceURI}
-              guideVoicePlaybackAvailable={canSpeakGuideText()}
-              onChange={updateSettings}
-              onGuideVoiceChange={changeGuideVoice}
-              onTestGuideVoice={testGuideVoice}
-              onExport={exportEncryptedData}
-              onImport={importEncryptedData}
-              onLock={lockEncryptedData}
-            />
+            roomState === "stimulation_settings" ? (
+              <BallSettingsPanel
+                settings={settings}
+                onChange={updateSettings}
+              />
+            ) : (
+              <SettingsPanel
+                guideVoices={guideVoices}
+                guideVoiceURI={guideVoiceURI}
+                guideVoicePlaybackAvailable={canSpeakGuideText()}
+                onGuideVoiceChange={changeGuideVoice}
+                onTestGuideVoice={testGuideVoice}
+                onExport={exportEncryptedData}
+                onImport={importEncryptedData}
+                onLock={lockEncryptedData}
+              />
+            )
           )}
         </aside>
       )}

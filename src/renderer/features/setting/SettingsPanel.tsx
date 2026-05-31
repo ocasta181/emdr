@@ -3,22 +3,18 @@ import type { BilateralStimulationSettings } from "../../../shared/types";
 import type { GuideVoiceOption } from "../guide/guideSpeech";
 
 export function SettingsPanel({
-  settings,
   guideVoices,
   guideVoiceURI,
   guideVoicePlaybackAvailable,
-  onChange,
   onGuideVoiceChange,
   onTestGuideVoice,
   onExport,
   onImport,
   onLock
 }: {
-  settings: BilateralStimulationSettings;
   guideVoices: GuideVoiceOption[];
   guideVoiceURI: string;
   guideVoicePlaybackAvailable: boolean;
-  onChange: (patch: Partial<BilateralStimulationSettings>) => void;
   onGuideVoiceChange: (voiceURI: string) => void;
   onTestGuideVoice: () => void;
   onExport: () => Promise<string | undefined>;
@@ -27,20 +23,6 @@ export function SettingsPanel({
 }) {
   const [transferMessage, setTransferMessage] = useState("");
   const guideVoiceSelectable = guideVoicePlaybackAvailable && guideVoices.length > 0;
-  const dotColorLabels: Record<BilateralStimulationSettings["dotColor"], string> =
-    settings.fieldMode === "light"
-      ? {
-          green: "Forest",
-          blue: "Indigo",
-          white: "Charcoal",
-          orange: "Plum"
-        }
-      : {
-          green: "Sage",
-          blue: "Sky",
-          white: "Pearl",
-          orange: "Amber"
-        };
 
   async function exportEncryptedData() {
     const exportPath = await onExport();
@@ -82,7 +64,42 @@ export function SettingsPanel({
       {guideVoicePlaybackAvailable && guideVoices.length === 0 && (
         <div className="formError">Install an enhanced English system voice to use AI voice playback.</div>
       )}
-      <h2>Ball Settings</h2>
+      <h2>Encrypted Data</h2>
+      <div className="buttonRow">
+        <button onClick={() => void exportEncryptedData()}>Export</button>
+        <button onClick={() => void importEncryptedData()}>Import</button>
+        <button onClick={() => void onLock()}>Lock</button>
+      </div>
+      {transferMessage && <p className="authNotice">{transferMessage}</p>}
+    </>
+  );
+}
+
+export function BallSettingsPanel({
+  settings,
+  onChange
+}: {
+  settings: BilateralStimulationSettings;
+  onChange: (patch: Partial<BilateralStimulationSettings>) => void;
+}) {
+  const dotColorLabels: Record<BilateralStimulationSettings["dotColor"], string> =
+    settings.fieldMode === "light"
+      ? {
+          green: "Forest",
+          blue: "Indigo",
+          white: "Charcoal",
+          orange: "Plum"
+        }
+      : {
+          green: "Sage",
+          blue: "Sky",
+          white: "Pearl",
+          orange: "Amber"
+        };
+
+  return (
+    <>
+      <h1>Ball Settings</h1>
       <label>
         Screen mode
         <select
@@ -128,13 +145,6 @@ export function SettingsPanel({
           <option value="large">Large</option>
         </select>
       </label>
-      <h2>Encrypted Data</h2>
-      <div className="buttonRow">
-        <button onClick={() => void exportEncryptedData()}>Export</button>
-        <button onClick={() => void importEncryptedData()}>Import</button>
-        <button onClick={() => void onLock()}>Lock</button>
-      </div>
-      {transferMessage && <p className="authNotice">{transferMessage}</p>}
     </>
   );
 }

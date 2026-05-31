@@ -163,8 +163,8 @@ async function main() {
     installVaultDialogStubs(exportPath);
     await clickButton(window, "Close");
     await clickRoomSettings(window);
-    await waitForText(window, "Ball Settings");
-    await setSelectByLabel(window, "AI voice", "");
+    await waitForText(window, "Settings");
+    await expectText(window, "Ball Settings", false);
     await clickButton(window, "Export");
     await waitForFile(exportPath);
 
@@ -206,6 +206,13 @@ async function main() {
     await waitForTextAbsent(window, "Ball Settings");
     await clickButton(window, "Ball settings");
     await waitForText(window, "Ball Settings");
+    await clickButton(window, "Pause Set");
+    await waitForTextAbsent(window, "Ball Settings");
+    await waitForText(window, "1 set logged");
+    await clickButton(window, "Close");
+    await clickButton(window, "Settings");
+    await waitForText(window, "Settings");
+    await expectText(window, "Ball Settings", false);
     await clickButton(window, "Export");
     await waitForFile(activeExportPath);
 
@@ -217,14 +224,15 @@ async function main() {
     await setControlValue(window, 0, "passphrase-123", "input");
     await clickButton(window, "Unlock");
     await waitForText(window, "Session in progress");
-    await waitForText(window, "Preparation");
+    await waitForText(window, "Interjection");
     await expectText(window, "Pause Set", false);
     await expectText(window, "Ball Settings", false);
 
     phase = "lock from settings";
     await clickButton(window, "Close");
     await clickRoomSettings(window);
-    await waitForText(window, "Ball Settings");
+    await waitForText(window, "Settings");
+    await expectText(window, "Ball Settings", false);
     await clickButton(window, "Lock");
     await waitForText(window, "Unlock");
     await waitForText(window, "Encrypted data locked.");
