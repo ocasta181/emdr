@@ -1,27 +1,11 @@
 import { useEffect, useRef } from "react";
-import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
+import { Application, Assets, ColorMatrixFilter, Container, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
-import orbUrl from "../../../assets/animated-room/orb.svg?url";
+import roomUrl from "../../../assets/animated-room/painted/room.jpg?url";
+import orbUrl from "../../../assets/animated-room/painted/orb.jpg?url";
 import { orbAngularSpeed, orbDiameter, pathLift, type StimulationPath } from "./stimulationStyle";
-import {
-  createFireflies,
-  createStarField,
-  drawChest,
-  drawFireflies,
-  drawGround,
-  drawLantern,
-  drawLanternGlow,
-  drawMist,
-  drawMoon,
-  drawMountains,
-  drawSky,
-  drawStars,
-  drawVignette,
-  flickerLantern,
-  roomLayout,
-  twinkleStars
-} from "./roomBackdrop";
+import { coverTransform, rectToScreen, roomRegions, toScreen, type ArtRect } from "./paintedRoom";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
 
@@ -103,169 +87,145 @@ export function RoomScene({
       const stage = new Container();
       app.stage.addChild(stage);
 
-      const sky = new Graphics();
-      const stars = createStarField(110);
-      const moon = new Graphics();
-      const mountains = new Graphics();
-      const mist = new Graphics();
-      const ground = new Graphics();
-      const lantern = new Graphics();
-      const lanternGlow = new Graphics();
-      lanternGlow.blendMode = "add";
-      const chest = new Graphics();
-      const vignette = new Graphics();
-      const hoverGlow = new Graphics();
-      const hoverLabel = new Text({
-        text: "",
-        style: { fill: "#efe7d4", fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", letterSpacing: 0.4 }
-      });
-      hoverLabel.anchor.set(0.5, 1);
-      hoverLabel.visible = false;
-      const orbTexture = await Assets.load(orbUrl);
+      // Everything visible is a generated painting; nothing is drawn with vector graphics.
+      const roomTexture = await Assets.load<Texture>(roomUrl);
+      const orbTexture = await Assets.load<Texture>(orbUrl);
       const guideCharacter = await GuideCharacter.load({
         onTargetBookSelected: () => callbackRef.current("targets"),
         onActionComplete: (action) => actionCompleteRef.current(action)
       });
+
+      const cropTexture = (rect: ArtRect) =>
+        new Texture({ source: roomTexture.source, frame: new Rectangle(rect.x, rect.y, rect.width, rect.height) });
+
+      const scene = new Container();
+      const painting = new Sprite(roomTexture);
+      const lantern = new Sprite(cropTexture(roomRegions.lantern));
+      const lanternWindow = new Sprite(cropTexture(roomRegions.lanternWindow));
+      lanternWindow.blendMode = "add";
+      const chest = new Sprite(cropTexture(roomRegions.chest));
+      scene.addChild(painting, lantern, chest, lanternWindow);
+
+      // During a set the scene recedes so the light is the only thing that holds attention.
+      const dim = new ColorMatrixFilter();
+      dim.brightness(0.42, false);
+
       const orb = new Sprite(orbTexture);
-      const dimmer = new Graphics();
-      const fireflies = createFireflies(16);
-      // Ambient motion (stars, mist, fireflies, flame) holds still for people who prefer reduced motion.
+      orb.anchor.set(0.5);
+      orb.blendMode = "add";
+      orb.visible = false;
+
+      const hoverLabel = new Text({
+        text: "",
+        style: {
+          fill: "#efe7d4",
+          fontSize: 14,
+          fontFamily: "Inter, system-ui, sans-serif",
+          letterSpacing: 0.4,
+          dropShadow: { color: "#000000", alpha: 0.7, blur: 6, distance: 0 }
+        }
+      });
+      hoverLabel.anchor.set(0.5, 1);
+      hoverLabel.visible = false;
+
       const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
-      orb.anchor.set(0.5);
-      orb.visible = false;
-      stage.addChild(sky, ...stars.groups, moon, mountains, mist, ground, chest, lantern, lanternGlow, hoverGlow, guideCharacter.container);
-      for (const firefly of fireflies) {
-        stage.addChild(firefly.dot);
-      }
-      stage.addChild(vignette, dimmer, orb, hoverLabel);
-
-      type Hotspot = {
-        id: RoomObjectId;
-        label: string;
-        draw: Graphics;
-        anchor: { x: number; y: number; rx: number; ry: number };
-      };
-
+      type Hotspot = { id: RoomObjectId; label: string; target: Container; highlight?: Sprite };
+      const guideHit = new Container();
+      const bookHit = new Container();
       const hotspots: Hotspot[] = [
-        { id: "guide", label: "Guide", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
-        { id: "targets", label: "Targets", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
-        { id: "history", label: "History", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
-        { id: "settings", label: "Settings", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } }
+        { id: "guide", label: "Guide", target: guideHit },
+        { id: "targets", label: "Targets", target: bookHit },
+        { id: "history", label: "History", target: chest, highlight: chest },
+        { id: "settings", label: "Settings", target: lantern, highlight: lantern }
       ];
-      let hovered: RoomObjectId | null = null;
+      const highlight = new ColorMatrixFilter();
+      highlight.brightness(1.3, false);
+      let hovered: Hotspot | null = null;
 
       for (const hotspot of hotspots) {
-        hotspot.draw.eventMode = "static";
-        hotspot.draw.cursor = "pointer";
-        hotspot.draw.on("pointertap", (event) => {
+        hotspot.target.eventMode = "static";
+        hotspot.target.cursor = "pointer";
+        hotspot.target.on("pointertap", (event) => {
           event.stopPropagation();
           callbackRef.current(hotspot.id);
         });
-        hotspot.draw.on("pointerover", () => {
-          hovered = hotspot.id;
+        hotspot.target.on("pointerover", () => {
+          hovered = hotspot;
         });
-        hotspot.draw.on("pointerout", () => {
-          if (hovered === hotspot.id) hovered = null;
+        hotspot.target.on("pointerout", () => {
+          if (hovered === hotspot) hovered = null;
         });
-        stage.addChild(hotspot.draw);
       }
 
+      const world = new Container();
+      world.addChild(scene, guideCharacter.container);
+      stage.addChild(world, guideHit, bookHit, orb, hoverLabel);
+
       let elapsed = 0;
-      let ambientTime = 0;
       let lastWidth = 0;
       let lastHeight = 0;
       let wasRunning = false;
       let phase = 0;
       let reportedCycles = 0;
+      let stimulationY = 0;
 
-      function redraw() {
+      function placeSprite(sprite: Sprite, transform: ReturnType<typeof coverTransform>, rect: ArtRect) {
+        const screen = rectToScreen(transform, rect);
+        sprite.position.set(screen.x, screen.y);
+        sprite.width = screen.width;
+        sprite.height = screen.height;
+      }
+
+      function layout() {
         const width = app.renderer.width;
         const height = app.renderer.height;
-        const floorY = height * 0.78;
-        const historyX = width * 0.68;
-        const historyY = height * 0.78;
-        const settingsX = width * 0.84;
-        const settingsY = height * 0.56;
+        const transform = coverTransform(width, height);
 
-        const layout = roomLayout(width, height);
-        drawSky(sky, layout);
-        drawStars(stars, layout);
-        drawMoon(moon, layout);
-        drawMountains(mountains, layout);
-        drawMist(mist, layout);
-        drawGround(ground, layout);
-        drawChest(chest, layout);
-        drawLantern(lantern, layout);
-        drawLanternGlow(lanternGlow, layout);
-        drawVignette(vignette, layout);
+        painting.position.set(transform.offsetX, transform.offsetY);
+        painting.scale.set(transform.scale);
+        placeSprite(lantern, transform, roomRegions.lantern);
+        placeSprite(chest, transform, roomRegions.chest);
+        placeSprite(lanternWindow, transform, roomRegions.lanternWindow);
 
-        guideCharacter.layout({
-          x: width * 0.5,
-          baselineY: floorY + 10,
-          size: Math.min(260, width * 0.23)
-        });
+        const baseline = toScreen(transform, roomRegions.guideBaseline);
+        const guideSize = roomRegions.guideSize * transform.scale;
+        guideCharacter.layout({ x: baseline.x, baselineY: baseline.y, size: guideSize });
+        guideHit.hitArea = new Rectangle(baseline.x - guideSize * 0.3, baseline.y - guideSize * 0.95, guideSize * 0.6, guideSize * 0.95);
 
-        const byId = (id: RoomObjectId) => hotspots.find((item) => item.id === id)!;
-
-        const guideHotspot = byId("guide");
-        guideHotspot.draw.clear();
-        guideHotspot.draw.roundRect(width * 0.5 - 40, floorY - 230, 160, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
-        guideHotspot.anchor = { x: width * 0.5, y: floorY - 90, rx: 120, ry: 140 };
-
-        const historyHotspot = byId("history");
-        historyHotspot.draw.clear();
-        historyHotspot.draw.roundRect(historyX - 70, historyY - 34, 140, 92, 10).fill({ color: 0xffffff, alpha: 0.001 });
-        historyHotspot.anchor = { x: historyX, y: historyY + 11, rx: 96, ry: 54 };
-
-        const settingsHotspot = byId("settings");
-        settingsHotspot.draw.clear();
-        settingsHotspot.draw.roundRect(settingsX - 52, settingsY - 14, 104, 142, 10).fill({ color: 0xffffff, alpha: 0.001 });
-        settingsHotspot.anchor = { x: settingsX, y: settingsY + 40, rx: 76, ry: 92 };
+        stimulationY = toScreen(transform, { x: 0, y: roomRegions.stimulationY }).y;
       }
 
-      function syncTargetHotspot() {
-        const targetHotspot = hotspots.find((item) => item.id === "targets")!;
+      function syncBookHotspot() {
         const bounds = guideCharacter.getTargetBookBounds();
-        targetHotspot.draw.clear();
-        targetHotspot.draw
-          .roundRect(bounds.x, bounds.y, bounds.width, bounds.height, 12)
-          .fill({ color: 0xffffff, alpha: 0.001 });
-        targetHotspot.draw.visible = bounds.visible;
-        targetHotspot.anchor = {
-          x: bounds.x + bounds.width / 2,
-          y: bounds.y + bounds.height / 2,
-          rx: bounds.width * 0.9,
-          ry: bounds.height * 0.9
-        };
+        bookHit.hitArea = new Rectangle(bounds.x, bounds.y, bounds.width, bounds.height);
+        bookHit.visible = bounds.visible;
       }
 
-      function drawHover(running: boolean) {
-        hoverGlow.clear();
-        const hotspot = !running && hovered ? hotspots.find((item) => item.id === hovered) : undefined;
-        if (!hotspot || !hotspot.draw.visible) {
+      function syncHover(running: boolean) {
+        lantern.filters = null;
+        chest.filters = null;
+        const hotspot = !running && hovered && hovered.target.visible ? hovered : null;
+        if (!hotspot) {
           hoverLabel.visible = false;
           return;
         }
-        const { x, y, rx, ry } = hotspot.anchor;
-        const pulse = 0.5 + Math.sin(elapsed * 2.4) * 0.5;
-        hoverGlow.ellipse(x, y, rx, ry).fill({ color: "#d8c692", alpha: 0.05 + pulse * 0.03 });
-        hoverGlow.ellipse(x, y, rx * 0.7, ry * 0.7).fill({ color: "#d8c692", alpha: 0.05 + pulse * 0.03 });
+        if (hotspot.highlight) hotspot.highlight.filters = [highlight];
+        const bounds = hotspot.target.hitArea instanceof Rectangle ? hotspot.target.hitArea : hotspot.target.getBounds();
         hoverLabel.text = hotspot.label;
-        hoverLabel.position.set(x, y - ry - 6);
+        hoverLabel.position.set(bounds.x + bounds.width / 2, bounds.y - 6);
         hoverLabel.visible = true;
       }
 
       app.ticker.add((ticker) => {
         const deltaSeconds = ticker.deltaMS / 1000;
-        elapsed += deltaSeconds;
-        if (!reducedMotion?.matches) ambientTime += deltaSeconds;
+        if (!reducedMotion?.matches) elapsed += deltaSeconds;
 
         const width = app.renderer.width;
         const height = app.renderer.height;
         const runtime = runtimeRef.current;
         if (width !== lastWidth || height !== lastHeight) {
-          redraw();
+          layout();
           lastWidth = width;
           lastHeight = height;
         }
@@ -273,22 +233,14 @@ export function RoomScene({
         guideCharacter.sync(runtime.guideAnimation);
         guideCharacter.syncTargetBookVisibility();
         guideCharacter.setFrame({
-          alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
+          alpha: runtime.stimulationRunning ? 0.6 : runtime.mode === "idle" ? 0.95 : 1
         });
-        syncTargetHotspot();
-        drawHover(runtime.stimulationRunning);
+        syncBookHotspot();
+        syncHover(runtime.stimulationRunning);
 
-        twinkleStars(stars, ambientTime);
-        flickerLantern(lanternGlow, ambientTime);
-        mist.x = Math.sin(ambientTime * 0.05) * width * 0.04;
-        drawFireflies(fireflies, roomLayout(width, height), ambientTime);
-        const ambientAlpha = runtime.stimulationRunning ? 0.25 : 1;
-        for (const firefly of fireflies) firefly.dot.alpha = ambientAlpha;
-
-        dimmer.clear();
-        if (runtime.stimulationRunning) {
-          dimmer.rect(0, 0, width, height).fill({ color: 0x050505, alpha: 0.58 });
-        }
+        // The painted lantern window breathes a little, as a flame would.
+        lanternWindow.alpha = 0.22 + Math.sin(elapsed * 6.1) * 0.06 + Math.sin(elapsed * 2.3 + 1.3) * 0.08;
+        world.filters = runtime.stimulationRunning ? [dim] : null;
 
         if (runtime.stimulationRunning && !wasRunning) {
           phase = 0;
@@ -305,8 +257,9 @@ export function RoomScene({
           const dx = -Math.cos(phase);
           const x = width * 0.5 + dx * travel * 0.5;
           const lift = pathLift(runtime.stimulationPath, dx) * height * 0.09;
-          const diameter = orbDiameter[runtime.stimulationSize] ?? orbDiameter.medium;
-          orb.position.set(x, height * 0.36 + lift);
+          // The painted glow fills about a third of its image; size the sprite so the glow matches the setting.
+          const diameter = (orbDiameter[runtime.stimulationSize] ?? orbDiameter.medium) * 2.8;
+          orb.position.set(x, stimulationY + lift);
           orb.width = diameter;
           orb.height = diameter;
           orb.tint = runtime.stimulationColor;

@@ -217,7 +217,7 @@ async function clickRoomSettings(window) {
 }
 
 async function clickRoomHistory(window) {
-  await clickRoomPoint(window, 0.68, 0.75);
+  await clickRoomPoint(window, 0.78, 0.86);
 }
 
 async function clickRoomPoint(window, xFraction, yFraction) {

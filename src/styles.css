@@ -122,12 +122,22 @@ label {
   color: #bfb8aa;
 }
 
+/* The vault screens sit in front of the same painted overlook, softly out of focus. */
 .authScreen,
 .boot {
-  background:
-    radial-gradient(circle at 78% 19%, rgba(231, 223, 201, 0.16), rgba(231, 223, 201, 0) 18%),
-    radial-gradient(ellipse at 50% 62%, rgba(216, 180, 130, 0.1), rgba(216, 180, 130, 0) 45%),
-    linear-gradient(180deg, #0d1420 0%, #18273a 30%, #2c3b48 52%, #1c1f1e 60%, #121110 100%);
+  position: relative;
+  isolation: isolate;
+  background: #0f1524;
+}
+
+.authScreen::before,
+.boot::before {
+  content: "";
+  position: fixed;
+  inset: -24px;
+  z-index: -1;
+  background: url("../assets/animated-room/painted/room.jpg") center / cover no-repeat;
+  filter: blur(10px) brightness(0.55);
 }
 
 .authScreen {
@@ -137,8 +147,8 @@ label {
   padding: 28px;
 }
 
-.authPanel {
-  background: rgba(24, 23, 21, 0.86);
+.panel.authPanel {
+  background: url("../assets/animated-room/painted/paper.jpg") center / 512px repeat;
   backdrop-filter: blur(14px);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
@@ -655,7 +665,8 @@ button.historyRow:hover .historyTitle {
   overflow: auto;
   border: 1px solid rgba(216, 198, 146, 0.28);
   border-radius: 8px;
-  background: rgba(29, 27, 24, 0.9);
+  /* Hand-painted paper, generated; see tools/generate-painted-art.sh. */
+  background: url("../assets/animated-room/painted/paper.jpg") center / 512px repeat;
   padding: 18px;
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.36);
   backdrop-filter: blur(14px);
@@ -1249,10 +1260,9 @@ input[type="range"] {
   bottom: 0;
   margin: 0 -18px;
   border-top: 1px solid #34302a;
-  background: rgb(29, 27, 24);
-  padding: 12px 18px 0;
-  /* Cover the panel's bottom padding so content never shows beneath the bar. */
-  box-shadow: 0 18px 0 rgb(29, 27, 24);
+  background: url("../assets/animated-room/painted/paper.jpg") center bottom / 512px repeat;
+  padding: 12px 18px 18px;
+  margin-bottom: -18px;
 }
 
 .animatedPanel-targets .form textarea {

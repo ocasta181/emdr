@@ -165,7 +165,7 @@ export function ActiveSessionChat({
   useEffect(() => {
     const body = bodyRef.current;
     body?.scrollTo({ top: body.scrollHeight });
-  }, [conversationSize, workflowState]);
+  }, [conversationSize, workflowState, pending?.id]);
 
   function skip(question: GuidedQuestion) {
     setSkipped((current) => new Set(current).add(question.id));
