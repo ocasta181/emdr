@@ -4,6 +4,24 @@ import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../../assets/animated-room/orb.svg?url";
 import { orbAngularSpeed, orbDiameter } from "./stimulationStyle";
+import {
+  createFireflies,
+  createStarField,
+  drawChest,
+  drawFireflies,
+  drawGround,
+  drawLantern,
+  drawLanternGlow,
+  drawMist,
+  drawMoon,
+  drawMountains,
+  drawSky,
+  drawStars,
+  drawVignette,
+  flickerLantern,
+  roomLayout,
+  twinkleStars
+} from "./roomBackdrop";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
 
@@ -74,9 +92,17 @@ export function RoomScene({
       const stage = new Container();
       app.stage.addChild(stage);
 
-      const background = new Graphics();
-      const hill = new Graphics();
+      const sky = new Graphics();
+      const stars = createStarField(110);
       const moon = new Graphics();
+      const mountains = new Graphics();
+      const mist = new Graphics();
+      const ground = new Graphics();
+      const lantern = new Graphics();
+      const lanternGlow = new Graphics();
+      lanternGlow.blendMode = "add";
+      const chest = new Graphics();
+      const vignette = new Graphics();
       const hoverGlow = new Graphics();
       const hoverLabel = new Text({
         text: "",
@@ -91,21 +117,17 @@ export function RoomScene({
       });
       const orb = new Sprite(orbTexture);
       const dimmer = new Graphics();
-      const fireflies = Array.from({ length: 18 }, (_, index) => ({
-        xSeed: Math.random() * 1000,
-        ySeed: Math.random() * 1000,
-        speed: 0.35 + Math.random() * 0.75,
-        dot: new Graphics(),
-        index
-      }));
+      const fireflies = createFireflies(16);
+      // Ambient motion (stars, mist, fireflies, flame) holds still for people who prefer reduced motion.
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hoverGlow, hill, guideCharacter.container);
+      stage.addChild(sky, ...stars.groups, moon, mountains, mist, ground, chest, lantern, lanternGlow, hoverGlow, guideCharacter.container);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
-      stage.addChild(dimmer, orb, hoverLabel);
+      stage.addChild(vignette, dimmer, orb, hoverLabel);
 
       type Hotspot = {
         id: RoomObjectId;
@@ -139,6 +161,7 @@ export function RoomScene({
       }
 
       let elapsed = 0;
+      let ambientTime = 0;
       let lastWidth = 0;
       let lastHeight = 0;
       let wasRunning = false;
@@ -154,28 +177,17 @@ export function RoomScene({
         const settingsX = width * 0.84;
         const settingsY = height * 0.56;
 
-        background.clear();
-        background.rect(0, 0, width, height).fill("#171614");
-        background.rect(0, 0, width, height * 0.62).fill("#23353a");
-        background.rect(0, height * 0.44, width, height * 0.56).fill("#2a2a23");
-        background.rect(0, height * 0.64, width, height * 0.36).fill("#1d1b18");
-
-        moon.clear();
-        moon.circle(width * 0.78, height * 0.19, Math.max(38, width * 0.038)).fill({ color: "#e7dfc9", alpha: 0.82 });
-        moon.circle(width * 0.765, height * 0.18, Math.max(42, width * 0.043)).fill({ color: "#23353a", alpha: 0.38 });
-
-        hill.clear();
-        hill.ellipse(width * 0.5, floorY + 40, width * 0.42, height * 0.15).fill("#302f28");
-        hill.ellipse(width * 0.5, floorY + 26, width * 0.34, height * 0.1).fill("#3d3a31");
-        hill.roundRect(settingsX - 40, settingsY - 4, 80, 120, 8).fill("#383229");
-        hill.roundRect(settingsX - 30, settingsY + 52, 60, 62, 8).fill("#40372d");
-        hill.circle(settingsX, settingsY + 18, 31).fill("#5a4a32");
-        hill.circle(settingsX - 8, settingsY + 10, 20).fill({ color: "#d8c692", alpha: 0.08 });
-        hill.ellipse(historyX, historyY + 32, 72, 16).fill({ color: "#080807", alpha: 0.2 });
-        hill.roundRect(historyX - 54, historyY - 18, 108, 58, 8).fill("#3f2f27");
-        hill.roundRect(historyX - 48, historyY - 13, 96, 48, 5).fill("#4a382e");
-        hill.rect(historyX - 48, historyY - 3, 96, 5).fill({ color: "#d8c692", alpha: 0.14 });
-        hill.rect(historyX - 36, historyY + 12, 66, 4).fill({ color: "#d8c692", alpha: 0.12 });
+        const layout = roomLayout(width, height);
+        drawSky(sky, layout);
+        drawStars(stars, layout);
+        drawMoon(moon, layout);
+        drawMountains(mountains, layout);
+        drawMist(mist, layout);
+        drawGround(ground, layout);
+        drawChest(chest, layout);
+        drawLantern(lantern, layout);
+        drawLanternGlow(lanternGlow, layout);
+        drawVignette(vignette, layout);
 
         guideCharacter.layout({
           x: width * 0.5,
@@ -236,6 +248,7 @@ export function RoomScene({
       app.ticker.add((ticker) => {
         const deltaSeconds = ticker.deltaMS / 1000;
         elapsed += deltaSeconds;
+        if (!reducedMotion?.matches) ambientTime += deltaSeconds;
 
         const width = app.renderer.width;
         const height = app.renderer.height;
@@ -254,13 +267,12 @@ export function RoomScene({
         syncTargetHotspot();
         drawHover(runtime.stimulationRunning);
 
-        for (const firefly of fireflies) {
-          const x = (Math.sin(elapsed * firefly.speed + firefly.xSeed) * 0.5 + 0.5) * width;
-          const y = height * 0.22 + (Math.cos(elapsed * firefly.speed + firefly.ySeed) * 0.5 + 0.5) * height * 0.42;
-          firefly.dot.clear();
-          firefly.dot.circle(x, y, 1.5 + (firefly.index % 3)).fill({ color: "#d8c692", alpha: 0.16 });
-          firefly.dot.alpha = runtime.stimulationRunning ? 0.25 : 1;
-        }
+        twinkleStars(stars, ambientTime);
+        flickerLantern(lanternGlow, ambientTime);
+        mist.x = Math.sin(ambientTime * 0.05) * width * 0.04;
+        drawFireflies(fireflies, roomLayout(width, height), ambientTime);
+        const ambientAlpha = runtime.stimulationRunning ? 0.25 : 1;
+        for (const firefly of fireflies) firefly.dot.alpha = ambientAlpha;
 
         dimmer.clear();
         if (runtime.stimulationRunning) {
