@@ -122,11 +122,25 @@ label {
   color: #bfb8aa;
 }
 
+.authScreen,
+.boot {
+  background:
+    radial-gradient(circle at 78% 19%, rgba(231, 223, 201, 0.16), rgba(231, 223, 201, 0) 18%),
+    radial-gradient(ellipse at 50% 62%, rgba(216, 180, 130, 0.1), rgba(216, 180, 130, 0) 45%),
+    linear-gradient(180deg, #0d1420 0%, #18273a 30%, #2c3b48 52%, #1c1f1e 60%, #121110 100%);
+}
+
 .authScreen {
   display: grid;
   min-height: 100vh;
   place-items: center;
   padding: 28px;
+}
+
+.authPanel {
+  background: rgba(24, 23, 21, 0.86);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
 .authPanel {
