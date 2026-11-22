@@ -3,6 +3,8 @@ export type BilateralStimulationSettings = {
   dotSize: "small" | "medium" | "large";
   dotColor: "green" | "blue" | "white" | "orange";
   path: "horizontal" | "arc" | "pendulum";
+  /** Cycles per set before it ends on its own; 0 means the set runs until paused. */
+  setLength: number;
 };
 
 export type Settings = {

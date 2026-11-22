@@ -20,11 +20,13 @@ function bilateralStimulationPatchFrom(payload: unknown): Partial<BilateralStimu
   const dotSize = optionalStringEnum(value, "dotSize", dotSizes, "a dot size");
   const dotColor = optionalStringEnum(value, "dotColor", dotColors, "a dot color");
   const path = optionalStringEnum(value, "path", paths, "a motion path");
+  const setLength = optionalNumberInRange(value, "setLength", { min: 0, max: 200 });
 
   if (speed !== undefined) patch.speed = speed;
   if (dotSize !== undefined) patch.dotSize = dotSize;
   if (dotColor !== undefined) patch.dotColor = dotColor;
   if (path !== undefined) patch.path = path;
+  if (setLength !== undefined) patch.setLength = Math.round(setLength);
 
   return patch;
 }

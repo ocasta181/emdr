@@ -12,6 +12,13 @@ import {
 // The preview strip is narrower than the room, so the dot is drawn at a third of its room size.
 const previewScale = 0.32;
 
+const setLengths: Array<{ value: number; label: string }> = [
+  { value: 0, label: "Manual" },
+  { value: 24, label: "24" },
+  { value: 36, label: "36" },
+  { value: 48, label: "48" }
+];
+
 const dotSizes: Array<{ value: BilateralStimulationSettings["dotSize"]; label: string }> = [
   { value: "small", label: "Small" },
   { value: "medium", label: "Medium" },
@@ -102,6 +109,25 @@ export function SettingsPanel({
                 onClick={() => onChange({ dotSize: size.value })}
               >
                 {size.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="fieldGroup">
+          <span className="scaleLabel" id="set-length-label">
+            Set length (cycles)
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="set-length-label">
+            {setLengths.map((length) => (
+              <button
+                key={length.value}
+                type="button"
+                role="radio"
+                aria-checked={settings.setLength === length.value}
+                className={settings.setLength === length.value ? "selected" : undefined}
+                onClick={() => onChange({ setLength: length.value })}
+              >
+                {length.label}
               </button>
             ))}
           </div>

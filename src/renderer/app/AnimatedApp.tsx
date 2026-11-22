@@ -67,7 +67,8 @@ const emptyViewData: AppViewData = {
       speed: 1,
       dotSize: "medium",
       dotColor: "green",
-      path: "horizontal"
+      path: "horizontal",
+      setLength: 24
     }
   }
 };
@@ -456,6 +457,11 @@ export function AnimatedApp() {
   function handleStimulationCycle(count: number) {
     cycleCountRef.current = count;
     setCycleCount(count);
+    // A set with a length ends on its own; the guide then asks what came up.
+    const setLength = viewData.settings.bilateralStimulation.setLength;
+    if (setLength > 0 && count >= setLength && stimulationRunning) {
+      void pauseActiveStimulation();
+    }
   }
 
   // Keyboard: Space starts or pauses a set, Escape pauses a running set or closes the open panel.
@@ -615,7 +621,8 @@ export function AnimatedApp() {
           )}
           {stimulationRunning && (
             <span className="cycleCounter" aria-live="off">
-              <strong>{cycleCount}</strong> {cycleCount === 1 ? "cycle" : "cycles"}
+              <strong>{cycleCount}</strong>
+              {settings.setLength > 0 ? ` / ${settings.setLength} cycles` : cycleCount === 1 ? " cycle" : " cycles"}
             </span>
           )}
           {stimulationRunning && (

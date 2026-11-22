@@ -6,7 +6,8 @@ export function createDefaultSettings(): Settings {
       speed: 1,
       dotSize: "medium",
       dotColor: "green",
-      path: "horizontal"
+      path: "horizontal",
+      setLength: 24
     }
   };
 }
