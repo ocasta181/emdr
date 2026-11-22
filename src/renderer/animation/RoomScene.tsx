@@ -3,7 +3,7 @@ import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js"
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../../assets/animated-room/orb.svg?url";
-import { orbAngularSpeed, orbDiameter } from "./stimulationStyle";
+import { orbAngularSpeed, orbDiameter, pathLift, type StimulationPath } from "./stimulationStyle";
 import {
   createFireflies,
   createStarField,
@@ -35,6 +35,7 @@ export function RoomScene({
   stimulationColor,
   stimulationSpeed,
   stimulationSize,
+  stimulationPath,
   onObjectSelected,
   onGuideActionComplete,
   onStimulationCycle
@@ -45,6 +46,7 @@ export function RoomScene({
   stimulationColor: string;
   stimulationSpeed: number;
   stimulationSize: keyof typeof orbDiameter;
+  stimulationPath: StimulationPath;
   onObjectSelected: (objectId: RoomObjectId) => void;
   onGuideActionComplete: (action: GuideAction) => void;
   onStimulationCycle: (cycleCount: number) => void;
@@ -59,12 +61,21 @@ export function RoomScene({
     stimulationRunning,
     stimulationColor,
     stimulationSpeed,
-    stimulationSize
+    stimulationSize,
+    stimulationPath
   });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
   cycleRef.current = onStimulationCycle;
-  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed, stimulationSize };
+  runtimeRef.current = {
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationSpeed,
+    stimulationSize,
+    stimulationPath
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -291,9 +302,11 @@ export function RoomScene({
           // Phase accumulates so speed changes mid-set never make the orb jump.
           phase += deltaSeconds * orbAngularSpeed * runtime.stimulationSpeed;
           const travel = width * 0.64;
-          const x = width * 0.5 - Math.cos(phase) * travel * 0.5;
+          const dx = -Math.cos(phase);
+          const x = width * 0.5 + dx * travel * 0.5;
+          const lift = pathLift(runtime.stimulationPath, dx) * height * 0.09;
           const diameter = orbDiameter[runtime.stimulationSize] ?? orbDiameter.medium;
-          orb.position.set(x, height * 0.36);
+          orb.position.set(x, height * 0.36 + lift);
           orb.width = diameter;
           orb.height = diameter;
           orb.tint = runtime.stimulationColor;

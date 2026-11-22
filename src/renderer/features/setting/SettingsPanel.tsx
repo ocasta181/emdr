@@ -1,7 +1,13 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import type { BilateralStimulationSettings } from "../../../shared/types";
-import { orbAngularSpeed, orbDiameter, stimulationColorHex, stimulationColors } from "../../animation/stimulationStyle";
+import {
+  orbAngularSpeed,
+  orbDiameter,
+  stimulationColorHex,
+  stimulationColors,
+  stimulationPaths
+} from "../../animation/stimulationStyle";
 
 // The preview strip is narrower than the room, so the dot is drawn at a third of its room size.
 const previewScale = 0.32;
@@ -100,6 +106,25 @@ export function SettingsPanel({
             ))}
           </div>
         </div>
+        <div className="fieldGroup">
+          <span className="scaleLabel" id="dot-path-label">
+            Path
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="dot-path-label">
+            {stimulationPaths.map((path) => (
+              <button
+                key={path.value}
+                type="button"
+                role="radio"
+                aria-checked={settings.path === path.value}
+                className={settings.path === path.value ? "selected" : undefined}
+                onClick={() => onChange({ path: path.value })}
+              >
+                {path.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
       <section className="settingsSection">
         <h2>Encrypted data</h2>
@@ -120,7 +145,9 @@ function StimulationPreview({ settings }: { settings: BilateralStimulationSettin
   const style = {
     "--preview-dot": `${Math.round(orbDiameter[settings.dotSize] * previewScale)}px`,
     "--preview-color": stimulationColorHex(settings.dotColor),
-    "--preview-sweep": `${sweepSeconds.toFixed(3)}s`
+    "--preview-sweep": `${sweepSeconds.toFixed(3)}s`,
+    "--preview-lift-sweep": `${(sweepSeconds / 2).toFixed(3)}s`,
+    "--preview-lift": settings.path === "arc" ? "-12px" : settings.path === "pendulum" ? "12px" : "0px"
   } as CSSProperties;
   return (
     <div className="stimulationPreview" style={style} aria-hidden="true">

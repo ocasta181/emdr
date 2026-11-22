@@ -66,7 +66,8 @@ const emptyViewData: AppViewData = {
     bilateralStimulation: {
       speed: 1,
       dotSize: "medium",
-      dotColor: "green"
+      dotColor: "green",
+      path: "horizontal"
     }
   }
 };
@@ -588,6 +589,7 @@ export function AnimatedApp() {
         stimulationColor={stimulationColorHex(settings.dotColor)}
         stimulationSpeed={settings.speed}
         stimulationSize={settings.dotSize}
+        stimulationPath={settings.path}
         onObjectSelected={selectObject}
         onGuideActionComplete={handleGuideActionComplete}
         onStimulationCycle={handleStimulationCycle}

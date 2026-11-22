@@ -105,6 +105,7 @@ export type BilateralStimulationSettings = {
   speed: number;
   dotSize: "small" | "medium" | "large";
   dotColor: "green" | "blue" | "white" | "orange";
+  path: "horizontal" | "arc" | "pendulum";
 };
 
 export type Settings = {

@@ -1173,7 +1173,7 @@ input[type="range"] {
 
 .stimulationPreview {
   position: relative;
-  height: 44px;
+  height: 56px;
   border: 1px solid #34302a;
   border-radius: 8px;
   background: #171614;
@@ -1190,7 +1190,16 @@ input[type="range"] {
   background: var(--preview-color);
   box-shadow: 0 0 12px var(--preview-color);
   transform: translateY(-50%);
-  animation: stimulationSweep var(--preview-sweep) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+  animation:
+    stimulationSweep var(--preview-sweep) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate,
+    stimulationLift var(--preview-lift-sweep) cubic-bezier(0.37, 0, 0.63, 1) infinite alternate;
+}
+
+/* Arc and pendulum paths rise or dip toward the middle of each sweep. */
+@keyframes stimulationLift {
+  to {
+    translate: 0 var(--preview-lift);
+  }
 }
 
 @keyframes stimulationSweep {

@@ -12,6 +12,25 @@ export const stimulationColors: Array<{ value: BilateralStimulationSettings["dot
   { value: "orange", label: "Orange", hex: "#ff9b50" }
 ];
 
+export type StimulationPath = BilateralStimulationSettings["path"];
+
+export const stimulationPaths: Array<{ value: StimulationPath; label: string }> = [
+  { value: "horizontal", label: "Horizontal" },
+  { value: "arc", label: "Arc" },
+  { value: "pendulum", label: "Pendulum" }
+];
+
+/**
+ * Vertical offset as a fraction of the path height for a horizontal offset `dx` in [-1, 1].
+ * Arc rises toward the middle; pendulum dips toward the middle like a swinging weight.
+ */
+export function pathLift(path: StimulationPath, dx: number) {
+  const curve = 1 - dx * dx;
+  if (path === "arc") return -curve;
+  if (path === "pendulum") return curve;
+  return 0;
+}
+
 export function stimulationColorHex(color: BilateralStimulationSettings["dotColor"]) {
   return stimulationColors.find((entry) => entry.value === color)?.hex ?? stimulationColors[0].hex;
 }
