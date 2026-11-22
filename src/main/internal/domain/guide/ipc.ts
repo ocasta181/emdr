@@ -21,6 +21,7 @@ const guideActionTypes = [
   "update_assessment",
   "advance_session_flow",
   "log_stimulation_set",
+  "record_set_observation",
   "end_session"
 ] as const;
 const guideSessionFlowStates = [
@@ -109,6 +110,17 @@ function guideActionProposalFrom(payload: unknown): GuideActionProposal {
       sessionId: requiredString(value, "sessionId"),
       workflowState: requiredStringEnum(value, "workflowState", guideSessionFlowStates, "a session flow state"),
       cycleCount: requiredNumberInRange(value, "cycleCount", { min: 1, max: 10000 }),
+      observation: requiredString(value, "observation"),
+      disturbance: optionalNumberInRange(value, "disturbance", disturbanceRange)
+    };
+  }
+
+  if (type === "record_set_observation") {
+    return {
+      type,
+      sessionId: requiredString(value, "sessionId"),
+      workflowState: requiredStringEnum(value, "workflowState", guideSessionFlowStates, "a session flow state"),
+      setId: requiredString(value, "setId"),
       observation: requiredString(value, "observation"),
       disturbance: optionalNumberInRange(value, "disturbance", disturbanceRange)
     };

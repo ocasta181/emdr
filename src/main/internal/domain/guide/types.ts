@@ -25,6 +25,7 @@ export type GuideSessionFlowAction =
   | "begin_closure"
   | "request_review"
   | "log_stimulation_set"
+  | "record_set_observation"
   | "close_session";
 
 export type GuideAdvanceSessionFlowAction = Extract<
@@ -77,6 +78,14 @@ export type GuideActionProposal =
       sessionId: string;
       workflowState: GuideSessionFlowState;
       cycleCount: number;
+      observation: string;
+      disturbance?: number;
+    }
+  | {
+      type: "record_set_observation";
+      sessionId: string;
+      workflowState: GuideSessionFlowState;
+      setId: string;
       observation: string;
       disturbance?: number;
     }
@@ -187,6 +196,7 @@ export type GuideStimulationSetWriter = {
     observation: string;
     disturbance?: number;
   }): unknown;
+  recordObservation(draft: { sessionId: string; setId: string; observation: string; disturbance?: number }): unknown;
 };
 
 export type GuideIpcService = {

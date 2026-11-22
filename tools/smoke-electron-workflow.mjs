@@ -102,12 +102,19 @@ async function main() {
     phase = "guide pauses stimulation";
     await clickButton(window, "Guide");
     await waitForText(window, "1 set logged");
+    phase = "guide asks for a set reflection";
+    await waitForText(window, "What do you notice now?");
+    await setFieldByLabel(window, "Your answer", "Calmer than before");
+    await clickButton(window, "Answer");
+    await pickScale(window, "Set SUD", "4");
     await waitForText(window, "Begin closure");
     phase = "guide proposal logs stimulation";
     await clickButton(window, "Continue set");
     await waitForText(window, "Pause set");
     await clickButton(window, "Guide");
     await waitForText(window, "2 sets logged");
+    await clickButton(window, "Skip");
+    await clickButton(window, "Skip");
     await setFieldByLabel(window, "Note", "done with set");
     await clickButton(window, "Send");
     await waitForText(window, "Review proposed set");
@@ -121,6 +128,7 @@ async function main() {
     await waitForStep(window, "Review");
     await expectText(window, "Start set", false);
     await pickScale(window, "Final SUD", "2");
+    await clickButton(window, "Skip");
     phase = "end session";
     await clickButton(window, "End session");
     await waitForText(window, "Ready to continue");
@@ -128,6 +136,8 @@ async function main() {
     await clickButton(window, "Close");
     await clickRoomHistory(window);
     await waitForSelector(window, `.sudChange[aria-label="SUD end 2"]`);
+    await window.webContents.executeJavaScript(`document.querySelector("button.historyRow").click()`, true);
+    await waitForText(window, "Calmer than before");
 
     phase = "export vault";
     const exportPath = path.join(tempDir, "workflow-export.emdr-vault");

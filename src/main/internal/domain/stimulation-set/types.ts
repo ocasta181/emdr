@@ -15,9 +15,16 @@ export type SessionLookup = {
   requireSession(sessionId: string): unknown;
 };
 
+export type StimulationSetObservationDraft = {
+  sessionId: string;
+  setId: string;
+  observation: string;
+  disturbance?: number;
+};
+
 export type StimulationSetSessionWorkflow = {
-  requireActiveSessionAction(sessionId: string, action: "log_stimulation_set"): unknown;
-  applyActiveSessionAction(sessionId: string, action: "log_stimulation_set"): unknown;
+  requireActiveSessionAction(sessionId: string, action: "log_stimulation_set" | "record_set_observation"): unknown;
+  applyActiveSessionAction(sessionId: string, action: "log_stimulation_set" | "record_set_observation"): unknown;
 };
 
 export type StimulationSetIpcService = {

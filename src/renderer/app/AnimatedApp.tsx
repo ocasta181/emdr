@@ -260,6 +260,22 @@ export function AnimatedApp() {
     await refreshGuideView(session.id);
   }
 
+  async function recordSetObservation(setId: string, observation: string, disturbance: number | undefined) {
+    if (!activeSession) return;
+    const result = await applyGuideAction({
+      type: "record_set_observation",
+      sessionId: activeSession.id,
+      workflowState: sessionWorkflow.state,
+      setId,
+      observation,
+      disturbance
+    });
+    setSessionWorkflow(result.workflow);
+    if (!result.accepted) throw new Error(result.reason);
+    const nextViewData = await refreshViewData();
+    setActiveSession(nextViewData.sessions.find((session) => session.id === activeSession.id) ?? activeSession);
+  }
+
   async function approveSessionAssessment(assessment: Assessment) {
     if (!activeSession) return;
     setGuideProposals([]);
@@ -635,6 +651,10 @@ export function AnimatedApp() {
             <>
               {activeSession ? (
                 <ActiveSessionChat
+                  key={activeSession.id}
+                  onRecordSetObservation={(setId, observation, disturbance) =>
+                    void recordSetObservation(setId, observation, disturbance)
+                  }
                   session={activeSession}
                   targetDescription={targetById.get(activeSession.targetId)?.description}
                   guideView={guideView}

@@ -84,6 +84,37 @@ test("guide service rejects stale or disallowed action proposals before mutation
   assert.deepEqual(calls, []);
 });
 
+test("set observations are recorded only between sets", () => {
+  assert.equal(nextSessionFlowState("interjection", "record_set_observation"), "interjection");
+  assert.throws(() => nextSessionFlowState("stimulation", "record_set_observation"), /not allowed/);
+  assert.throws(() => nextSessionFlowState("closure", "record_set_observation"), /not allowed/);
+
+  const during = createGuideHarness("stimulation");
+  const rejected = during.guide.applyAction({
+    type: "record_set_observation",
+    sessionId: "ses_test",
+    workflowState: "stimulation",
+    setId: "set_test",
+    observation: "too soon"
+  });
+  assert.equal(rejected.accepted, false);
+  assert.deepEqual(during.calls, []);
+
+  const between = createGuideHarness("interjection");
+  const recorded = between.guide.applyAction({
+    type: "record_set_observation",
+    sessionId: "ses_test",
+    workflowState: "interjection",
+    setId: "set_test",
+    observation: "Calmer",
+    disturbance: 4
+  });
+  assert.equal(recorded.accepted, true);
+  assert.deepEqual(between.calls, [
+    { type: "observation", draft: { sessionId: "ses_test", setId: "set_test", observation: "Calmer", disturbance: 4 } }
+  ]);
+});
+
 test("guide service applies allowed actions through domain service ports", () => {
   const targetHarness = createGuideHarness("target_selection");
   const createdTarget = targetHarness.guide.applyAction({
@@ -311,6 +342,10 @@ function createGuideHarness(state, agent) {
       currentSessionWorkflow: () => workflow
     },
     {
+      recordObservation: (draft) => {
+        calls.push({ type: "observation", draft });
+        return { id: draft.setId, observation: draft.observation, disturbance: draft.disturbance };
+      },
       logStimulationSet: (draft) => {
         calls.push({ type: "log", draft });
         return { id: "set_test", ...draft };

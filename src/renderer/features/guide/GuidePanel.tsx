@@ -9,6 +9,15 @@ import type {
 import { ScaleInput, sudAnchors, vocAnchors } from "../../components/ScaleInput";
 import { AssessmentForm } from "../session/AssessmentForm";
 import { WorkflowControls } from "../stimulation-set/WorkflowControls";
+import {
+  pendingQuestion,
+  preparationQuestions,
+  reviewQuestions,
+  setReflectionQuestions,
+  type GuidedQuestion,
+  type ReviewDraft
+} from "./guidedSession";
+import { crisisCopy, signalsCrisis } from "./safety";
 
 export type ChatMessage = { role: "guide" | "user"; text: string };
 
@@ -92,6 +101,7 @@ export function ActiveSessionChat({
   onApplyProposal,
   onSaveAssessment,
   onApproveAssessment,
+  onRecordSetObservation,
   onStartSet,
   onRequestGrounding,
   onBeginClosure,
@@ -110,6 +120,7 @@ export function ActiveSessionChat({
   onApplyProposal: (proposal: GuideActionProposal) => void;
   onSaveAssessment: (assessment: Assessment) => void;
   onApproveAssessment: (assessment: Assessment) => void;
+  onRecordSetObservation: (setId: string, observation: string, disturbance: number | undefined) => void;
   onStartSet: () => void;
   onRequestGrounding: () => void;
   onBeginClosure: () => void;
@@ -119,33 +130,88 @@ export function ActiveSessionChat({
   const sessionView = guideView.mode === "session" ? guideView.activeSession : undefined;
   const displayTargetDescription = sessionView?.targetDescription ?? targetDescription ?? "Unknown target";
   const setCount = sessionView?.stimulationSetCount ?? session.stimulationSets.length;
-  const messages: ChatMessage[] = (guideView.mode === "session" ? guideView.messages : [])
-    .map((text): ChatMessage => ({ role: "guide", text }))
-    .concat(chatMessages);
   const workflowState = sessionView?.workflowState ?? workflow.state;
-  const logRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const seenRef = useRef({ messages: messages.length, proposals: guideProposals.length });
+  const stepIntro = guideView.mode === "session" ? guideView.messages : [];
 
-  // Follow the conversation only when something new arrives, not when the panel first opens.
-  useEffect(() => {
-    const seen = seenRef.current;
-    if (messages.length > seen.messages || guideProposals.length > seen.proposals) {
-      logRef.current?.lastElementChild?.scrollIntoView({ block: "nearest" });
-    }
-    seenRef.current = { messages: messages.length, proposals: guideProposals.length };
-  }, [messages.length, guideProposals.length]);
+  const [skipped, setSkipped] = useState<ReadonlySet<string>>(() => new Set());
+  const [reviewDraft, setReviewDraft] = useState<ReviewDraft>({});
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [grounding, setGrounding] = useState(false);
+  const [crisis, setCrisis] = useState(false);
 
-  // Each step's form sits at the top of the body, so a new step starts there.
-  useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 0 });
-  }, [workflowState]);
+  const latestSet = [...session.stimulationSets].sort((a, b) => b.setNumber - a.setNumber)[0];
+  const questions: GuidedQuestion[] =
+    workflowState === "preparation"
+      ? preparationQuestions(session.assessment)
+      : workflowState === "interjection" && latestSet
+        ? setReflectionQuestions(latestSet)
+        : workflowState === "review"
+          ? reviewQuestions(reviewDraft)
+          : [];
+  const pending = crisis || grounding ? undefined : pendingQuestion(questions, skipped);
+  const answered = questions.filter((question) => question.answer !== undefined || skipped.has(question.id));
+  const visibleAnswered = pending ? answered.filter((question) => questions.indexOf(question) < questions.indexOf(pending)) : answered;
 
   // Grounding pauses into the between-sets state; the exercise stays up until the person moves on.
-  const [grounding, setGrounding] = useState(false);
   useEffect(() => {
     if (workflowState !== "interjection") setGrounding(false);
+    setEditingDetails(false);
   }, [workflowState]);
+
+  const logRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const conversationSize = visibleAnswered.length + chatMessages.length + guideProposals.length + (pending ? 1 : 0);
+  // Keep the newest exchange and whatever comes after it (summary, next actions) in view.
+  useEffect(() => {
+    const body = bodyRef.current;
+    body?.scrollTo({ top: body.scrollHeight });
+  }, [conversationSize, workflowState]);
+
+  function skip(question: GuidedQuestion) {
+    setSkipped((current) => new Set(current).add(question.id));
+  }
+
+  function answer(question: GuidedQuestion, value: string | number) {
+    if (question.id.startsWith("assessment.")) {
+      const field = question.id.slice("assessment.".length) as keyof Assessment;
+      onSaveAssessment({ ...session.assessment, [field]: value });
+      return;
+    }
+    if (question.id.startsWith("set.") && latestSet) {
+      if (question.id.endsWith(".observation")) {
+        onRecordSetObservation(latestSet.id, String(value), latestSet.disturbance);
+      } else {
+        onRecordSetObservation(latestSet.id, latestSet.observation, Number(value));
+      }
+      return;
+    }
+    if (question.id === "review.finalDisturbance") setReviewDraft((draft) => ({ ...draft, finalDisturbance: Number(value) }));
+    if (question.id === "review.notes") setReviewDraft((draft) => ({ ...draft, notes: String(value) }));
+  }
+
+  function submitComposer(event: FormEvent) {
+    event.preventDefault();
+    const text = chatDraft.trim();
+    if (!text) return;
+    if (signalsCrisis(text)) {
+      // Fixed copy from code; the message is not forwarded to the guide agent.
+      setCrisis(true);
+      onChatChange("");
+      return;
+    }
+    if (pending?.input.kind === "text") {
+      answer(pending, text);
+      onChatChange("");
+      return;
+    }
+    onSubmitChat(event);
+  }
+
+  const answeringText = pending?.input.kind === "text";
+  const showComposer = !pending || answeringText;
+  const preparationDone = workflowState === "preparation" && !pending;
+  const reviewDone = workflowState === "review" && !pending;
+  const reflectionDone = (workflowState === "interjection" || workflowState === "closure" || workflowState === "stimulation") && !pending;
 
   return (
     <>
@@ -159,18 +225,116 @@ export function ActiveSessionChat({
         <SessionStepper state={workflowState} />
       </div>
       <div className="sessionBody" ref={bodyRef}>
-        {grounding && <GroundingExercise onDone={() => setGrounding(false)} />}
-        {workflowState === "preparation" && (
-          <AssessmentForm
-            assessment={session.assessment}
-            onSave={onSaveAssessment}
-            onApprove={onApproveAssessment}
-          />
+        <div className="chatLog" ref={logRef} aria-live="polite">
+          {stepIntro.map((text, index) => (
+            <p className="guideBubble" key={`intro-${index}-${text}`}>
+              {text}
+            </p>
+          ))}
+          {visibleAnswered.map((question) => (
+            <div className="exchange" key={question.id}>
+              <p className="guideBubble">{question.prompt}</p>
+              {question.answer !== undefined ? (
+                <p className="userBubble">
+                  {question.input.kind === "scale" ? `${question.input.label} ${question.answer}` : question.answer}
+                </p>
+              ) : (
+                <p className="skippedNote">Skipped</p>
+              )}
+            </div>
+          ))}
+          {chatMessages.map((message, index) => (
+            <p className={message.role === "guide" ? "guideBubble" : "userBubble"} key={`${index}-${message.text}`}>
+              {message.text}
+            </p>
+          ))}
+          {guideProposals.map((proposal, index) => (
+            <GuideProposalCard key={`${proposal.type}-${index}`} proposal={proposal} onApply={onApplyProposal} />
+          ))}
+          {crisis && (
+            <section className="crisisCard" role="alert">
+              <p>{crisisCopy}</p>
+              <div className="buttonRow">
+                <button type="button" onClick={() => setCrisis(false)}>
+                  I am safe to continue
+                </button>
+                {workflowState !== "closure" && workflowState !== "review" && (
+                  <button type="button" onClick={onBeginClosure}>
+                    Begin closure
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+          {grounding && !crisis && <GroundingExercise onDone={() => setGrounding(false)} />}
+          {pending && (
+            <div className="exchange pending" key={pending.id}>
+              <p className="guideBubble">{pending.prompt}</p>
+              {pending.input.kind === "scale" && (
+                <ScaleInput
+                  label={pending.input.label}
+                  anchors={pending.input.anchors}
+                  min={pending.input.min}
+                  max={pending.input.max}
+                  value={undefined}
+                  onChange={(value) => value !== undefined && answer(pending, value)}
+                />
+              )}
+              <button type="button" className="quiet skipButton" onClick={() => skip(pending)}>
+                Skip
+              </button>
+            </div>
+          )}
+        </div>
+
+        {preparationDone && !crisis && (
+          <section className="stepSummary">
+            <h2>Ready when you are</h2>
+            <AssessmentSummary assessment={session.assessment} />
+            {editingDetails ? (
+              <AssessmentForm assessment={session.assessment} onSave={onSaveAssessment} onApprove={onApproveAssessment} />
+            ) : (
+              <div className="buttonRow">
+                <button type="button" className="primary" onClick={onStartSet}>
+                  Begin bilateral stimulation
+                </button>
+                <button type="button" className="quiet" onClick={() => setEditingDetails(true)}>
+                  Edit details
+                </button>
+              </div>
+            )}
+          </section>
         )}
-        {workflowState === "review" && (
-          <SessionEndForm session={session} onEndSession={onEndSession} onBeginClosure={onBeginClosure} />
+
+        {reviewDone && (
+          <section className="stepSummary">
+            <h2>Session summary</h2>
+            <dl className="summaryList">
+              <div>
+                <dt>Sets</dt>
+                <dd>{setCount}</dd>
+              </div>
+              <div>
+                <dt>SUD</dt>
+                <dd>{formatSudChange(session.assessment.disturbance, reviewDraft.finalDisturbance)}</dd>
+              </div>
+            </dl>
+            <div className="buttonRow">
+              <button
+                type="button"
+                className="primary"
+                onClick={() => onEndSession({ finalDisturbance: reviewDraft.finalDisturbance, notes: reviewDraft.notes })}
+              >
+                End session
+              </button>
+              <button type="button" onClick={onBeginClosure}>
+                Return to closure
+              </button>
+            </div>
+          </section>
         )}
-        {workflowState !== "review" && workflowState !== "post_session" && (
+
+        {reflectionDone && !crisis && (
           <WorkflowControls
             workflow={workflowState}
             onStartSet={onStartSet}
@@ -182,39 +346,60 @@ export function ActiveSessionChat({
             onRequestReview={onRequestReview}
           />
         )}
-        <div className="chatLog" ref={logRef}>
-          {messages.map((message, index) => (
-            <p className={message.role === "guide" ? "guideBubble" : "userBubble"} key={`${index}-${message.text}`}>
-              {message.text}
-            </p>
-          ))}
-          {guideProposals.map((proposal, index) => (
-            <GuideProposalCard key={`${proposal.type}-${index}`} proposal={proposal} onApply={onApplyProposal} />
-          ))}
-        </div>
       </div>
-      <form className="chatComposer" onSubmit={onSubmitChat}>
-        <label>
-          <span className="visuallyHidden">Note</span>
-          <textarea
-            rows={2}
-            placeholder="Capture an in-session note…"
-            value={chatDraft}
-            onChange={(event) => onChatChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-          />
-        </label>
-        <button type="submit" disabled={!chatDraft.trim()}>
-          Send
-        </button>
-      </form>
+      {showComposer && (
+        <form className="chatComposer" onSubmit={submitComposer}>
+          <label>
+            <span className="visuallyHidden">{answeringText ? "Your answer" : "Note"}</span>
+            <textarea
+              rows={2}
+              placeholder={answeringText && pending?.input.kind === "text" ? pending.input.placeholder : "Write to the guide…"}
+              value={chatDraft}
+              onChange={(event) => onChatChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+            />
+          </label>
+          <button type="submit" className={answeringText ? "primary" : undefined} disabled={!chatDraft.trim()}>
+            {answeringText ? "Answer" : "Send"}
+          </button>
+        </form>
+      )}
     </>
   );
+}
+
+function AssessmentSummary({ assessment }: { assessment: Assessment }) {
+  const rows: Array<[string, string | undefined]> = [
+    ["Image", assessment.image?.trim()],
+    ["Negative belief", assessment.negativeCognition.trim()],
+    ["Preferred belief", assessment.positiveCognition.trim()],
+    ["VOC", assessment.believability?.toString()],
+    ["Emotions", assessment.emotions?.trim()],
+    ["SUD", assessment.disturbance?.toString()],
+    ["Body", assessment.bodyLocation?.trim()]
+  ];
+  return (
+    <dl className="assessmentSummary">
+      {rows
+        .filter(([, value]) => value)
+        .map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+    </dl>
+  );
+}
+
+function formatSudChange(start: number | undefined, end: number | undefined) {
+  if (start !== undefined && end !== undefined) return `${start} → ${end}`;
+  return String(end ?? start ?? "–");
 }
 
 function SessionStepper({ state }: { state: SessionWorkflowSnapshot["state"] }) {
@@ -255,6 +440,10 @@ function GuideProposalCard({
 
   if (proposal.type === "log_stimulation_set") {
     return <LogStimulationSetProposal proposal={proposal} onApply={onApply} />;
+  }
+
+  if (proposal.type === "record_set_observation") {
+    return null;
   }
 
   return <EndSessionProposal proposal={proposal} onApply={onApply} />;
@@ -421,43 +610,6 @@ function EndSessionProposal({
         Apply session end
       </button>
     </div>
-  );
-}
-
-function SessionEndForm({
-  session,
-  onEndSession,
-  onBeginClosure
-}: {
-  session: SessionAggregate;
-  onEndSession: (patch: { finalDisturbance?: number; notes?: string }) => void;
-  onBeginClosure: () => void;
-}) {
-  const [finalDisturbance, setFinalDisturbance] = useState(session.finalDisturbance);
-  const [notes, setNotes] = useState(session.notes ?? "");
-
-  return (
-    <form
-      className="form workflowForm"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onEndSession({ finalDisturbance, notes: notes.trim() || undefined });
-      }}
-    >
-      <ScaleInput label="Final SUD" anchors={sudAnchors} min={0} max={10} value={finalDisturbance} onChange={setFinalDisturbance} />
-      <label>
-        Notes
-        <textarea value={notes} onChange={(event) => setNotes(event.target.value)} />
-      </label>
-      <div className="buttonRow">
-        <button type="submit" className="primary">
-          End session
-        </button>
-        <button type="button" onClick={onBeginClosure}>
-          Return to closure
-        </button>
-      </div>
-    </form>
   );
 }
 

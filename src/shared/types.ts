@@ -88,6 +88,7 @@ export type SessionFlowAction =
   | "start_stimulation"
   | "pause_stimulation"
   | "log_stimulation_set"
+  | "record_set_observation"
   | "continue_stimulation"
   | "request_grounding"
   | "begin_closure"
@@ -148,6 +149,14 @@ export type GuideActionProposal =
       sessionId: string;
       workflowState: SessionFlowState;
       cycleCount: number;
+      observation: string;
+      disturbance?: number;
+    }
+  | {
+      type: "record_set_observation";
+      sessionId: string;
+      workflowState: SessionFlowState;
+      setId: string;
       observation: string;
       disturbance?: number;
     }

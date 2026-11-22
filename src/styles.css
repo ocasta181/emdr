@@ -1276,3 +1276,90 @@ input[type="range"] {
 .groundingCard button {
   justify-self: start;
 }
+
+.exchange {
+  display: grid;
+  gap: 8px;
+}
+
+.exchange.pending .guideBubble {
+  border-color: rgba(216, 198, 146, 0.45);
+}
+
+.skipButton {
+  justify-self: start;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.skippedNote {
+  justify-self: end;
+  margin: 0;
+  color: #7d776b;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.stepSummary {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(216, 198, 146, 0.28);
+  border-radius: 8px;
+  background: rgba(74, 65, 48, 0.22);
+  padding: 14px 16px;
+}
+
+.stepSummary h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.assessmentSummary,
+.summaryList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.assessmentSummary div {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.assessmentSummary dt,
+.summaryList dt {
+  color: #9e9788;
+}
+
+.assessmentSummary dd,
+.summaryList dd {
+  margin: 0;
+  color: #efe7d4;
+}
+
+.summaryList {
+  display: flex;
+  gap: 28px;
+}
+
+.summaryList dd {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.crisisCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #b0705f;
+  border-radius: 8px;
+  background: rgba(70, 36, 30, 0.85);
+  color: #f6dcd3;
+  padding: 14px 16px;
+  line-height: 1.5;
+}
+
+.crisisCard p {
+  margin: 0;
+}

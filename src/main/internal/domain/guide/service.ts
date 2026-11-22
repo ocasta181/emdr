@@ -131,6 +131,21 @@ export class GuideService {
       });
     }
 
+    if (proposal.type === "record_set_observation") {
+      return this.applyActiveSessionProposal(proposal, "record_set_observation", () => {
+        const result = this.stimulationSets.recordObservation({
+          sessionId: proposal.sessionId,
+          setId: proposal.setId,
+          observation: proposal.observation,
+          disturbance: proposal.disturbance
+        });
+        return {
+          result,
+          workflow: this.sessions.currentSessionWorkflow()
+        };
+      });
+    }
+
     return this.applyActiveSessionProposal(proposal, "close_session", () => {
       const result = this.sessions.endSession(proposal.sessionId, {
         finalDisturbance: proposal.finalDisturbance,
@@ -218,15 +233,15 @@ function idleGuideView(targets: GuideTargetSummary[]): GuideView {
 function sessionStepMessage(state: GuideSessionFlowState) {
   switch (state) {
     case "preparation":
-      return "Let's look at the target together. Adjust the assessment if needed, then approve it to begin.";
+      return "Let's prepare. I'll ask a few short questions. Answer in your own words, or skip any of them.";
     case "stimulation":
       return "Follow the light with your eyes and let whatever comes up come up.";
     case "interjection":
-      return "Take a breath. Notice what came up, then continue with another set or begin closure.";
+      return "Let's pause here.";
     case "closure":
-      return "Let's bring this to a calm close. Request review when you feel settled.";
+      return "Let's bring this to a calm close. Take your time, and request review when you feel settled.";
     case "review":
-      return "Record how disturbing the target feels now, add any notes, and end the session.";
+      return "One last look before we finish.";
     default:
       return "The session is ready when you are.";
   }
