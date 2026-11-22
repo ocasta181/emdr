@@ -172,6 +172,7 @@ export type GuideTargetReader = {
 
 export type GuideTargetMutator = {
   addTarget(draft: { description: string; negativeCognition: string; positiveCognition: string }): unknown;
+  recordDisturbance(targetId: string, disturbance: number): unknown;
 };
 
 export type GuideSessionReader = {
@@ -181,7 +182,7 @@ export type GuideSessionReader = {
 export type GuideSessionMutator = {
   updateAssessment(sessionId: string, assessment: GuideAssessment): unknown;
   advanceSessionFlow(action: GuideAdvanceSessionFlowAction, sessionId?: string): GuideSessionWorkflowSnapshot;
-  endSession(sessionId: string, patch?: { finalDisturbance?: number; notes?: string }): unknown;
+  endSession(sessionId: string, patch?: { finalDisturbance?: number; notes?: string }): { targetId: string };
 };
 
 export type GuideSessionFlowValidator = {

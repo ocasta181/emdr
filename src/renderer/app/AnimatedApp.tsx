@@ -701,6 +701,7 @@ export function AnimatedApp() {
             <TargetsPanel
               targets={targets}
               inactiveTargets={viewData.allTargets.filter((target) => target.isCurrent && target.status !== "active")}
+              sudHistoryFor={(target) => sudHistory(target, targetById, viewData.sessions)}
               editing={editingTarget}
               activeSessionTargetId={activeSession?.targetId}
               onAdd={addTarget}
@@ -789,6 +790,19 @@ function guideOrderedTargets(
       if (disturbanceDelta !== 0) return disturbanceDelta;
       return a.createdAt.localeCompare(b.createdAt);
     });
+}
+
+/** The target's starting SUD followed by each finished session's final SUD, oldest first. */
+function sudHistory(target: Target, targetById: Map<string, Target>, sessions: SessionAggregate[]) {
+  const lineage = targetLineageIds(target, targetById);
+  let root: Target = target;
+  while (root.parentId && targetById.get(root.parentId)) root = targetById.get(root.parentId)!;
+  const points = sessions
+    .filter((session) => lineage.has(session.targetId) && session.endedAt && session.finalDisturbance !== undefined)
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .map((session) => session.finalDisturbance as number);
+  const start = root.initialDisturbance ?? target.initialDisturbance;
+  return start === undefined ? points : [start, ...points];
 }
 
 function targetLineageIds(target: Target, targetById: Map<string, Target>) {

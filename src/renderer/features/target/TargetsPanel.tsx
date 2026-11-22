@@ -16,6 +16,7 @@ const statusOptions: Array<{ value: TargetStatus; label: string }> = [
 export function TargetsPanel({
   targets,
   inactiveTargets,
+  sudHistoryFor,
   editing,
   activeSessionTargetId,
   onAdd,
@@ -27,6 +28,7 @@ export function TargetsPanel({
   targets: Target[];
   /** Current versions of completed or deferred targets, kept reachable so they can be reopened. */
   inactiveTargets: Target[];
+  sudHistoryFor: (target: Target) => number[];
   editing: TargetEditorState | null;
   activeSessionTargetId: string | undefined;
   onAdd: () => void;
@@ -67,6 +69,7 @@ export function TargetsPanel({
               {activeSessionTargetId === target.id && <span className="inlineStatus">In session</span>}
             </p>
           </div>
+          <SudTrend points={sudHistoryFor(target)} />
           <div className="rowActions">
             <button
               className="quiet"
@@ -237,4 +240,29 @@ function editableTargetDraft(editing: TargetEditorState): TargetDraft {
     status: editing.target.status,
     notes: editing.target.notes
   };
+}
+
+/** A tiny SUD line, 0 at the bottom and 10 at the top, shown once there are two readings. */
+function SudTrend({ points }: { points: number[] }) {
+  if (points.length < 2) return null;
+  const width = 64;
+  const height = 22;
+  const step = width / (points.length - 1);
+  const coords = points.map((value, index) => `${(index * step).toFixed(1)},${(height - 2 - (value / 10) * (height - 4)).toFixed(1)}`);
+  const first = points[0];
+  const last = points[points.length - 1];
+  return (
+    <svg
+      className="sudTrend"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label={`SUD over sessions: ${points.join(", ")}`}
+    >
+      <title>{`SUD ${first} → ${last}`}</title>
+      <polyline points={coords.join(" ")} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx={coords[coords.length - 1].split(",")[0]} cy={coords[coords.length - 1].split(",")[1]} r="2.4" fill="currentColor" />
+    </svg>
+  );
 }

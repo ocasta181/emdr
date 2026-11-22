@@ -219,7 +219,8 @@ test("guide service applies allowed actions through domain service ports", () =>
       type: "end",
       sessionId: "ses_test",
       patch: { finalDisturbance: 1, notes: "complete" }
-    }
+    },
+    { type: "disturbance", targetId: "tar_test", disturbance: 1 }
   ]);
 });
 
@@ -306,6 +307,10 @@ function createGuideHarness(state, agent) {
         calls.push({ type: "target", draft });
         return { id: "tar_new", ...draft };
       },
+      recordDisturbance: (targetId, disturbance) => {
+        calls.push({ type: "disturbance", targetId, disturbance });
+        return { ...target, currentDisturbance: disturbance };
+      },
       listCurrentTargets: () => [target],
       listAllTargets: () => [target]
     },
@@ -335,7 +340,7 @@ function createGuideHarness(state, agent) {
       endSession: (sessionId, patch) => {
         calls.push({ type: "end", sessionId, patch });
         workflow = { state: "post_session", activeSessionId: sessionId };
-        return { id: sessionId, endedAt: "2026-05-12T00:00:00.000Z" };
+        return { id: sessionId, targetId: "tar_test", endedAt: "2026-05-12T00:00:00.000Z" };
       },
       canApplySessionFlowAction: (currentState, action) =>
         workflowRules.canApplySessionFlowAction(currentState, action),

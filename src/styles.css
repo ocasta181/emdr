@@ -1389,3 +1389,12 @@ input[type="range"] {
 .crisisCard p {
   margin: 0;
 }
+
+.sudTrend {
+  color: #d8c692;
+  flex: none;
+}
+
+.targetList > .targetRow {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}

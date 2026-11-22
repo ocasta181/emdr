@@ -151,6 +151,9 @@ export class GuideService {
         finalDisturbance: proposal.finalDisturbance,
         notes: proposal.notes
       });
+      if (proposal.finalDisturbance !== undefined) {
+        this.targets.recordDisturbance(result.targetId, proposal.finalDisturbance);
+      }
       return { result, workflow: this.sessions.currentSessionWorkflow() };
     });
   }
