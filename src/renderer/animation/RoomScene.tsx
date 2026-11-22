@@ -22,7 +22,8 @@ export function RoomScene({
   stimulationPath,
   onObjectSelected,
   onGuideActionComplete,
-  onStimulationCycle
+  onStimulationCycle,
+  onStimulationBeat
 }: {
   mode: RoomMode;
   guideAnimation: GuideAnimationIntent;
@@ -34,11 +35,14 @@ export function RoomScene({
   onObjectSelected: (objectId: RoomObjectId) => void;
   onGuideActionComplete: (action: GuideAction) => void;
   onStimulationCycle: (cycleCount: number) => void;
+  /** Fires each time the light reaches a side, for audio bilateral stimulation. */
+  onStimulationBeat?: (side: "left" | "right") => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
   const cycleRef = useRef(onStimulationCycle);
+  const beatRef = useRef(onStimulationBeat);
   const runtimeRef = useRef({
     mode,
     guideAnimation,
@@ -51,6 +55,7 @@ export function RoomScene({
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
   cycleRef.current = onStimulationCycle;
+  beatRef.current = onStimulationBeat;
   runtimeRef.current = {
     mode,
     guideAnimation,
@@ -168,6 +173,7 @@ export function RoomScene({
       let wasRunning = false;
       let phase = 0;
       let reportedCycles = 0;
+      let reportedBeats = 0;
       let stimulationY = 0;
 
       function placeSprite(sprite: Sprite, transform: ReturnType<typeof coverTransform>, rect: ArtRect) {
@@ -245,7 +251,9 @@ export function RoomScene({
         if (runtime.stimulationRunning && !wasRunning) {
           phase = 0;
           reportedCycles = 0;
+          reportedBeats = 0;
           cycleRef.current(0);
+          beatRef.current?.("left");
         }
         wasRunning = runtime.stimulationRunning;
 
@@ -263,6 +271,13 @@ export function RoomScene({
           orb.width = diameter;
           orb.height = diameter;
           orb.tint = runtime.stimulationColor;
+
+          // The light reaches the right side at odd multiples of π and the left at even ones.
+          const beats = Math.floor(phase / Math.PI);
+          if (beats !== reportedBeats) {
+            reportedBeats = beats;
+            beatRef.current?.(beats % 2 === 1 ? "right" : "left");
+          }
 
           const cycles = Math.floor(phase / (Math.PI * 2));
           if (cycles !== reportedCycles) {

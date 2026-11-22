@@ -48,6 +48,7 @@ import { SettingsPanel } from "../features/setting/SettingsPanel";
 import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
 import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAccess";
 import { stimulationColorHex } from "../animation/stimulationStyle";
+import { playBilateralTone } from "../animation/bilateralAudio";
 
 type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
@@ -68,7 +69,8 @@ const emptyViewData: AppViewData = {
       dotSize: "medium",
       dotColor: "green",
       path: "horizontal",
-      setLength: 24
+      setLength: 24,
+      audio: "off"
     }
   }
 };
@@ -599,6 +601,9 @@ export function AnimatedApp() {
         onObjectSelected={selectObject}
         onGuideActionComplete={handleGuideActionComplete}
         onStimulationCycle={handleStimulationCycle}
+        onStimulationBeat={(side) => {
+          if (settings.audio === "tones") playBilateralTone(side);
+        }}
       />
 
       <header className="animatedTopbar">

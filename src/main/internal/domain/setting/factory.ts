@@ -7,7 +7,8 @@ export function createDefaultSettings(): Settings {
       dotSize: "medium",
       dotColor: "green",
       path: "horizontal",
-      setLength: 24
+      setLength: 24,
+      audio: "off"
     }
   };
 }

@@ -12,6 +12,11 @@ import {
 // The preview strip is narrower than the room, so the dot is drawn at a third of its room size.
 const previewScale = 0.32;
 
+const audioModes: Array<{ value: BilateralStimulationSettings["audio"]; label: string }> = [
+  { value: "off", label: "Off" },
+  { value: "tones", label: "Left–right tones" }
+];
+
 const setLengths: Array<{ value: number; label: string }> = [
   { value: 0, label: "Manual" },
   { value: 24, label: "24" },
@@ -128,6 +133,25 @@ export function SettingsPanel({
                 onClick={() => onChange({ setLength: length.value })}
               >
                 {length.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="fieldGroup">
+          <span className="scaleLabel" id="audio-label">
+            Sound
+          </span>
+          <div className="segmented" role="radiogroup" aria-labelledby="audio-label">
+            {audioModes.map((mode) => (
+              <button
+                key={mode.value}
+                type="button"
+                role="radio"
+                aria-checked={settings.audio === mode.value}
+                className={settings.audio === mode.value ? "selected" : undefined}
+                onClick={() => onChange({ audio: mode.value })}
+              >
+                {mode.label}
               </button>
             ))}
           </div>
