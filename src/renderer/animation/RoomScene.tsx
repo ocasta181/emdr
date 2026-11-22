@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
-import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
+import { Application, Assets, Container, Graphics, Sprite, Text } from "pixi.js";
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
 import orbUrl from "../../../assets/animated-room/orb.svg?url";
+import { orbAngularSpeed, orbDiameter } from "./stimulationStyle";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
 
 type RoomMode = "idle" | "chat" | "session" | "stimulation";
+
 
 export function RoomScene({
   mode,
@@ -14,24 +16,37 @@ export function RoomScene({
   stimulationRunning,
   stimulationColor,
   stimulationSpeed,
+  stimulationSize,
   onObjectSelected,
-  onGuideActionComplete
+  onGuideActionComplete,
+  onStimulationCycle
 }: {
   mode: RoomMode;
   guideAnimation: GuideAnimationIntent;
   stimulationRunning: boolean;
   stimulationColor: string;
   stimulationSpeed: number;
+  stimulationSize: keyof typeof orbDiameter;
   onObjectSelected: (objectId: RoomObjectId) => void;
   onGuideActionComplete: (action: GuideAction) => void;
+  onStimulationCycle: (cycleCount: number) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
-  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed });
+  const cycleRef = useRef(onStimulationCycle);
+  const runtimeRef = useRef({
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationSpeed,
+    stimulationSize
+  });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
-  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed };
+  cycleRef.current = onStimulationCycle;
+  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed, stimulationSize };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -62,6 +77,13 @@ export function RoomScene({
       const background = new Graphics();
       const hill = new Graphics();
       const moon = new Graphics();
+      const hoverGlow = new Graphics();
+      const hoverLabel = new Text({
+        text: "",
+        style: { fill: "#efe7d4", fontSize: 14, fontFamily: "Inter, system-ui, sans-serif", letterSpacing: 0.4 }
+      });
+      hoverLabel.anchor.set(0.5, 1);
+      hoverLabel.visible = false;
       const orbTexture = await Assets.load(orbUrl);
       const guideCharacter = await GuideCharacter.load({
         onTargetBookSelected: () => callbackRef.current("targets"),
@@ -79,18 +101,26 @@ export function RoomScene({
 
       orb.anchor.set(0.5);
       orb.visible = false;
-      stage.addChild(background, moon, hill, guideCharacter.container);
+      stage.addChild(background, moon, hoverGlow, hill, guideCharacter.container);
       for (const firefly of fireflies) {
         stage.addChild(firefly.dot);
       }
-      stage.addChild(dimmer, orb);
+      stage.addChild(dimmer, orb, hoverLabel);
 
-      const hotspots: Array<{ id: RoomObjectId; label: string; draw: Graphics }> = [
-        { id: "guide", label: "Guide", draw: new Graphics() },
-        { id: "targets", label: "Targets", draw: new Graphics() },
-        { id: "history", label: "History", draw: new Graphics() },
-        { id: "settings", label: "Settings", draw: new Graphics() }
+      type Hotspot = {
+        id: RoomObjectId;
+        label: string;
+        draw: Graphics;
+        anchor: { x: number; y: number; rx: number; ry: number };
+      };
+
+      const hotspots: Hotspot[] = [
+        { id: "guide", label: "Guide", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
+        { id: "targets", label: "Targets", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
+        { id: "history", label: "History", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } },
+        { id: "settings", label: "Settings", draw: new Graphics(), anchor: { x: 0, y: 0, rx: 0, ry: 0 } }
       ];
+      let hovered: RoomObjectId | null = null;
 
       for (const hotspot of hotspots) {
         hotspot.draw.eventMode = "static";
@@ -99,12 +129,21 @@ export function RoomScene({
           event.stopPropagation();
           callbackRef.current(hotspot.id);
         });
+        hotspot.draw.on("pointerover", () => {
+          hovered = hotspot.id;
+        });
+        hotspot.draw.on("pointerout", () => {
+          if (hovered === hotspot.id) hovered = null;
+        });
         stage.addChild(hotspot.draw);
       }
 
       let elapsed = 0;
       let lastWidth = 0;
       let lastHeight = 0;
+      let wasRunning = false;
+      let phase = 0;
+      let reportedCycles = 0;
 
       function redraw() {
         const width = app.renderer.width;
@@ -144,28 +183,59 @@ export function RoomScene({
           size: Math.min(260, width * 0.23)
         });
 
-        const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
-        guideHotspot.clear();
-        guideHotspot.roundRect(width * 0.5 - 40, floorY - 230, 160, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
+        const byId = (id: RoomObjectId) => hotspots.find((item) => item.id === id)!;
 
-        const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
-        const targetBookBounds = guideCharacter.getTargetBookBounds();
-        targetHotspot.clear();
-        targetHotspot
-          .roundRect(targetBookBounds.x, targetBookBounds.y, targetBookBounds.width, targetBookBounds.height, 12)
+        const guideHotspot = byId("guide");
+        guideHotspot.draw.clear();
+        guideHotspot.draw.roundRect(width * 0.5 - 40, floorY - 230, 160, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
+        guideHotspot.anchor = { x: width * 0.5, y: floorY - 90, rx: 120, ry: 140 };
+
+        const historyHotspot = byId("history");
+        historyHotspot.draw.clear();
+        historyHotspot.draw.roundRect(historyX - 70, historyY - 34, 140, 92, 10).fill({ color: 0xffffff, alpha: 0.001 });
+        historyHotspot.anchor = { x: historyX, y: historyY + 11, rx: 96, ry: 54 };
+
+        const settingsHotspot = byId("settings");
+        settingsHotspot.draw.clear();
+        settingsHotspot.draw.roundRect(settingsX - 52, settingsY - 14, 104, 142, 10).fill({ color: 0xffffff, alpha: 0.001 });
+        settingsHotspot.anchor = { x: settingsX, y: settingsY + 40, rx: 76, ry: 92 };
+      }
+
+      function syncTargetHotspot() {
+        const targetHotspot = hotspots.find((item) => item.id === "targets")!;
+        const bounds = guideCharacter.getTargetBookBounds();
+        targetHotspot.draw.clear();
+        targetHotspot.draw
+          .roundRect(bounds.x, bounds.y, bounds.width, bounds.height, 12)
           .fill({ color: 0xffffff, alpha: 0.001 });
+        targetHotspot.draw.visible = bounds.visible;
+        targetHotspot.anchor = {
+          x: bounds.x + bounds.width / 2,
+          y: bounds.y + bounds.height / 2,
+          rx: bounds.width * 0.9,
+          ry: bounds.height * 0.9
+        };
+      }
 
-        const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
-        historyHotspot.clear();
-        historyHotspot.roundRect(historyX - 70, historyY - 34, 140, 92, 10).fill({ color: 0xffffff, alpha: 0.001 });
-
-        const settingsHotspot = hotspots.find((item) => item.id === "settings")!.draw;
-        settingsHotspot.clear();
-        settingsHotspot.roundRect(settingsX - 52, settingsY - 14, 104, 142, 10).fill({ color: 0xffffff, alpha: 0.001 });
+      function drawHover(running: boolean) {
+        hoverGlow.clear();
+        const hotspot = !running && hovered ? hotspots.find((item) => item.id === hovered) : undefined;
+        if (!hotspot || !hotspot.draw.visible) {
+          hoverLabel.visible = false;
+          return;
+        }
+        const { x, y, rx, ry } = hotspot.anchor;
+        const pulse = 0.5 + Math.sin(elapsed * 2.4) * 0.5;
+        hoverGlow.ellipse(x, y, rx, ry).fill({ color: "#d8c692", alpha: 0.05 + pulse * 0.03 });
+        hoverGlow.ellipse(x, y, rx * 0.7, ry * 0.7).fill({ color: "#d8c692", alpha: 0.05 + pulse * 0.03 });
+        hoverLabel.text = hotspot.label;
+        hoverLabel.position.set(x, y - ry - 6);
+        hoverLabel.visible = true;
       }
 
       app.ticker.add((ticker) => {
-        elapsed += ticker.deltaTime / 60;
+        const deltaSeconds = ticker.deltaMS / 1000;
+        elapsed += deltaSeconds;
 
         const width = app.renderer.width;
         const height = app.renderer.height;
@@ -181,7 +251,8 @@ export function RoomScene({
         guideCharacter.setFrame({
           alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
         });
-        hotspots.find((item) => item.id === "targets")!.draw.visible = guideCharacter.getTargetBookBounds().visible;
+        syncTargetHotspot();
+        drawHover(runtime.stimulationRunning);
 
         for (const firefly of fireflies) {
           const x = (Math.sin(elapsed * firefly.speed + firefly.xSeed) * 0.5 + 0.5) * width;
@@ -196,15 +267,30 @@ export function RoomScene({
           dimmer.rect(0, 0, width, height).fill({ color: 0x050505, alpha: 0.58 });
         }
 
+        if (runtime.stimulationRunning && !wasRunning) {
+          phase = 0;
+          reportedCycles = 0;
+          cycleRef.current(0);
+        }
+        wasRunning = runtime.stimulationRunning;
+
         orb.visible = runtime.stimulationRunning;
         if (runtime.stimulationRunning) {
+          // Phase accumulates so speed changes mid-set never make the orb jump.
+          phase += deltaSeconds * orbAngularSpeed * runtime.stimulationSpeed;
           const travel = width * 0.64;
-          const centerX = width * 0.5;
-          const x = centerX + Math.sin(elapsed * 1.55 * runtime.stimulationSpeed) * travel * 0.5;
+          const x = width * 0.5 - Math.cos(phase) * travel * 0.5;
+          const diameter = orbDiameter[runtime.stimulationSize] ?? orbDiameter.medium;
           orb.position.set(x, height * 0.36);
-          orb.width = 70;
-          orb.height = 70;
+          orb.width = diameter;
+          orb.height = diameter;
           orb.tint = runtime.stimulationColor;
+
+          const cycles = Math.floor(phase / (Math.PI * 2));
+          if (cycles !== reportedCycles) {
+            reportedCycles = cycles;
+            cycleRef.current(cycles);
+          }
         }
       });
     }

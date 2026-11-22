@@ -15,7 +15,7 @@ export function createVaultFileDialogs(): VaultFileDialogs {
 
     async chooseImportPath() {
       const result = await dialog.showOpenDialog({
-        title: "Import Encrypted Data",
+        title: "Import encrypted data",
         properties: ["openFile"],
         filters: [{ name: "EMDR Local Encrypted Data", extensions: ["emdr-vault"] }]
       });

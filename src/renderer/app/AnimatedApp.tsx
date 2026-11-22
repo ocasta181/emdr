@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState, type FormEvent } from "react";
+import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { RoomScene, type RoomObjectId } from "../animation/RoomScene";
 import type { GuideAction, GuideAnimationIntent } from "../animation/guideAnimationModel";
 import {
@@ -42,11 +42,12 @@ import {
   initialAnimatedRoomState,
   transitionAnimatedRoomState
 } from "./animatedRoomMachine";
-import { ActiveSessionChat, IdleGuideChat } from "../features/guide/GuidePanel";
+import { ActiveSessionChat, IdleGuideChat, type CompletedSessionSummary, type ChatMessage } from "../features/guide/GuidePanel";
 import { HistoryPanel } from "../features/session/HistoryPanel";
 import { SettingsPanel } from "../features/setting/SettingsPanel";
 import { TargetsPanel, type TargetEditorState } from "../features/target/TargetsPanel";
 import { RecoveryCode, VaultSetup, VaultUnlock } from "../features/vault/VaultAccess";
+import { stimulationColorHex } from "../animation/stimulationStyle";
 
 type AuthState = "checking" | "setup" | "recovery" | "locked" | "ready";
 
@@ -55,13 +56,6 @@ type AppViewData = {
   allTargets: Target[];
   sessions: SessionAggregate[];
   settings: Settings;
-};
-
-const dotColorHex: Record<BilateralStimulationSettings["dotColor"], string> = {
-  green: "#6dd07a",
-  blue: "#6ec1e4",
-  white: "#f3f3f3",
-  orange: "#ff9b50"
 };
 
 const emptyViewData: AppViewData = {
@@ -89,7 +83,10 @@ export function AnimatedApp() {
   const [guideView, setGuideView] = useState<GuideView | null>(null);
   const [guideProposals, setGuideProposals] = useState<GuideActionProposal[]>([]);
   const [chatDraft, setChatDraft] = useState("");
-  const [chatMessages, setChatMessages] = useState<string[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [completedSession, setCompletedSession] = useState<CompletedSessionSummary | null>(null);
+  const [cycleCount, setCycleCount] = useState(0);
+  const cycleCountRef = useRef(0);
   const [vaultNotice, setVaultNotice] = useState("");
 
   useEffect(() => {
@@ -174,6 +171,7 @@ export function AnimatedApp() {
 
   function resetTransientRendererState() {
     dispatchRoomEvent({ type: "reset_room" });
+    setCompletedSession(null);
     setEditingTarget(null);
     setGuideAnimation({ type: "action", action: "speak" });
     setGuideProposals([]);
@@ -205,6 +203,7 @@ export function AnimatedApp() {
   }
 
   async function beginSession(target: Target) {
+    setCompletedSession(null);
     if (sessionWorkflow.state === "idle" || sessionWorkflow.state === "post_session") {
       setSessionWorkflow(await advanceSessionFlow("start_session"));
     }
@@ -237,6 +236,11 @@ export function AnimatedApp() {
       throw new Error(result.reason);
     }
     setSessionWorkflow(await advanceSessionFlow("return_to_idle", activeSession.id));
+    setCompletedSession({
+      setCount: activeSession.stimulationSets.length,
+      startSud: activeSession.assessment.disturbance,
+      endSud: patch.finalDisturbance
+    });
     await refreshViewData();
     await refreshGuideView();
     setActiveSession(null);
@@ -298,6 +302,12 @@ export function AnimatedApp() {
     dispatchRoomEvent({ type: objectId === "settings" ? "select_settings" : "select_history" });
   }
 
+  async function beginGuidedSession(target: Target) {
+    await beginSession(target);
+    dispatchRoomEvent({ type: "select_guide" });
+    setGuideAnimation({ type: "action", action: "speak" });
+  }
+
   async function openGuidePanel() {
     if (stimulationRunning) {
       await pauseActiveStimulation();
@@ -342,7 +352,7 @@ export function AnimatedApp() {
       type: "log_stimulation_set",
       sessionId: activeSession.id,
       workflowState: sessionWorkflow.state,
-      cycleCount: 24,
+      cycleCount: Math.max(1, cycleCountRef.current),
       observation: ""
     });
     if (!result.accepted) {
@@ -412,17 +422,52 @@ export function AnimatedApp() {
     event.preventDefault();
     const message = chatDraft.trim();
     if (!message) return;
-    setChatMessages((current) => current.concat(message));
+    setChatMessages((current) => current.concat({ role: "user", text: message }));
     setChatDraft("");
     try {
       const response = await sendGuideMessage(message, activeSession?.id);
-      setChatMessages((current) => current.concat(response.messages));
+      setChatMessages((current) =>
+        current.concat(response.messages.map((text) => ({ role: "guide" as const, text })))
+      );
       setGuideProposals(response.proposals);
     } catch {
-      setChatMessages((current) => current.concat("The local guide is unavailable right now."));
+      setChatMessages((current) => current.concat({ role: "guide", text: "The local guide is unavailable right now." }));
       setGuideProposals([]);
     }
   }
+
+  function handleStimulationCycle(count: number) {
+    cycleCountRef.current = count;
+    setCycleCount(count);
+  }
+
+  // Keyboard: Space starts or pauses a set, Escape pauses a running set or closes the open panel.
+  const keyboardRef = useRef<(event: KeyboardEvent) => void>(() => undefined);
+  keyboardRef.current = (event: KeyboardEvent) => {
+    if (authState !== "ready" || event.metaKey || event.ctrlKey || event.altKey) return;
+    const target = event.target as HTMLElement | null;
+    const typing = Boolean(target?.closest("input, textarea, select, [contenteditable='true']"));
+    if (event.key === "Escape") {
+      if (stimulationRunning) {
+        event.preventDefault();
+        void pauseActiveStimulation();
+      } else if (panel) {
+        event.preventDefault();
+        closePanel();
+      }
+      return;
+    }
+    if (event.key === " " && !typing && !target?.closest("button") && canToggleStimulation) {
+      event.preventDefault();
+      void toggleStimulation();
+    }
+  };
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => keyboardRef.current(event);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
 
   function handleGuideActionComplete(action: GuideAction) {
     if (action === "flip_through_book" || action === "write_in_book") {
@@ -430,8 +475,69 @@ export function AnimatedApp() {
     }
   }
 
+  const panel = animatedPanelForState(roomState);
+  const stimulationRunning = animatedRoomStimulationRunning(roomState);
+
+  const panelClass = [
+    "animatedPanel",
+    panel ? `animatedPanel-${panel}` : "",
+    panel === "chat" && activeSession ? "animatedPanel-session" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+  // Async actions are fired from many handlers; surface any failure instead of dropping it silently.
+  const [actionError, setActionError] = useState<string | null>(null);
+  useEffect(() => {
+    const onRejection = (event: PromiseRejectionEvent) => {
+      setActionError(readableError(event.reason));
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => window.removeEventListener("unhandledrejection", onRejection);
+  }, []);
+  useEffect(() => {
+    if (!actionError) return;
+    const timer = window.setTimeout(() => setActionError(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [actionError]);
+
+  // Move focus into a panel when it opens and hand it back when it closes, so keyboard users stay oriented.
+  const panelRef = useRef<HTMLElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const panelElement = panelRef.current;
+    if (panel && panelElement) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && !panelElement.contains(active) && active !== document.body) {
+        returnFocusRef.current = active;
+      }
+      if (!panelElement.contains(document.activeElement)) {
+        panelElement.focus({ preventScroll: true });
+      }
+      return;
+    }
+    const returnTarget = returnFocusRef.current;
+    returnFocusRef.current = null;
+    if (returnTarget?.isConnected) {
+      returnTarget.focus({ preventScroll: true });
+    }
+  }, [panel]);
+
+  const settings = viewData.settings.bilateralStimulation;
+  const allTargets = viewData.allTargets;
+  const targetById = new Map(allTargets.map((target) => [target.id, target] as const));
+  const targets = guideOrderedTargets(viewData.targets, targetById, viewData.sessions);
+  const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const canStartSetFromTarget = Boolean(
+    !activeSession && targets.length > 0 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
+  );
+  const canToggleStimulation = Boolean(
+    canStartSetFromTarget ||
+      (activeSession &&
+        (stimulationRunning || ["preparation", "stimulation", "interjection", "closure"].includes(sessionWorkflow.state)))
+  );
+
   if (authState === "checking") {
-    return <div className="boot">Loading local data...</div>;
+    return <div className="boot">Loading local data…</div>;
   }
 
   if (authState === "setup") {
@@ -453,27 +559,9 @@ export function AnimatedApp() {
     );
   }
 
-  const panel = animatedPanelForState(roomState);
-  const stimulationRunning = animatedRoomStimulationRunning(roomState);
-
   if (!guideView) {
-    return <div className="boot">Loading local data...</div>;
+    return <div className="boot">Loading local data…</div>;
   }
-
-  const panelClass = panel ? `animatedPanel animatedPanel-${panel}` : "animatedPanel";
-  const settings = viewData.settings.bilateralStimulation;
-  const allTargets = viewData.allTargets;
-  const targetById = new Map(allTargets.map((target) => [target.id, target] as const));
-  const targets = guideOrderedTargets(viewData.targets, targetById, viewData.sessions);
-  const sessionHistory = [...viewData.sessions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const canStartSetFromTarget = Boolean(
-    !activeSession && targets.length > 0 && ["idle", "target_selection", "post_session"].includes(sessionWorkflow.state)
-  );
-  const canToggleStimulation = Boolean(
-    canStartSetFromTarget ||
-      (activeSession &&
-        (stimulationRunning || ["preparation", "stimulation", "interjection", "closure"].includes(sessionWorkflow.state)))
-  );
 
   return (
     <div className={stimulationRunning ? "animatedApp stimulationActive" : "animatedApp"}>
@@ -481,40 +569,70 @@ export function AnimatedApp() {
         mode={stimulationRunning ? "stimulation" : panel === "chat" ? "chat" : "idle"}
         guideAnimation={guideAnimation}
         stimulationRunning={stimulationRunning}
-        stimulationColor={dotColorHex[settings.dotColor]}
+        stimulationColor={stimulationColorHex(settings.dotColor)}
         stimulationSpeed={settings.speed}
+        stimulationSize={settings.dotSize}
         onObjectSelected={selectObject}
         onGuideActionComplete={handleGuideActionComplete}
+        onStimulationCycle={handleStimulationCycle}
       />
 
       <header className="animatedTopbar">
-        <div>
+        <div className="topbarIdentity">
           <div className="brand">EMDR Local</div>
-          <div className="subtle">
-            {activeSession
-              ? `Session in progress · ${targetById.get(activeSession.targetId)?.description ?? "Unknown target"}`
-              : "Animated room"}
-          </div>
+          {activeSession && (
+            <div className="subtle">
+              Session in progress · {targetById.get(activeSession.targetId)?.description ?? "Unknown target"}
+            </div>
+          )}
         </div>
-        <div className="buttonRow">
-          <button onClick={() => void openGuidePanel()}>Guide</button>
-          {canToggleStimulation && (
-            <button onClick={toggleStimulation}>{stimulationButtonLabel(sessionWorkflow, stimulationRunning)}</button>
+        <div className="buttonRow topbarActions">
+          {/* The room objects are canvas-only; these give keyboard users the same doors and appear on focus. */}
+          {!stimulationRunning && (
+            <nav className="roomNav" aria-label="Room">
+              <button onClick={() => selectObject("targets")}>Targets</button>
+              <button onClick={() => selectObject("history")}>History</button>
+              <button onClick={() => selectObject("settings")}>Settings</button>
+            </nav>
           )}
           {stimulationRunning && (
-            <button onClick={() => dispatchRoomEvent({ type: "select_settings" })}>Ball settings</button>
+            <span className="cycleCounter" aria-live="off">
+              <strong>{cycleCount}</strong> {cycleCount === 1 ? "cycle" : "cycles"}
+            </span>
+          )}
+          {stimulationRunning && (
+            <button onClick={() => dispatchRoomEvent({ type: "select_settings" })}>Stimulation settings</button>
+          )}
+          <button onClick={() => void openGuidePanel()}>Guide</button>
+          {/* The open session panel carries its own set controls; avoid showing the same action twice. */}
+          {canToggleStimulation && !(panel === "chat" && activeSession && !stimulationRunning) && (
+            <button
+              className={stimulationRunning ? "primary pauseButton" : "primary"}
+              onClick={toggleStimulation}
+              title={stimulationRunning ? "Pause (Space or Esc)" : "Start (Space)"}
+            >
+              {stimulationButtonLabel(sessionWorkflow, stimulationRunning)}
+            </button>
           )}
         </div>
       </header>
 
       {panel && (
-        <aside className={panelClass}>
-          <button className="panelClose" aria-label="Close panel" onClick={closePanel}>
-            Close
-          </button>
+        <aside
+          className={panelClass}
+          ref={panelRef}
+          role="dialog"
+          aria-labelledby="animatedPanelTitle"
+          tabIndex={-1}
+        >
+          <div className="panelBar">
+            <h1 id="animatedPanelTitle">{panelTitle(panel)}</h1>
+            <button className="panelClose" aria-label="Close" title="Close (Esc)" onClick={closePanel}>
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
           {panel === "chat" && (
             <>
-              <h1>Guide</h1>
               {activeSession ? (
                 <ActiveSessionChat
                   session={activeSession}
@@ -538,6 +656,9 @@ export function AnimatedApp() {
               ) : (
                 <IdleGuideChat
                   guideView={guideView}
+                  completedSession={completedSession}
+                  suggestedTarget={targets[0]}
+                  onBegin={canStartSetFromTarget && targets[0] ? () => void beginGuidedSession(targets[0]) : undefined}
                   onOpenTargets={() => {
                     dispatchRoomEvent({ type: "select_targets" });
                     setGuideAnimation({ type: "book_state", bookState: "in_hand_open" });
@@ -550,6 +671,7 @@ export function AnimatedApp() {
           {panel === "targets" && (
             <TargetsPanel
               targets={targets}
+              inactiveTargets={viewData.allTargets.filter((target) => target.isCurrent && target.status !== "active")}
               editing={editingTarget}
               activeSessionTargetId={activeSession?.targetId}
               onAdd={addTarget}
@@ -557,7 +679,6 @@ export function AnimatedApp() {
               onCancelEdit={() => setEditingTarget(null)}
               onSave={saveTarget}
               onAnimate={(action) => setGuideAnimation({ type: "action", action })}
-              isAnimating={(action) => isGuideAnimationAction(guideAnimation, action)}
             />
           )}
 
@@ -575,9 +696,19 @@ export function AnimatedApp() {
               onExport={exportEncryptedData}
               onImport={importEncryptedData}
               onLock={lockEncryptedData}
+              showPreview={!stimulationRunning}
             />
           )}
         </aside>
+      )}
+
+      {actionError && (
+        <div className="appNotice" role="alert">
+          <span>{actionError}</span>
+          <button className="panelClose" aria-label="Dismiss" onClick={() => setActionError(null)}>
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
       )}
     </div>
   );
@@ -645,10 +776,24 @@ function sessionWorkTime(session: SessionAggregate) {
   return session.endedAt ?? session.startedAt;
 }
 
+function readableError(reason: unknown) {
+  const raw = reason instanceof Error ? reason.message : typeof reason === "string" ? reason : "";
+  // IPC errors arrive wrapped as "Error invoking remote method 'route': Error: message".
+  const message = raw.replace(/^Error invoking remote method '[^']*':\s*(?:\w*Error:\s*)?/, "").trim();
+  return message ? `That didn't work: ${message}` : "That didn't work. Please try again.";
+}
+
+function panelTitle(panel: NonNullable<ReturnType<typeof animatedPanelForState>>) {
+  if (panel === "chat") return "Guide";
+  if (panel === "targets") return "Targets";
+  if (panel === "history") return "History";
+  return "Settings";
+}
+
 function stimulationButtonLabel(workflow: SessionWorkflowSnapshot, running: boolean) {
-  if (running) return "Pause Set";
-  if (workflow.state === "interjection" || workflow.state === "closure") return "Continue Set";
-  return "Start Set";
+  if (running) return "Pause set";
+  if (workflow.state === "interjection" || workflow.state === "closure") return "Continue set";
+  return "Start set";
 }
 
 async function advanceSessionForStimulationStart(sessionId: string, workflow: SessionWorkflowSnapshot) {
@@ -662,10 +807,6 @@ async function advanceSessionForStimulationStart(sessionId: string, workflow: Se
     return advanceSessionFlow("continue_stimulation", sessionId);
   }
   throw new Error(`Cannot start stimulation from ${workflow.state}.`);
-}
-
-function isGuideAnimationAction(intent: GuideAnimationIntent, action: GuideAction) {
-  return intent.type === "action" && intent.action === action;
 }
 
 function targetPatchFrom(target: Target): Partial<Target> {
