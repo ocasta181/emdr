@@ -61,53 +61,60 @@ async function main() {
     phase = "load renderer";
     await window.loadFile(path.join(repoRoot, "dist/index.html"), { query: { ui: "animated" } });
     phase = "wait create password";
-    await waitForText(window, "Create Password");
+    await waitForText(window, "Create password");
 
     phase = "setup vault";
     await setControlValue(window, 0, "passphrase-123", "input");
     await setControlValue(window, 1, "passphrase-123", "input");
-    await clickButton(window, "Set Up");
-    await waitForText(window, "Recovery Key");
+    await clickButton(window, "Set up");
+    await waitForText(window, "Recovery key");
     await expectButtonPresent(window, "Continue", false);
     await clickCheckbox(window, "I saved this recovery key.");
     await expectButtonPresent(window, "Continue", true);
     await clickButton(window, "Continue");
-    await waitForText(window, "Open Targets");
+    await waitForText(window, "Open targets");
 
     phase = "create target";
-    await clickButton(window, "Open Targets");
-    await waitForText(window, "New Target");
-    await clickButton(window, "New Target");
-    await waitForText(window, "Save Version");
-    await expectButtonPresent(window, "Start Set", false);
+    await clickButton(window, "Open targets");
+    await waitForText(window, "New target");
+    await clickButton(window, "New target");
+    await waitForText(window, "Save target");
+    await expectButtonPresent(window, "Start set", false);
     await setFieldByLabel(window, "Description", "");
-    await clickButton(window, "Save Version");
+    await clickButton(window, "Save target");
     await waitForText(window, "Enter a target description.");
     await setFieldByLabel(window, "Description", "Electron workflow target");
     await setFieldByLabel(window, "Negative cognition", "I am stuck");
     await setFieldByLabel(window, "Positive cognition", "I can move");
-    await clickButton(window, "Save Version");
+    await clickButton(window, "Save target");
     await waitForText(window, "Electron workflow target");
-    await expectButtonPresent(window, "Start Set", true);
-    await clickButton(window, "New Target");
-    await waitForText(window, "Save Version");
+    await expectButtonPresent(window, "Start set", true);
+    await clickButton(window, "New target");
+    await waitForText(window, "Save target");
     await setFieldByLabel(window, "Description", "Second workflow target");
-    await clickButton(window, "Save Version");
+    await clickButton(window, "Save target");
     await waitForText(window, "Second workflow target");
-    await expectButtonPresent(window, "Start Set", true);
+    await expectButtonPresent(window, "Start set", true);
 
     phase = "start guide-prioritized stimulation";
-    await clickButton(window, "Start Set");
-    await waitForText(window, "Pause Set");
+    await clickButton(window, "Start set");
+    await waitForText(window, "Pause set");
     phase = "guide pauses stimulation";
     await clickButton(window, "Guide");
     await waitForText(window, "1 set logged");
+    phase = "guide asks for a set reflection";
+    await waitForText(window, "What do you notice now?");
+    await setFieldByLabel(window, "Your answer", "Calmer than before");
+    await clickButton(window, "Answer");
+    await pickScale(window, "Set SUD", "4");
     await waitForText(window, "Begin closure");
     phase = "guide proposal logs stimulation";
     await clickButton(window, "Continue set");
-    await waitForText(window, "Pause Set");
+    await waitForText(window, "Pause set");
     await clickButton(window, "Guide");
     await waitForText(window, "2 sets logged");
+    await clickButton(window, "Skip");
+    await clickButton(window, "Skip");
     await setFieldByLabel(window, "Note", "done with set");
     await clickButton(window, "Send");
     await waitForText(window, "Review proposed set");
@@ -115,26 +122,29 @@ async function main() {
     await waitForText(window, "2 sets logged");
     phase = "begin closure";
     await clickButton(window, "Begin closure");
-    await waitForText(window, "Closure");
+    await waitForStep(window, "Closure");
     phase = "request review";
     await clickButton(window, "Request review");
-    await waitForText(window, "Review");
-    await expectText(window, "Start Set", false);
-    await setFieldByLabel(window, "Final SUD", "2");
+    await waitForStep(window, "Review");
+    await expectText(window, "Start set", false);
+    await pickScale(window, "Final SUD", "2");
+    await clickButton(window, "Skip");
     phase = "end session";
     await clickButton(window, "End session");
     await waitForText(window, "Ready to continue");
     phase = "review history";
     await clickButton(window, "Close");
     await clickRoomHistory(window);
-    await waitForText(window, "SUD end 2");
+    await waitForSelector(window, `.sudChange[aria-label="SUD end 2"]`);
+    await window.webContents.executeJavaScript(`document.querySelector("button.historyRow").click()`, true);
+    await waitForText(window, "Calmer than before");
 
     phase = "export vault";
     const exportPath = path.join(tempDir, "workflow-export.emdr-vault");
     installVaultDialogStubs(exportPath);
     await clickButton(window, "Close");
     await clickRoomSettings(window);
-    await waitForText(window, "Ball Settings");
+    await waitForText(window, "Bilateral stimulation");
     await clickButton(window, "Export");
     await waitForFile(exportPath);
 
@@ -145,19 +155,19 @@ async function main() {
     phase = "unlock imported vault";
     await setControlValue(window, 0, "passphrase-123", "input");
     await clickButton(window, "Unlock");
-    await waitForText(window, "Open Targets");
-    await clickButton(window, "Open Targets");
+    await waitForText(window, "Open targets");
+    await clickButton(window, "Open targets");
     await waitForText(window, "Electron workflow target");
 
     phase = "start imported active session";
-    await clickButton(window, "Start Set");
-    await waitForText(window, "Pause Set");
+    await clickButton(window, "Start set");
+    await waitForText(window, "Pause set");
 
     phase = "export active vault";
     const activeExportPath = path.join(tempDir, "active-workflow-export.emdr-vault");
     installVaultDialogStubs(activeExportPath);
-    await clickButton(window, "Ball settings");
-    await waitForText(window, "Ball Settings");
+    await clickButton(window, "Stimulation settings");
+    await waitForText(window, "Bilateral stimulation");
     await clickButton(window, "Export");
     await waitForFile(activeExportPath);
 
@@ -169,14 +179,14 @@ async function main() {
     await setControlValue(window, 0, "passphrase-123", "input");
     await clickButton(window, "Unlock");
     await waitForText(window, "Session in progress");
-    await waitForText(window, "Preparation");
-    await expectText(window, "Pause Set", false);
-    await expectText(window, "Ball Settings", false);
+    await waitForStep(window, "Preparation");
+    await expectText(window, "Pause set", false);
+    await expectText(window, "Bilateral stimulation", false);
 
     phase = "lock from settings";
     await clickButton(window, "Close");
     await clickRoomSettings(window);
-    await waitForText(window, "Ball Settings");
+    await waitForText(window, "Bilateral stimulation");
     await clickButton(window, "Lock");
     await waitForText(window, "Unlock");
     await waitForText(window, "Encrypted data locked.");
@@ -207,7 +217,7 @@ async function clickRoomSettings(window) {
 }
 
 async function clickRoomHistory(window) {
-  await clickRoomPoint(window, 0.68, 0.75);
+  await clickRoomPoint(window, 0.78, 0.86);
 }
 
 async function clickRoomPoint(window, xFraction, yFraction) {
@@ -253,6 +263,33 @@ async function expectButtonPresent(window, label, expected) {
   if (present !== expected) {
     throw new Error(`Expected button "${label}" present=${expected}, got ${present}.`);
   }
+}
+
+async function pickScale(window, label, value) {
+  await window.webContents.executeJavaScript(
+    `(${domHelpers})().pickScale(${JSON.stringify(label)}, ${JSON.stringify(value)})`,
+    true
+  );
+}
+
+async function waitForStep(window, label, timeoutMs = 5000) {
+  await waitForSelector(window, `.sessionStepper [aria-current="step"]`, timeoutMs, label);
+}
+
+async function waitForSelector(window, selector, timeoutMs = 5000, text) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const found = await window.webContents.executeJavaScript(
+      `(() => {
+        const element = document.querySelector(${JSON.stringify(selector)});
+        return Boolean(element) && (${JSON.stringify(text ?? null)} === null || element.textContent === ${JSON.stringify(text ?? null)});
+      })()`,
+      true
+    );
+    if (found) return;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(`Timed out waiting for ${selector}${text ? ` with text "${text}"` : ""}.`);
 }
 
 async function clickCheckbox(window, label) {
@@ -305,7 +342,9 @@ function domHelpers() {
   const normalize = (value) => value.replace(/\s+/g, " ").trim();
 
   function buttonByLabel(label) {
-    const button = [...document.querySelectorAll("button")].find((item) => normalize(item.textContent ?? "") === label);
+    const button = [...document.querySelectorAll("button")].find(
+      (item) => normalize(item.textContent ?? "") === label || item.getAttribute("aria-label") === label
+    );
     if (!button) {
       throw new Error(`Button not found: ${label}`);
     }
@@ -325,7 +364,19 @@ function domHelpers() {
     },
 
     hasButton(label) {
-      return [...document.querySelectorAll("button")].some((item) => normalize(item.textContent ?? "") === label);
+      return [...document.querySelectorAll("button")].some(
+        (item) => normalize(item.textContent ?? "") === label || item.getAttribute("aria-label") === label
+      );
+    },
+
+    pickScale(label, value) {
+      const scaleLabel = [...document.querySelectorAll(".scaleLabel")].find((item) => normalize(item.textContent ?? "") === label);
+      const group = scaleLabel && document.querySelector(`[aria-labelledby="${scaleLabel.id}"]`);
+      const option = group && [...group.querySelectorAll("button")].find((item) => normalize(item.textContent ?? "") === value);
+      if (!option) {
+        throw new Error(`Scale option not found: ${label} ${value}`);
+      }
+      option.click();
     },
 
     clickCheckbox(label) {

@@ -7,10 +7,12 @@ export class SettingService {
   constructor(private readonly repo: SQLBaseRepository<Setting>) {}
 
   getSettings(): Settings {
+    const defaults = createDefaultSettings();
     const row = this.repo.find("bilateralStimulation");
+    // Merge over defaults so settings saved before a field existed still get its default.
     return {
-      ...createDefaultSettings(),
-      ...(row ? { bilateralStimulation: JSON.parse(row.valueJson) } : {})
+      ...defaults,
+      bilateralStimulation: { ...defaults.bilateralStimulation, ...(row ? JSON.parse(row.valueJson) : {}) }
     };
   }
 

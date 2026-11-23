@@ -38,6 +38,7 @@ export const sessionStateGraph = [
   {
     state: "interjection",
     edges: [
+      { action: "record_set_observation", to: "interjection" },
       { action: "continue_stimulation", to: "stimulation" },
       { action: "request_grounding", to: "interjection" },
       { action: "begin_closure", to: "closure" }

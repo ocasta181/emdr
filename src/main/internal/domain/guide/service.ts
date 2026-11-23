@@ -8,6 +8,7 @@ import type {
   GuideAgentResponse,
   GuideMessageRequest,
   GuideSessionFlowAction,
+  GuideSessionFlowState,
   GuideSessionFlowValidator,
   GuideSessionMutator,
   GuideSessionReader,
@@ -50,7 +51,7 @@ export class GuideService {
     return {
       mode: "session",
       targetCount: currentTargets.length,
-      messages: [`Started session for "${targetDescription}".`],
+      messages: [sessionStepMessage(workflow.state)],
       activeSession: {
         sessionId: session.id,
         targetId: session.targetId,
@@ -130,11 +131,29 @@ export class GuideService {
       });
     }
 
+    if (proposal.type === "record_set_observation") {
+      return this.applyActiveSessionProposal(proposal, "record_set_observation", () => {
+        const result = this.stimulationSets.recordObservation({
+          sessionId: proposal.sessionId,
+          setId: proposal.setId,
+          observation: proposal.observation,
+          disturbance: proposal.disturbance
+        });
+        return {
+          result,
+          workflow: this.sessions.currentSessionWorkflow()
+        };
+      });
+    }
+
     return this.applyActiveSessionProposal(proposal, "close_session", () => {
       const result = this.sessions.endSession(proposal.sessionId, {
         finalDisturbance: proposal.finalDisturbance,
         notes: proposal.notes
       });
+      if (proposal.finalDisturbance !== undefined) {
+        this.targets.recordDisturbance(result.targetId, proposal.finalDisturbance);
+      }
       return { result, workflow: this.sessions.currentSessionWorkflow() };
     });
   }
@@ -204,16 +223,31 @@ function idleGuideView(targets: GuideTargetSummary[]): GuideView {
     targetCount,
     messages: [
       targetCount === 0
-        ? "We have no targets yet. Open Targets to add the first one."
-        : targetCount === 1
-          ? `Ready to continue with "${nextTarget?.description ?? "the active target"}".`
-          : `Ready to continue with the guide-prioritized target across ${targetCount} active targets.`
+        ? "We have no targets yet. Open targets to add the first one."
+        : `Ready to continue with "${nextTarget?.description ?? "the active target"}".`
     ],
     primaryAction: {
       type: "open_targets",
-      label: "Open Targets"
+      label: "Open targets"
     }
   };
+}
+
+function sessionStepMessage(state: GuideSessionFlowState) {
+  switch (state) {
+    case "preparation":
+      return "Let's prepare. I'll ask a few short questions. Answer in your own words, or skip any of them.";
+    case "stimulation":
+      return "Follow the light with your eyes and let whatever comes up come up.";
+    case "interjection":
+      return "Let's pause here.";
+    case "closure":
+      return "Let's bring this to a calm close. Take your time, and request review when you feel settled.";
+    case "review":
+      return "One last look before we finish.";
+    default:
+      return "The session is ready when you are.";
+  }
 }
 
 function fallbackGuideMessage(view: GuideView) {
@@ -221,5 +255,5 @@ function fallbackGuideMessage(view: GuideView) {
     return "I noted that. Continue with the current session controls when you are ready.";
   }
 
-  return view.messages[0] ?? "Open Targets to choose what to work on.";
+  return view.messages[0] ?? "Open targets to choose what to work on.";
 }

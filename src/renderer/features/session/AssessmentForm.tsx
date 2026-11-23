@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Assessment } from "../../../shared/types";
-import { optionalNumber } from "../../../../utils";
+import { ScaleInput, sudAnchors, vocAnchors } from "../../components/ScaleInput";
 
 export function AssessmentForm({
   assessment,
@@ -45,28 +45,8 @@ export function AssessmentForm({
           onChange={(event) => set("positiveCognition", event.target.value)}
         />
       </label>
-      <div className="twoCol">
-        <label>
-          VOC
-          <input
-            type="number"
-            min="1"
-            max="7"
-            value={draft.believability ?? ""}
-            onChange={(event) => set("believability", optionalNumber(event.target.value))}
-          />
-        </label>
-        <label>
-          SUD
-          <input
-            type="number"
-            min="0"
-            max="10"
-            value={draft.disturbance ?? ""}
-            onChange={(event) => set("disturbance", optionalNumber(event.target.value))}
-          />
-        </label>
-      </div>
+      <ScaleInput label="VOC" anchors={vocAnchors} min={1} max={7} value={draft.believability} onChange={(value) => set("believability", value)} />
+      <ScaleInput label="SUD" anchors={sudAnchors} min={0} max={10} value={draft.disturbance} onChange={(value) => set("disturbance", value)} />
       <label>
         Emotions
         <input value={draft.emotions ?? ""} onChange={(event) => set("emotions", event.target.value)} />
@@ -77,7 +57,7 @@ export function AssessmentForm({
       </label>
       <div className="buttonRow">
         <button type="submit">Save assessment</button>
-        <button type="button" onClick={() => onApprove(draft)}>
+        <button type="button" className="primary" onClick={() => onApprove(draft)}>
           Approve assessment
         </button>
       </div>

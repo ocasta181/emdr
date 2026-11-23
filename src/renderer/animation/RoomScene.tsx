@@ -1,12 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Application, Assets, Container, Graphics, Sprite } from "pixi.js";
+import { Application, Assets, ColorMatrixFilter, Container, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import type { GuideAction, GuideAnimationIntent } from "./guideAnimationModel";
 import { GuideCharacter } from "./guideCharacter";
-import orbUrl from "../../../assets/animated-room/orb.svg?url";
+import roomUrl from "../../../assets/animated-room/painted/room.jpg?url";
+import orbUrl from "../../../assets/animated-room/painted/orb.jpg?url";
+import { orbAngularSpeed, orbDiameter, pathLift, type StimulationPath } from "./stimulationStyle";
+import { coverTransform, rectToScreen, roomRegions, toScreen, type ArtRect } from "./paintedRoom";
 
 export type RoomObjectId = "guide" | "targets" | "history" | "settings";
 
 type RoomMode = "idle" | "chat" | "session" | "stimulation";
+
 
 export function RoomScene({
   mode,
@@ -14,24 +18,53 @@ export function RoomScene({
   stimulationRunning,
   stimulationColor,
   stimulationSpeed,
+  stimulationSize,
+  stimulationPath,
   onObjectSelected,
-  onGuideActionComplete
+  onGuideActionComplete,
+  onStimulationCycle,
+  onStimulationBeat
 }: {
   mode: RoomMode;
   guideAnimation: GuideAnimationIntent;
   stimulationRunning: boolean;
   stimulationColor: string;
   stimulationSpeed: number;
+  stimulationSize: keyof typeof orbDiameter;
+  stimulationPath: StimulationPath;
   onObjectSelected: (objectId: RoomObjectId) => void;
   onGuideActionComplete: (action: GuideAction) => void;
+  onStimulationCycle: (cycleCount: number) => void;
+  /** Fires each time the light reaches a side, for audio bilateral stimulation. */
+  onStimulationBeat?: (side: "left" | "right") => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const callbackRef = useRef(onObjectSelected);
   const actionCompleteRef = useRef(onGuideActionComplete);
-  const runtimeRef = useRef({ mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed });
+  const cycleRef = useRef(onStimulationCycle);
+  const beatRef = useRef(onStimulationBeat);
+  const runtimeRef = useRef({
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationSpeed,
+    stimulationSize,
+    stimulationPath
+  });
   callbackRef.current = onObjectSelected;
   actionCompleteRef.current = onGuideActionComplete;
-  runtimeRef.current = { mode, guideAnimation, stimulationRunning, stimulationColor, stimulationSpeed };
+  cycleRef.current = onStimulationCycle;
+  beatRef.current = onStimulationBeat;
+  runtimeRef.current = {
+    mode,
+    guideAnimation,
+    stimulationRunning,
+    stimulationColor,
+    stimulationSpeed,
+    stimulationSize,
+    stimulationPath
+  };
 
   useEffect(() => {
     const host = hostRef.current;
@@ -59,119 +92,146 @@ export function RoomScene({
       const stage = new Container();
       app.stage.addChild(stage);
 
-      const background = new Graphics();
-      const hill = new Graphics();
-      const moon = new Graphics();
-      const orbTexture = await Assets.load(orbUrl);
+      // Everything visible is a generated painting; nothing is drawn with vector graphics.
+      const roomTexture = await Assets.load<Texture>(roomUrl);
+      const orbTexture = await Assets.load<Texture>(orbUrl);
       const guideCharacter = await GuideCharacter.load({
         onTargetBookSelected: () => callbackRef.current("targets"),
         onActionComplete: (action) => actionCompleteRef.current(action)
       });
+
+      const cropTexture = (rect: ArtRect) =>
+        new Texture({ source: roomTexture.source, frame: new Rectangle(rect.x, rect.y, rect.width, rect.height) });
+
+      const scene = new Container();
+      const painting = new Sprite(roomTexture);
+      const lantern = new Sprite(cropTexture(roomRegions.lantern));
+      const lanternWindow = new Sprite(cropTexture(roomRegions.lanternWindow));
+      lanternWindow.blendMode = "add";
+      const chest = new Sprite(cropTexture(roomRegions.chest));
+      scene.addChild(painting, lantern, chest, lanternWindow);
+
+      // During a set the scene recedes so the light is the only thing that holds attention.
+      const dim = new ColorMatrixFilter();
+      dim.brightness(0.42, false);
+
       const orb = new Sprite(orbTexture);
-      const dimmer = new Graphics();
-      const fireflies = Array.from({ length: 18 }, (_, index) => ({
-        xSeed: Math.random() * 1000,
-        ySeed: Math.random() * 1000,
-        speed: 0.35 + Math.random() * 0.75,
-        dot: new Graphics(),
-        index
-      }));
-
       orb.anchor.set(0.5);
+      orb.blendMode = "add";
       orb.visible = false;
-      stage.addChild(background, moon, hill, guideCharacter.container);
-      for (const firefly of fireflies) {
-        stage.addChild(firefly.dot);
-      }
-      stage.addChild(dimmer, orb);
 
-      const hotspots: Array<{ id: RoomObjectId; label: string; draw: Graphics }> = [
-        { id: "guide", label: "Guide", draw: new Graphics() },
-        { id: "targets", label: "Targets", draw: new Graphics() },
-        { id: "history", label: "History", draw: new Graphics() },
-        { id: "settings", label: "Settings", draw: new Graphics() }
+      const hoverLabel = new Text({
+        text: "",
+        style: {
+          fill: "#efe7d4",
+          fontSize: 14,
+          fontFamily: "Inter, system-ui, sans-serif",
+          letterSpacing: 0.4,
+          dropShadow: { color: "#000000", alpha: 0.7, blur: 6, distance: 0 }
+        }
+      });
+      hoverLabel.anchor.set(0.5, 1);
+      hoverLabel.visible = false;
+
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+
+      type Hotspot = { id: RoomObjectId; label: string; target: Container; highlight?: Sprite };
+      const guideHit = new Container();
+      const bookHit = new Container();
+      const hotspots: Hotspot[] = [
+        { id: "guide", label: "Guide", target: guideHit },
+        { id: "targets", label: "Targets", target: bookHit },
+        { id: "history", label: "History", target: chest, highlight: chest },
+        { id: "settings", label: "Settings", target: lantern, highlight: lantern }
       ];
+      const highlight = new ColorMatrixFilter();
+      highlight.brightness(1.3, false);
+      let hovered: Hotspot | null = null;
 
       for (const hotspot of hotspots) {
-        hotspot.draw.eventMode = "static";
-        hotspot.draw.cursor = "pointer";
-        hotspot.draw.on("pointertap", (event) => {
+        hotspot.target.eventMode = "static";
+        hotspot.target.cursor = "pointer";
+        hotspot.target.on("pointertap", (event) => {
           event.stopPropagation();
           callbackRef.current(hotspot.id);
         });
-        stage.addChild(hotspot.draw);
+        hotspot.target.on("pointerover", () => {
+          hovered = hotspot;
+        });
+        hotspot.target.on("pointerout", () => {
+          if (hovered === hotspot) hovered = null;
+        });
       }
+
+      const world = new Container();
+      world.addChild(scene, guideCharacter.container);
+      stage.addChild(world, guideHit, bookHit, orb, hoverLabel);
 
       let elapsed = 0;
       let lastWidth = 0;
       let lastHeight = 0;
+      let wasRunning = false;
+      let phase = 0;
+      let reportedCycles = 0;
+      let reportedBeats = 0;
+      let stimulationY = 0;
 
-      function redraw() {
+      function placeSprite(sprite: Sprite, transform: ReturnType<typeof coverTransform>, rect: ArtRect) {
+        const screen = rectToScreen(transform, rect);
+        sprite.position.set(screen.x, screen.y);
+        sprite.width = screen.width;
+        sprite.height = screen.height;
+      }
+
+      function layout() {
         const width = app.renderer.width;
         const height = app.renderer.height;
-        const floorY = height * 0.78;
-        const historyX = width * 0.68;
-        const historyY = height * 0.78;
-        const settingsX = width * 0.84;
-        const settingsY = height * 0.56;
+        const transform = coverTransform(width, height);
 
-        background.clear();
-        background.rect(0, 0, width, height).fill("#171614");
-        background.rect(0, 0, width, height * 0.62).fill("#23353a");
-        background.rect(0, height * 0.44, width, height * 0.56).fill("#2a2a23");
-        background.rect(0, height * 0.64, width, height * 0.36).fill("#1d1b18");
+        painting.position.set(transform.offsetX, transform.offsetY);
+        painting.scale.set(transform.scale);
+        placeSprite(lantern, transform, roomRegions.lantern);
+        placeSprite(chest, transform, roomRegions.chest);
+        placeSprite(lanternWindow, transform, roomRegions.lanternWindow);
 
-        moon.clear();
-        moon.circle(width * 0.78, height * 0.19, Math.max(38, width * 0.038)).fill({ color: "#e7dfc9", alpha: 0.82 });
-        moon.circle(width * 0.765, height * 0.18, Math.max(42, width * 0.043)).fill({ color: "#23353a", alpha: 0.38 });
+        const baseline = toScreen(transform, roomRegions.guideBaseline);
+        const guideSize = roomRegions.guideSize * transform.scale;
+        guideCharacter.layout({ x: baseline.x, baselineY: baseline.y, size: guideSize });
+        guideHit.hitArea = new Rectangle(baseline.x - guideSize * 0.3, baseline.y - guideSize * 0.95, guideSize * 0.6, guideSize * 0.95);
 
-        hill.clear();
-        hill.ellipse(width * 0.5, floorY + 40, width * 0.42, height * 0.15).fill("#302f28");
-        hill.ellipse(width * 0.5, floorY + 26, width * 0.34, height * 0.1).fill("#3d3a31");
-        hill.roundRect(settingsX - 40, settingsY - 4, 80, 120, 8).fill("#383229");
-        hill.roundRect(settingsX - 30, settingsY + 52, 60, 62, 8).fill("#40372d");
-        hill.circle(settingsX, settingsY + 18, 31).fill("#5a4a32");
-        hill.circle(settingsX - 8, settingsY + 10, 20).fill({ color: "#d8c692", alpha: 0.08 });
-        hill.ellipse(historyX, historyY + 32, 72, 16).fill({ color: "#080807", alpha: 0.2 });
-        hill.roundRect(historyX - 54, historyY - 18, 108, 58, 8).fill("#3f2f27");
-        hill.roundRect(historyX - 48, historyY - 13, 96, 48, 5).fill("#4a382e");
-        hill.rect(historyX - 48, historyY - 3, 96, 5).fill({ color: "#d8c692", alpha: 0.14 });
-        hill.rect(historyX - 36, historyY + 12, 66, 4).fill({ color: "#d8c692", alpha: 0.12 });
+        stimulationY = toScreen(transform, { x: 0, y: roomRegions.stimulationY }).y;
+      }
 
-        guideCharacter.layout({
-          x: width * 0.5,
-          baselineY: floorY + 10,
-          size: Math.min(260, width * 0.23)
-        });
+      function syncBookHotspot() {
+        const bounds = guideCharacter.getTargetBookBounds();
+        bookHit.hitArea = new Rectangle(bounds.x, bounds.y, bounds.width, bounds.height);
+        bookHit.visible = bounds.visible;
+      }
 
-        const guideHotspot = hotspots.find((item) => item.id === "guide")!.draw;
-        guideHotspot.clear();
-        guideHotspot.roundRect(width * 0.5 - 40, floorY - 230, 160, 250, 24).fill({ color: 0xffffff, alpha: 0.001 });
-
-        const targetHotspot = hotspots.find((item) => item.id === "targets")!.draw;
-        const targetBookBounds = guideCharacter.getTargetBookBounds();
-        targetHotspot.clear();
-        targetHotspot
-          .roundRect(targetBookBounds.x, targetBookBounds.y, targetBookBounds.width, targetBookBounds.height, 12)
-          .fill({ color: 0xffffff, alpha: 0.001 });
-
-        const historyHotspot = hotspots.find((item) => item.id === "history")!.draw;
-        historyHotspot.clear();
-        historyHotspot.roundRect(historyX - 70, historyY - 34, 140, 92, 10).fill({ color: 0xffffff, alpha: 0.001 });
-
-        const settingsHotspot = hotspots.find((item) => item.id === "settings")!.draw;
-        settingsHotspot.clear();
-        settingsHotspot.roundRect(settingsX - 52, settingsY - 14, 104, 142, 10).fill({ color: 0xffffff, alpha: 0.001 });
+      function syncHover(running: boolean) {
+        lantern.filters = null;
+        chest.filters = null;
+        const hotspot = !running && hovered && hovered.target.visible ? hovered : null;
+        if (!hotspot) {
+          hoverLabel.visible = false;
+          return;
+        }
+        if (hotspot.highlight) hotspot.highlight.filters = [highlight];
+        const bounds = hotspot.target.hitArea instanceof Rectangle ? hotspot.target.hitArea : hotspot.target.getBounds();
+        hoverLabel.text = hotspot.label;
+        hoverLabel.position.set(bounds.x + bounds.width / 2, bounds.y - 6);
+        hoverLabel.visible = true;
       }
 
       app.ticker.add((ticker) => {
-        elapsed += ticker.deltaTime / 60;
+        const deltaSeconds = ticker.deltaMS / 1000;
+        if (!reducedMotion?.matches) elapsed += deltaSeconds;
 
         const width = app.renderer.width;
         const height = app.renderer.height;
         const runtime = runtimeRef.current;
         if (width !== lastWidth || height !== lastHeight) {
-          redraw();
+          layout();
           lastWidth = width;
           lastHeight = height;
         }
@@ -179,32 +239,51 @@ export function RoomScene({
         guideCharacter.sync(runtime.guideAnimation);
         guideCharacter.syncTargetBookVisibility();
         guideCharacter.setFrame({
-          alpha: runtime.stimulationRunning ? 0.3 : runtime.mode === "idle" ? 0.92 : 1
+          alpha: runtime.stimulationRunning ? 0.6 : runtime.mode === "idle" ? 0.95 : 1
         });
-        hotspots.find((item) => item.id === "targets")!.draw.visible = guideCharacter.getTargetBookBounds().visible;
+        syncBookHotspot();
+        syncHover(runtime.stimulationRunning);
 
-        for (const firefly of fireflies) {
-          const x = (Math.sin(elapsed * firefly.speed + firefly.xSeed) * 0.5 + 0.5) * width;
-          const y = height * 0.22 + (Math.cos(elapsed * firefly.speed + firefly.ySeed) * 0.5 + 0.5) * height * 0.42;
-          firefly.dot.clear();
-          firefly.dot.circle(x, y, 1.5 + (firefly.index % 3)).fill({ color: "#d8c692", alpha: 0.16 });
-          firefly.dot.alpha = runtime.stimulationRunning ? 0.25 : 1;
-        }
+        // The painted lantern window breathes a little, as a flame would.
+        lanternWindow.alpha = 0.22 + Math.sin(elapsed * 6.1) * 0.06 + Math.sin(elapsed * 2.3 + 1.3) * 0.08;
+        world.filters = runtime.stimulationRunning ? [dim] : null;
 
-        dimmer.clear();
-        if (runtime.stimulationRunning) {
-          dimmer.rect(0, 0, width, height).fill({ color: 0x050505, alpha: 0.58 });
+        if (runtime.stimulationRunning && !wasRunning) {
+          phase = 0;
+          reportedCycles = 0;
+          reportedBeats = 0;
+          cycleRef.current(0);
+          beatRef.current?.("left");
         }
+        wasRunning = runtime.stimulationRunning;
 
         orb.visible = runtime.stimulationRunning;
         if (runtime.stimulationRunning) {
+          // Phase accumulates so speed changes mid-set never make the orb jump.
+          phase += deltaSeconds * orbAngularSpeed * runtime.stimulationSpeed;
           const travel = width * 0.64;
-          const centerX = width * 0.5;
-          const x = centerX + Math.sin(elapsed * 1.55 * runtime.stimulationSpeed) * travel * 0.5;
-          orb.position.set(x, height * 0.36);
-          orb.width = 70;
-          orb.height = 70;
+          const dx = -Math.cos(phase);
+          const x = width * 0.5 + dx * travel * 0.5;
+          const lift = pathLift(runtime.stimulationPath, dx) * height * 0.09;
+          // The painted glow fills about a third of its image; size the sprite so the glow matches the setting.
+          const diameter = (orbDiameter[runtime.stimulationSize] ?? orbDiameter.medium) * 2.8;
+          orb.position.set(x, stimulationY + lift);
+          orb.width = diameter;
+          orb.height = diameter;
           orb.tint = runtime.stimulationColor;
+
+          // The light reaches the right side at odd multiples of π and the left at even ones.
+          const beats = Math.floor(phase / Math.PI);
+          if (beats !== reportedBeats) {
+            reportedBeats = beats;
+            beatRef.current?.(beats % 2 === 1 ? "right" : "left");
+          }
+
+          const cycles = Math.floor(phase / (Math.PI * 2));
+          if (cycles !== reportedCycles) {
+            reportedCycles = cycles;
+            cycleRef.current(cycles);
+          }
         }
       });
     }

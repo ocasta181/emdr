@@ -33,6 +33,22 @@ export class TargetService {
     return target;
   }
 
+  /** Records a session's final SUD on the current version of the target's lineage, in place. */
+  recordDisturbance(targetId: string, disturbance: number): Target {
+    const all = this.repo.all();
+    const byId = new Map(all.map((target) => [target.id, target]));
+    const descendsFrom = (target: Target) => {
+      for (let cursor: Target | undefined = target; cursor; cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined) {
+        if (cursor.id === targetId) return true;
+      }
+      return false;
+    };
+    const current = all.find((target) => target.isCurrent && descendsFrom(target)) ?? this.requireTarget(targetId);
+    const patch = { currentDisturbance: disturbance, updatedAt: nowIso() };
+    this.repo.update(current.id, patch as Partial<Target>);
+    return { ...current, ...patch };
+  }
+
   reviseTarget(previousId: string, patch: Partial<Omit<Target, "id" | "parentId" | "createdAt">>): Target {
     const previous = this.requireTarget(previousId);
     this.repo.update(previousId, { isCurrent: false, updatedAt: nowIso() } as Partial<Target>);

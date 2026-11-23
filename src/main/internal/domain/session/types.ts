@@ -88,6 +88,7 @@ export type SessionFlowAction =
   | "start_stimulation"
   | "pause_stimulation"
   | "log_stimulation_set"
+  | "record_set_observation"
   | "continue_stimulation"
   | "request_grounding"
   | "begin_closure"

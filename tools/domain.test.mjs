@@ -84,6 +84,37 @@ test("guide service rejects stale or disallowed action proposals before mutation
   assert.deepEqual(calls, []);
 });
 
+test("set observations are recorded only between sets", () => {
+  assert.equal(nextSessionFlowState("interjection", "record_set_observation"), "interjection");
+  assert.throws(() => nextSessionFlowState("stimulation", "record_set_observation"), /not allowed/);
+  assert.throws(() => nextSessionFlowState("closure", "record_set_observation"), /not allowed/);
+
+  const during = createGuideHarness("stimulation");
+  const rejected = during.guide.applyAction({
+    type: "record_set_observation",
+    sessionId: "ses_test",
+    workflowState: "stimulation",
+    setId: "set_test",
+    observation: "too soon"
+  });
+  assert.equal(rejected.accepted, false);
+  assert.deepEqual(during.calls, []);
+
+  const between = createGuideHarness("interjection");
+  const recorded = between.guide.applyAction({
+    type: "record_set_observation",
+    sessionId: "ses_test",
+    workflowState: "interjection",
+    setId: "set_test",
+    observation: "Calmer",
+    disturbance: 4
+  });
+  assert.equal(recorded.accepted, true);
+  assert.deepEqual(between.calls, [
+    { type: "observation", draft: { sessionId: "ses_test", setId: "set_test", observation: "Calmer", disturbance: 4 } }
+  ]);
+});
+
 test("guide service applies allowed actions through domain service ports", () => {
   const targetHarness = createGuideHarness("target_selection");
   const createdTarget = targetHarness.guide.applyAction({
@@ -188,7 +219,8 @@ test("guide service applies allowed actions through domain service ports", () =>
       type: "end",
       sessionId: "ses_test",
       patch: { finalDisturbance: 1, notes: "complete" }
-    }
+    },
+    { type: "disturbance", targetId: "tar_test", disturbance: 1 }
   ]);
 });
 
@@ -275,6 +307,10 @@ function createGuideHarness(state, agent) {
         calls.push({ type: "target", draft });
         return { id: "tar_new", ...draft };
       },
+      recordDisturbance: (targetId, disturbance) => {
+        calls.push({ type: "disturbance", targetId, disturbance });
+        return { ...target, currentDisturbance: disturbance };
+      },
       listCurrentTargets: () => [target],
       listAllTargets: () => [target]
     },
@@ -304,13 +340,17 @@ function createGuideHarness(state, agent) {
       endSession: (sessionId, patch) => {
         calls.push({ type: "end", sessionId, patch });
         workflow = { state: "post_session", activeSessionId: sessionId };
-        return { id: sessionId, endedAt: "2026-05-12T00:00:00.000Z" };
+        return { id: sessionId, targetId: "tar_test", endedAt: "2026-05-12T00:00:00.000Z" };
       },
       canApplySessionFlowAction: (currentState, action) =>
         workflowRules.canApplySessionFlowAction(currentState, action),
       currentSessionWorkflow: () => workflow
     },
     {
+      recordObservation: (draft) => {
+        calls.push({ type: "observation", draft });
+        return { id: draft.setId, observation: draft.observation, disturbance: draft.disturbance };
+      },
       logStimulationSet: (draft) => {
         calls.push({ type: "log", draft });
         return { id: "set_test", ...draft };

@@ -3,6 +3,8 @@ import { optionalNumberInRange, optionalStringEnum, recordFrom } from "../../lib
 import type { BilateralStimulationSettings, SettingIpcService } from "./types.js";
 
 const dotSizes = ["small", "medium", "large"] as const satisfies readonly BilateralStimulationSettings["dotSize"][];
+const paths = ["horizontal", "arc", "pendulum"] as const satisfies readonly BilateralStimulationSettings["path"][];
+const audioModes = ["off", "tones"] as const satisfies readonly BilateralStimulationSettings["audio"][];
 const dotColors = ["green", "blue", "white", "orange"] as const satisfies readonly BilateralStimulationSettings["dotColor"][];
 
 export function registerSettingIpc(registry: ApiRegistry, service: SettingIpcService) {
@@ -18,10 +20,16 @@ function bilateralStimulationPatchFrom(payload: unknown): Partial<BilateralStimu
   const speed = optionalNumberInRange(value, "speed", { min: 0.5, max: 2.5 });
   const dotSize = optionalStringEnum(value, "dotSize", dotSizes, "a dot size");
   const dotColor = optionalStringEnum(value, "dotColor", dotColors, "a dot color");
+  const path = optionalStringEnum(value, "path", paths, "a motion path");
+  const setLength = optionalNumberInRange(value, "setLength", { min: 0, max: 200 });
+  const audio = optionalStringEnum(value, "audio", audioModes, "an audio mode");
 
   if (speed !== undefined) patch.speed = speed;
   if (dotSize !== undefined) patch.dotSize = dotSize;
   if (dotColor !== undefined) patch.dotColor = dotColor;
+  if (path !== undefined) patch.path = path;
+  if (setLength !== undefined) patch.setLength = Math.round(setLength);
+  if (audio !== undefined) patch.audio = audio;
 
   return patch;
 }

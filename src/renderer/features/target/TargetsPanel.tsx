@@ -1,24 +1,34 @@
 import { useEffect, useState } from "react";
 import type { GuideAction } from "../../animation/guideAnimationModel";
 import type { Target, TargetDraft, TargetStatus } from "../../../shared/types";
-import { optionalNumber } from "../../../../utils";
+import { ScaleInput, sudAnchors } from "../../components/ScaleInput";
 
 export type TargetEditorState =
   | { kind: "new"; draft: TargetDraft }
   | { kind: "existing"; target: Target };
 
+const statusOptions: Array<{ value: TargetStatus; label: string }> = [
+  { value: "active", label: "Active" },
+  { value: "deferred", label: "Deferred" },
+  { value: "completed", label: "Completed" }
+];
+
 export function TargetsPanel({
   targets,
+  inactiveTargets,
+  sudHistoryFor,
   editing,
   activeSessionTargetId,
   onAdd,
   onEdit,
   onCancelEdit,
   onSave,
-  onAnimate,
-  isAnimating
+  onAnimate
 }: {
   targets: Target[];
+  /** Current versions of completed or deferred targets, kept reachable so they can be reopened. */
+  inactiveTargets: Target[];
+  sudHistoryFor: (target: Target) => number[];
   editing: TargetEditorState | null;
   activeSessionTargetId: string | undefined;
   onAdd: () => void;
@@ -26,38 +36,68 @@ export function TargetsPanel({
   onCancelEdit: () => void;
   onSave: (target: TargetEditorState) => void;
   onAnimate: (action: GuideAction) => void;
-  isAnimating: (action: GuideAction) => boolean;
 }) {
-  return (
-    <>
-      <div className="panelHeader">
-        <h1>Targets</h1>
-        <button onClick={onAdd}>New Target</button>
-      </div>
+  if (editing) {
+    return (
+      <TargetForm
+        editing={editing}
+        onSave={(target) => {
+          onAnimate("write_in_book");
+          onSave(target);
+        }}
+        onCancel={onCancelEdit}
+      />
+    );
+  }
 
-      {editing ? (
-        <TargetForm
-          editing={editing}
-          onSave={(target) => {
-            onAnimate("write_in_book");
-            onSave(target);
-          }}
-          onCancel={onCancelEdit}
-        />
-      ) : (
-        <div className="targetList">
-          {targets.length === 0 && <p className="authNotice">No active targets yet.</p>}
-          {targets.map((target) => (
+  return (
+    <div className="targetList">
+      {targets.length === 0 && <p className="authNotice">No active targets yet.</p>}
+      {targets.map((target) => (
+        <article className="targetRow" key={target.id}>
+          <div className="targetText">
+            <h2>{target.description}</h2>
+            <p>
+              {[
+                target.clusterTag,
+                (target.currentDisturbance ?? target.initialDisturbance) !== undefined
+                  ? `SUD ${target.currentDisturbance ?? target.initialDisturbance}`
+                  : undefined
+              ]
+                .filter(Boolean)
+                .join(" · ") || "No SUD yet"}
+              {activeSessionTargetId === target.id && <span className="inlineStatus">In session</span>}
+            </p>
+          </div>
+          <SudTrend points={sudHistoryFor(target)} />
+          <div className="rowActions">
+            <button
+              className="quiet"
+              onClick={() => {
+                onAnimate("flip_through_book");
+                onEdit(target);
+              }}
+            >
+              Edit
+            </button>
+          </div>
+        </article>
+      ))}
+      <button className="primary" onClick={onAdd}>
+        New target
+      </button>
+      {inactiveTargets.length > 0 && (
+        <details className="inactiveTargets">
+          <summary>Completed and deferred ({inactiveTargets.length})</summary>
+          {inactiveTargets.map((target) => (
             <article className="targetRow" key={target.id}>
-              <div>
+              <div className="targetText">
                 <h2>{target.description}</h2>
-                <p>
-                  {target.status} · {target.clusterTag || "No cluster"}
-                </p>
+                <p>{target.status === "completed" ? "Completed" : "Deferred"}</p>
               </div>
-              <div className="sud">SUD {target.currentDisturbance ?? "-"}</div>
-              <div className="buttonRow">
+              <div className="rowActions">
                 <button
+                  className="quiet"
                   onClick={() => {
                     onAnimate("flip_through_book");
                     onEdit(target);
@@ -65,27 +105,12 @@ export function TargetsPanel({
                 >
                   Edit
                 </button>
-                {activeSessionTargetId === target.id && <span className="inlineStatus">In session</span>}
               </div>
             </article>
           ))}
-          <div className="buttonRow">
-            <button
-              className={isAnimating("flip_through_book") ? "active" : undefined}
-              onClick={() => onAnimate("flip_through_book")}
-            >
-              Flip pages
-            </button>
-            <button
-              className={isAnimating("write_in_book") ? "active" : undefined}
-              onClick={() => onAnimate("write_in_book")}
-            >
-              Write target
-            </button>
-          </div>
-        </div>
+        </details>
       )}
-    </>
+    </div>
   );
 }
 
@@ -131,9 +156,10 @@ function TargetForm({
         });
       }}
     >
+      <h2>{editing.kind === "new" ? "New target" : "Edit target"}</h2>
       <label>
         Description
-        <textarea value={draft.description} onChange={(event) => set("description", event.target.value)} />
+        <textarea autoFocus value={draft.description} onChange={(event) => set("description", event.target.value)} />
       </label>
       <label>
         Negative cognition
@@ -147,43 +173,51 @@ function TargetForm({
         Cluster
         <input value={draft.clusterTag ?? ""} onChange={(event) => set("clusterTag", event.target.value)} />
       </label>
-      <div className="twoCol">
-        <label>
-          Initial SUD
-          <input
-            type="number"
-            min="0"
-            max="10"
-            value={draft.initialDisturbance ?? ""}
-            onChange={(event) => set("initialDisturbance", optionalNumber(event.target.value))}
-          />
-        </label>
-        <label>
-          Current SUD
-          <input
-            type="number"
-            min="0"
-            max="10"
-            value={draft.currentDisturbance ?? ""}
-            onChange={(event) => set("currentDisturbance", optionalNumber(event.target.value))}
-          />
-        </label>
+      <ScaleInput
+        label="Initial SUD" anchors={sudAnchors}
+        min={0}
+        max={10}
+        value={draft.initialDisturbance}
+        onChange={(value) => set("initialDisturbance", value)}
+      />
+      <ScaleInput
+        label="Current SUD" anchors={sudAnchors}
+        min={0}
+        max={10}
+        value={draft.currentDisturbance}
+        onChange={(value) => set("currentDisturbance", value)}
+      />
+      <div className="fieldGroup">
+        <span className="scaleLabel" id="target-status-label">
+          Status
+        </span>
+        <div className="segmented" role="radiogroup" aria-labelledby="target-status-label">
+          {statusOptions.map((option) => {
+            const selected = (draft.status ?? "active") === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={selected ? "selected" : undefined}
+                onClick={() => set("status", option.value)}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <label>
-        Status
-        <select value={draft.status} onChange={(event) => set("status", event.target.value as TargetStatus)}>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="deferred">Deferred</option>
-        </select>
-      </label>
       <label>
         Notes
         <textarea value={draft.notes ?? ""} onChange={(event) => set("notes", event.target.value)} />
       </label>
       {error && <div className="formError">{error}</div>}
       <div className="buttonRow">
-        <button type="submit">Save Version</button>
+        <button type="submit" className="primary">
+          {editing.kind === "new" ? "Save target" : "Save new version"}
+        </button>
         <button type="button" onClick={onCancel}>
           Cancel
         </button>
@@ -206,4 +240,29 @@ function editableTargetDraft(editing: TargetEditorState): TargetDraft {
     status: editing.target.status,
     notes: editing.target.notes
   };
+}
+
+/** A tiny SUD line, 0 at the bottom and 10 at the top, shown once there are two readings. */
+function SudTrend({ points }: { points: number[] }) {
+  if (points.length < 2) return null;
+  const width = 64;
+  const height = 22;
+  const step = width / (points.length - 1);
+  const coords = points.map((value, index) => `${(index * step).toFixed(1)},${(height - 2 - (value / 10) * (height - 4)).toFixed(1)}`);
+  const first = points[0];
+  const last = points[points.length - 1];
+  return (
+    <svg
+      className="sudTrend"
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      role="img"
+      aria-label={`SUD over sessions: ${points.join(", ")}`}
+    >
+      <title>{`SUD ${first} → ${last}`}</title>
+      <polyline points={coords.join(" ")} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx={coords[coords.length - 1].split(",")[0]} cy={coords[coords.length - 1].split(",")[1]} r="2.4" fill="currentColor" />
+    </svg>
+  );
 }
